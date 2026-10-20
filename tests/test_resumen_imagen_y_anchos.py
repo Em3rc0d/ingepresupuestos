@@ -36,7 +36,7 @@ from views.proyecto_view import (ProyectoView, _PresupuestoTree,    # noqa: E402
                                  expandir_hasta_nivel)
 from models.usuario import Usuario                                  # noqa: E402
 
-PID = 186
+PID = 397  # PLAZA PRINCIPAL DE YANQUE: the only budget in the public seed (01 → 01.01…; 02 → 02.01 → 02.01.01)
 
 _VIVAS = []
 

@@ -41,7 +41,21 @@ from views.proyecto_view import ProyectoView, _DonutChart           # noqa: E402
 from models.usuario import Usuario                                  # noqa: E402
 
 PID_SUBS = 396      # dos sub-presupuestos: ACTIVIDAD 1 y ACTIVIDAD 2
-PID_SIMPLE = 186    # sin sub-presupuestos
+PID_SIMPLE = 397    # Yanque, flattened below: no sub-budgets in this test's copy
+
+
+def _flatten_simple(db_path: str, pid: int) -> None:
+    """The public seed's only budget (Yanque) has a sub-budget; this test
+    needs one without, so its temporary copy drops it."""
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE partidas SET sub_presupuesto_id=NULL WHERE proyecto_id=?", (pid,))
+    conn.execute("DELETE FROM sub_presupuestos WHERE proyecto_id=?", (pid,))
+    conn.commit()
+    conn.close()
+
+
+_flatten_simple(_tmpdb, PID_SIMPLE)
 
 
 _VIVAS = []     # las vistas se conservan: si Python las suelta, sus timers
@@ -197,7 +211,10 @@ def test_el_pdf_del_gantt_omite_las_columnas_ocultas_en_pantalla():
     assert g._pdf_columnas_ocultas() == {5, 6}
     sin, hojas = _texto_pdf(g)
     n_sin = len(fechas.findall(sin))
-    assert n_sin <= 2 * hojas, (n_sin, hojas, sin[:300])   # solo las del encabezado
+    # Only the header's dates remain: «Tramo: … – …» and, when the project
+    # has one, «Costo al: dd/mm/aaaa» — up to three per sheet.
+    assert n_sin <= 3 * hojas, (n_sin, hojas, sin[:300])
+    assert n_con - n_sin > 20, (n_con, n_sin)            # the columns' dates went
     assert 'Descripción' in sin and 'Pred.' in sin
     assert len(sin) < len(con)
     for c in range(g.tbl.columnCount()):

@@ -43,7 +43,7 @@ _fd, _tmpdb = tempfile.mkstemp(suffix='_sc_test.db')
 os.close(_fd)
 shutil.copy(SEED, _tmpdb)
 
-PID = 186   # RESERVORIOS DE 600 M3
+PID = 397  # PLAZA PRINCIPAL DE YANQUE: the only budget in the public seed (01 → 01.01…; 02 → 02.01 → 02.01.01)
 
 
 def _usar_bd_temporal():

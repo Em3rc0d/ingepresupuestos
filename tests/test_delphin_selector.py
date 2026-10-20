@@ -123,7 +123,9 @@ def test_con_un_solo_presupuesto_no_pregunta(tmp_path, monkeypatch):
             == ("PR1", "PP1"))
 
 
-REAL = "/home/sumaritux/Descargas/CHOQUEHUANCA CONTRATA 2026QQQ.sqlite"
+# A real Delphin base with several budgets, one named ESTRUCTURAS with 95
+# items. Client files never enter the repository: set the path locally.
+REAL = os.path.expanduser(os.environ.get("INGEPRES_DELPHIN_SAMPLE", ""))
 
 
 @pytest.mark.skipif(not os.path.isfile(REAL), reason="base real no disponible")

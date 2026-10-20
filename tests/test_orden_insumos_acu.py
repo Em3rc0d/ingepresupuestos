@@ -32,8 +32,13 @@ d.DB_PATH = _tmpdb
 cfg.DB_PATH = _tmpdb
 d.init_db()
 
-PID = 186
-PART = 12248        # 2 MO + 7 MAT
+PID = 397  # PLAZA PRINCIPAL DE YANQUE: the only budget in the public seed (01 → 01.01…; 02 → 02.01 → 02.01.01)
+# Yanque's 01.01 (billboard): 2 MO + 5 MAT + 1 EQ.
+PART = d.get_db().execute("SELECT id FROM partidas WHERE proyecto_id=? AND item='01.01'",
+                          (PID,)).fetchone()[0]
+# Yanque ships «En revisión» (read-only budget); the panel test edits it.
+with d.get_db() as _c:
+    _c.execute("UPDATE proyectos SET estado='elaboracion' WHERE id=?", (PID,))
 
 _VIVAS = []
 

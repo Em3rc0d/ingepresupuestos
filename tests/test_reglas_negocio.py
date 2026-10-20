@@ -159,8 +159,18 @@ def test_pu_desde_items_overhead():
 # ── _recalcular_pu y detector PU≠ACU sobre datos reales del seed ────────────
 
 def _proyecto_sano(conn):
-    """Primer proyecto del seed sin inconsistencias PU↔ACU."""
+    """Primer proyecto del seed sin inconsistencias PU↔ACU.
+
+    Skips projects whose item codes repeat across sub-budgets (LLAMKASUN):
+    `calcular_totales` keys its partials by item code, so repeated codes
+    collapse. That is a separate, known issue; these tests check one budget.
+    """
     for (prid,) in conn.execute("SELECT id FROM proyectos ORDER BY id"):
+        repetidos = conn.execute(
+            "SELECT 1 FROM partidas WHERE proyecto_id=? GROUP BY item "
+            "HAVING COUNT(*) > 1 LIMIT 1", (prid,)).fetchone()
+        if repetidos:
+            continue
         if not d.partidas_pu_inconsistente(conn, prid):
             n = conn.execute(
                 """SELECT COUNT(*) FROM partidas p WHERE p.proyecto_id=? AND p.es_titulo=0
@@ -277,12 +287,25 @@ def test_estados_bloqueo():
 
 
 # ── Importador .prs: ACU completo y CD fiel (solo si hay archivos reales) ───
+# Real client files never enter the repository. Each test takes its sample
+# from an environment variable and skips when it is unset:
+#   INGEPRES_PRS_SAMPLES   .prs files to reconcile, separated by os.pathsep
+#   INGEPRES_PRS_PIE       the Plaza Yanque .prs (the seed's own project)
+#   INGEPRES_PRS_PIE2      a .prs whose footer items have other names, with
+#   INGEPRES_PRS_PIE2_EXPECTED  a JSON {"rubros": {name: amount}, "total": x}
+#   INGEPRES_PRS_SUBS      a .prs with several sub-budgets
+
+def _muestra(var: str) -> str:
+    """The sample file named by `var`, or '' when unset or missing."""
+    ruta = os.path.expanduser(os.environ.get(var, ''))
+    return ruta if ruta and os.path.isfile(ruta) else ''
+
 
 def test_importador_prs_reconcilia():
     import shutil as _sh
     archivos = [p for p in (
-        os.path.expanduser('~/Descargas/TROCHA CHICHAS.prs'),
-        os.path.expanduser('~/Documentos/ET Plaza Yanque/Base de datos Plaza Yanque.prs'),
+        os.path.expanduser(x) for x in
+        os.environ.get('INGEPRES_PRS_SAMPLES', '').split(os.pathsep) if x
     ) if os.path.isfile(p)]
     if not archivos or not _sh.which('mdb-export'):
         print("      (saltado: sin archivos .prs de prueba o sin mdbtools)")
@@ -311,8 +334,8 @@ def test_importador_prs_pie_de_presupuesto():
     PowerCost. Contrastado con «Desagregado CI.xlsx» del propio PowerCost.
     """
     import shutil as _sh
-    prs = os.path.expanduser('~/Descargas/yanque/Plaza Yanque.prs')
-    if not os.path.isfile(prs) or not _sh.which('mdb-export'):
+    prs = _muestra('INGEPRES_PRS_PIE')
+    if not prs or not _sh.which('mdb-export'):
         print("      (saltado: sin el .prs de prueba o sin mdbtools)")
         return
     from core.powercost_prs_importer import import_powercost_prs
@@ -371,27 +394,28 @@ def test_importador_prs_pie_de_presupuesto():
     # «GASTOS DE EXP. TEC.» no contiene «EXPEDIENTE»: clasificar por nombre
     # lo tomaba por un subtotal y perdía sus 6 500. El tipo debe salir de la
     # ESTRUCTURA (si tiene desagregado en EstGGs → es un rubro).
-    prs2 = os.path.expanduser('~/Descargas/yara/yarah.prs')
-    if not os.path.isfile(prs2):
+    prs2 = _muestra('INGEPRES_PRS_PIE2')
+    esperado_json = _muestra('INGEPRES_PRS_PIE2_EXPECTED')
+    if not prs2 or not esperado_json:
         return
+    import json
+    with open(esperado_json, encoding='utf-8') as fh:
+        esperado_2 = json.load(fh)
     info2, part2, acus2, rec2, met2 = import_powercost_prs(prs2)
     pid2 = importer.guardar_importacion(info2, part2, acus2, rec2, met2)
     _i2, tot2 = d.calcular_totales(pid2)
     conn = d.get_db()
     rubros2, total2 = _calcular_rubros_pie(conn, pid2, tot2['cd'])
     conn.close()
-    esperado2 = {
-        'Gastos Generales':      27750.00,
-        'Gastos De Supervision': 12000.00,
-        'Gastos De Liquidacion':  4500.00,
-        'Gastos De Exp. Tec.':    6500.00,
-    }
+    # Expected footer from the file's own PowerCost report, kept next to the
+    # sample; it must include the item named «Gastos De Exp. Tec.».
+    esperado2 = esperado_2['rubros']
     vistos2 = {r['nombre']: r['valor'] for r in (rubros2 or [])}
     for nombre, val in esperado2.items():
         assert nombre in vistos2, f"falta «{nombre}» (¿clasificado como subtotal?)"
         assert abs(vistos2[nombre] - val) <= 0.02, \
             f"{nombre}: app={vistos2[nombre]:.2f} vs PowerCost={val:.2f}"
-    assert abs(total2 - 213396.74) <= 0.02, f"total yarah = {total2:.2f}"
+    assert abs(total2 - esperado_2['total']) <= 0.02, f"total = {total2:.2f}"
     assert not any('COSTO TOTAL' in n.upper() for n in vistos2), \
         f"el gran total se importó como rubro: {list(vistos2)}"
 
@@ -406,8 +430,8 @@ def test_importador_prs_subpresupuestos_dentro_del_proyecto():
     (`IdSubPpto>0`), así que una base con 7 sub-presupuestos traía 1 de 7.
     """
     import shutil as _sh
-    prs = os.path.expanduser('~/Descargas/p/base de datos mantenimiento.prs')
-    if not os.path.isfile(prs) or not _sh.which('mdb-export'):
+    prs = _muestra('INGEPRES_PRS_SUBS')
+    if not prs or not _sh.which('mdb-export'):
         print("      (saltado: sin archivo .prs de prueba o sin mdbtools)")
         return
     from core.powercost_prs_importer import import_powercost_prs, _query, _int, _num

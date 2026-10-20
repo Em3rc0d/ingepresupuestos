@@ -79,8 +79,12 @@ def _tokens(texto: str) -> set:
     sea letra o dígito porque el corte de línea cae en espacios, guiones y
     barras: «PLASTIFICANTE-CARAVISTA» sale como dos tokens en un ancho y como
     uno en otro. Los números sueltos quedan fuera: el «Página X de N» del pie
-    cambia con la paginación."""
-    return {w for w in re.findall(r'\w+', texto) if re.search(r'[^\d_]', w)}
+    cambia con la paginación. Tampoco cuentan los productos de medidas
+    («9.00x4.80»): la fuente cambia la x entre dígitos por un signo de
+    multiplicar (alternativa contextual), que se extrae como un glifo de uso
+    privado y nunca coincidiría con la «x» del HTML."""
+    return {w for w in re.findall(r'\w+', texto)
+            if re.search(r'[^\d_]', w) and not re.fullmatch(r'\d*(?:x\d*)+', w)}
 
 
 def _palabras_pdf(doc: QPdfDocument) -> set:

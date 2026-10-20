@@ -36,6 +36,9 @@ os.close(_fd)
 shutil.copy(SEED, _tmpdb)
 
 
+PID = 397  # PLAZA PRINCIPAL DE YANQUE: the only budget in the public seed (01 → 01.01…; 02 → 02.01 → 02.01.01)
+
+
 def _usar_bd_temporal():
     """Apunta `get_db()` a la copia. Se llama en cada prueba, no al importar:
     en la suite completa otros módulos también fijan `DB_PATH` al importarse
@@ -43,6 +46,11 @@ def _usar_bd_temporal():
     if d.DB_PATH != _tmpdb:
         d.DB_PATH = _tmpdb
         d.init_db()      # migraciones sobre la copia, como hace la app al arrancar
+        # Yanque ships «En revisión» (read-only budget); these tests edit it.
+        conn = d.get_db()
+        conn.execute("UPDATE proyectos SET estado='elaboracion' WHERE id=?", (PID,))
+        conn.commit()
+        conn.close()
 
 
 _usar_bd_temporal()
@@ -52,7 +60,6 @@ from views.proyecto_view import (                   # noqa: E402
     expandir_hasta_nivel, profundidad_titulos, ProyectoView)
 from models.usuario import Usuario                  # noqa: E402
 
-PID = 186  # RESERVORIOS DE 600 M3: en elaboración, 62 filas, títulos a 2 niveles
 
 
 def _vista() -> ProyectoView:
@@ -407,9 +414,9 @@ def test_el_excel_de_un_proyecto_normal_no_mueve_nada_de_columna():
     import openpyxl
     import core.exporter as EX
     _usar_bd_temporal()
-    # Proyecto 32 (Arequipa, 4 niveles): otros tests le cuelgan cadenas
-    # hondas al 186 y la BD temporal es compartida.
-    wb = openpyxl.load_workbook(io.BytesIO(EX.exportar_presupuesto(32).getvalue()))
+    # LLAMKASUN (396, three levels): other tests hang deep chains on
+    # Yanque (PID) and the temporary database is shared.
+    wb = openpyxl.load_workbook(io.BytesIO(EX.exportar_presupuesto(396).getvalue()))
     ws = wb.worksheets[0]
     filas = [r for r in ws.iter_rows() if isinstance(r[0].value, str) and r[0].value[:1].isdigit()]
     assert filas and all(r[1].value for r in filas), [r[0].value for r in filas if not r[1].value]
@@ -553,7 +560,7 @@ def test_el_pdf_del_gantt_parte_en_dos_lineas_la_descripcion_larga():
         hs = g._pdf_row_heights(p, partidas, col_defs, mm(5))
         assert len(hs) == len(partidas)
         larga = next(i for i, pt in enumerate(partidas) if (pt.get('descripcion') or '').startswith('PARTIDA CON UNA'))
-        corta = next(i for i, pt in enumerate(partidas) if (pt.get('descripcion') or '') == 'AGUA PARA LA CONSTRUCCION')
+        corta = next(i for i, pt in enumerate(partidas) if (pt.get('descripcion') or '') == 'FLETE TERRESTRE')
         assert hs[larga] > hs[corta] == mm(5)
         # Con la columna ancha de sobra, todas las filas vuelven al alto base.
         col_defs[2] = ('Descripción', mm(400), 0)

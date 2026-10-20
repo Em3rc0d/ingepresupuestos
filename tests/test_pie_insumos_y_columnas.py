@@ -52,7 +52,22 @@ from views.proyecto_view import (ProyectoView, _DonutChart, COLS_ACU,   # noqa: 
 from models.usuario import Usuario                                  # noqa: E402
 
 PID_SUBS = 396      # dos sub-presupuestos y 21 subcontratos
-PID_SIMPLE = 186    # sin sub-presupuestos
+PID_SIMPLE = 397    # Yanque, aplanado abajo: sin sub-presupuestos en esta copia
+
+
+def _preparar_simple(db_path: str, pid: int) -> None:
+    """El único presupuesto del seed público (Yanque) trae un sub-presupuesto
+    y viene «En revisión» (solo lectura); estos tests lo editan sin subs."""
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE partidas SET sub_presupuesto_id=NULL WHERE proyecto_id=?", (pid,))
+    conn.execute("DELETE FROM sub_presupuestos WHERE proyecto_id=?", (pid,))
+    conn.execute("UPDATE proyectos SET estado='elaboracion' WHERE id=?", (pid,))
+    conn.commit()
+    conn.close()
+
+
+_preparar_simple(_tmpdb, PID_SIMPLE)
 
 _VIVAS = []
 

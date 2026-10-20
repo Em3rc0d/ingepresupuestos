@@ -40,7 +40,7 @@ d.init_db()
 import openpyxl                                                     # noqa: E402
 import core.exporter as ex                                          # noqa: E402
 
-PID = 186
+PID = 397  # PLAZA PRINCIPAL DE YANQUE: the only budget in the public seed (01 → 01.01…; 02 → 02.01 → 02.01.01)
 COP = 'Pesos Colombianos'
 _VIVAS = []
 
