@@ -159,18 +159,8 @@ def test_pu_desde_items_overhead():
 # ── _recalcular_pu y detector PU≠ACU sobre datos reales del seed ────────────
 
 def _proyecto_sano(conn):
-    """Primer proyecto del seed sin inconsistencias PU↔ACU.
-
-    Skips projects whose item codes repeat across sub-budgets (LLAMKASUN):
-    `calcular_totales` keys its partials by item code, so repeated codes
-    collapse. That is a separate, known issue; these tests check one budget.
-    """
+    """Primer proyecto del seed sin inconsistencias PU↔ACU."""
     for (prid,) in conn.execute("SELECT id FROM proyectos ORDER BY id"):
-        repetidos = conn.execute(
-            "SELECT 1 FROM partidas WHERE proyecto_id=? GROUP BY item "
-            "HAVING COUNT(*) > 1 LIMIT 1", (prid,)).fetchone()
-        if repetidos:
-            continue
         if not d.partidas_pu_inconsistente(conn, prid):
             n = conn.execute(
                 """SELECT COUNT(*) FROM partidas p WHERE p.proyecto_id=? AND p.es_titulo=0
@@ -234,6 +224,34 @@ def test_calcular_totales_coherente():
     # Presupuesto Total = CD + GG + utilidad + IGV — nunca menor que el CD
     assert t['total'] >= t['cd'] - 0.01
     assert t['igv'] >= 0 and t['subtotal'] >= t['cd'] - 0.01
+
+
+def test_calcular_totales_con_items_repetidos_entre_subs():
+    """Cada sub-presupuesto numera desde 01: el ítem solo no es único en el
+    proyecto. LLAMKASUN (396) tiene 29 códigos repetidos entre sus tres subs;
+    con los parciales indexados por ítem el CD salía 186 390,13."""
+    PID_SUBS = 396
+    conn = _db_seed()
+    try:
+        hojas = conn.execute(
+            "SELECT sub_presupuesto_id, item, metrado, precio_unitario FROM partidas "
+            "WHERE proyecto_id=? AND es_titulo=0", (PID_SUBS,)).fetchall()
+    finally:
+        conn.close()
+    assert len(hojas) > len({h['item'] for h in hojas}), "el seed ya no repite ítems"
+    items, t = d.calcular_totales(PID_SUBS)
+    cd_real = sum(d.parcial_wysiwyg(h['metrado'], h['precio_unitario']) for h in hojas)
+    assert abs(t['cd'] - cd_real) < 0.01, (t['cd'], cd_real)
+    # El subtotal de un título suma solo las partidas de SU sub-presupuesto.
+    for e in items:
+        p = e['partida']
+        if not p['es_titulo']:
+            continue
+        esperado = sum(d.parcial_wysiwyg(h['metrado'], h['precio_unitario'])
+                       for h in hojas if h['sub_presupuesto_id'] == p['sub_presupuesto_id']
+                       and (h['item'] == p['item'] or h['item'].startswith(p['item'] + '.')))
+        assert abs(e['total'] - esperado) < 0.01, (p['sub_presupuesto_id'], p['item'],
+                                                   e['total'], esperado)
 
 
 # ── Precios por proyecto: COALESCE(ai.precio, r.precio, 0) ──────────────────

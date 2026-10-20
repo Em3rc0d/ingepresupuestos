@@ -1134,25 +1134,32 @@ def calcular_totales(proyecto_id):
     # Calcular parciales WYSIWYG: metrado se redondea a los decimales del
     # presupuesto ANTES de multiplicar, para que coincida con la multiplicación
     # manual de lo que ve el usuario (criterio Delphin/S10).
+    # La clave es (sub-presupuesto, ítem): cada sub numera desde 01, así que
+    # el ítem solo no es único en el proyecto. Con la clave por ítem los
+    # parciales repetidos se pisaban y el CD salía recortado (LLAMKASUN del
+    # seed: 186 390,13 en vez de 234 202,19), y el subtotal de un título
+    # sumaba partidas de otros subs.
     parciales = {}
     for p in partidas:
         if not p['es_titulo']:
-            parciales[p['item']] = parcial_wysiwyg(p['metrado'], p['precio_unitario'])
+            parciales[(p['sub_presupuesto_id'], p['item'])] = \
+                parcial_wysiwyg(p['metrado'], p['precio_unitario'])
 
     # Calcular subtotales de secciones
-    def subtotal_de(prefijo):
+    def subtotal_de(sub, prefijo):
         total = 0
-        for item, val in parciales.items():
-            if item.startswith(prefijo + '.') or item == prefijo:
+        for (s_id, item), val in parciales.items():
+            if s_id == sub and (item.startswith(prefijo + '.') or item == prefijo):
                 total += val
         return total
 
     items_con_total = []
     for p in partidas:
+        clave = (p['sub_presupuesto_id'], p['item'])
         if p['es_titulo']:
-            total = subtotal_de(p['item'])
+            total = subtotal_de(*clave)
         else:
-            total = parciales.get(p['item'], 0)
+            total = parciales.get(clave, 0)
         items_con_total.append({'partida': dict(p), 'total': total})
 
     cd = sum(parciales.values())
