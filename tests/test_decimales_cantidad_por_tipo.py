@@ -132,6 +132,80 @@ def test_configuracion_muestra_cuatro_ajustes():
         v.close()
 
 
+# ── Los montos del ACU en pantalla siguen a Configuración (David, 2 oct 2026) ─
+
+PID = 397  # PLAZA PRINCIPAL DE YANQUE: the only budget in the public seed
+_VIVAS = []
+
+
+def _vista():
+    from views.proyecto_view import ProyectoView
+    from models.usuario import Usuario
+    v = ProyectoView(PID, Usuario(id=1, nombre="t", rol="admin"))
+    v._completar_panel_tabs()
+    v._cargar_datos_inicial()
+    _app.processEvents()          # the deferred load _completar_panel_tabs queued
+    _VIVAS.append(v)
+    return v
+
+
+def _partida_con_acu() -> int:
+    conn = d.get_db()
+    pid = conn.execute(
+        "SELECT p.id FROM partidas p JOIN acu_items ai ON ai.partida_id=p.id "
+        "WHERE p.proyecto_id=? AND p.es_titulo=0 ORDER BY p.item LIMIT 1",
+        (PID,)).fetchone()[0]
+    conn.close()
+    return pid
+
+
+def _decimales(texto: str) -> int:
+    """Cifras después del último separador decimal de «S/ 1,234.5678»."""
+    return len(texto.rsplit('.', 1)[1]) if '.' in texto else 0
+
+
+def _parciales_acu(v) -> list:
+    return [v.tbl_acu.item(r, 6).text() for r in range(v.tbl_acu.rowCount())
+            if v._acu_row_ids[r] != -1]
+
+
+def test_el_acu_en_pantalla_usa_los_decimales_de_montos():
+    antes = d.get_decimales_ppto()
+    try:
+        d.set_decimales_ppto(4)
+        v = _vista()
+        v.cargar_acu(_partida_con_acu())
+        parciales = _parciales_acu(v)
+        assert parciales and all(_decimales(t) == 4 for t in parciales), parciales
+        assert _decimales(v.lbl_pu.text()) == 4, v.lbl_pu.text()
+        subt = [l.text() for l in v._sub_labels.values()]
+        assert all(_decimales(t) == 4 for t in subt), subt
+    finally:
+        d.set_decimales_ppto(antes)
+
+
+def test_al_volver_de_configuracion_el_proyecto_abierto_se_repinta():
+    antes = d.get_decimales_ppto()
+    try:
+        d.set_decimales_ppto(2)
+        v = _vista()
+        v.show()
+        v.cargar_acu(_partida_con_acu())
+        assert _parciales_acu(v) and all(_decimales(t) == 2 for t in _parciales_acu(v))
+        # Ir a Configuración: el proyecto sigue vivo, oculto en el stack.
+        v.hide()
+        d.set_decimales_ppto(3)
+        v.show()
+        _app.processEvents()
+        parciales = _parciales_acu(v)
+        assert parciales and all(_decimales(t) == 3 for t in parciales), parciales
+        item = v._id_to_item[v._partida_actual_id]
+        assert _decimales(item.text(4)) == 3, item.text(4)          # P.U. del árbol
+        v.close()
+    finally:
+        d.set_decimales_ppto(antes)
+
+
 if __name__ == "__main__":
     fallos = 0
     for name, fn in list(globals().items()):

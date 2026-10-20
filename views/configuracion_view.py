@@ -986,7 +986,8 @@ class ConfiguracionView(QWidget):
             "Montos: precios unitarios, parciales y totales. Metrados: metrado "
             "de la partida y planilla. Cantidades: insumos del ACU, por tipo; "
             "la cantidad se redondea antes de multiplicarla por el precio.\n"
-            "Abre de nuevo el proyecto para ver el cambio aplicado."
+            "Los proyectos abiertos se actualizan al volver a ellos. El P.U. "
+            "guardado de cada partida se recalcula con Recalcular (F5)."
         )
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
@@ -1589,7 +1590,7 @@ class ConfiguracionView(QWidget):
         cant_txt = " · ".join(f"{t} {n}" for t, n in n_cant.items())
         self.lbl_dec_estado.setText(
             f"✓  Guardado: montos {n_ppto} · metrados {n_met} · cantidades {cant_txt}. "
-            "Abre un proyecto para ver el cambio aplicado."
+            "Para recalcular el P.U. de las partidas, usa Recalcular (F5) en el proyecto."
         )
 
 

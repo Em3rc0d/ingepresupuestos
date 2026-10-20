@@ -5298,6 +5298,7 @@ class ProyectoView(QWidget):
         from utils.i18n import tr
         # El árbol se reconstruye → los items resaltados quedan obsoletos.
         self._ins_resaltados = []
+        self._decimales_pintados = self._huella_decimales()
         # La fila seleccionada sobrevive a la recarga (recalcular, editar…):
         # si no, se perdía el resaltado y ↑/↓ dejaban de navegar (#6).
         _actual = self.tree.currentItem()
@@ -5466,14 +5467,41 @@ class ProyectoView(QWidget):
         cd = self._total_proyecto()
         # CD en el panel ACU (etiqueta "CD:")
         if hasattr(self, 'lbl_cd'):
-            self.lbl_cd.setText(fmt(cd, self._moneda))
+            self.lbl_cd.setText(fmt(cd, self._moneda, get_decimales_ppto()))
         # Presupuesto Total en el topbar (CD + GG + Utilidad + IGV...)
         try:
             _, totales = calcular_totales(self.pid)
             total = totales.get('total', cd)
         except Exception:
             total = cd
-        self.lbl_total.setText(fmt(total, self._moneda))
+        self.lbl_total.setText(fmt(total, self._moneda, get_decimales_ppto()))
+
+    # ── Decimales de Configuración ─────────────────────────────────────────
+    # El proyecto sigue vivo en el stack mientras se va a Configuración, así
+    # que al volver mostraba los decimales viejos hasta reabrirlo (reporte de
+    # David Ramos, 2 oct 2026). Cada recarga anota con qué decimales pintó y,
+    # si al volver a mostrarse cambiaron, se repinta.
+
+    @staticmethod
+    def _huella_decimales() -> tuple:
+        return (get_decimales_ppto(), get_decimales_metrado(),
+                tuple(get_decimales_cant_acu(t) for t in ('MO', 'MAT', 'EQ', 'SC')))
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        pintados = getattr(self, '_decimales_pintados', None)
+        if pintados is not None and pintados != self._huella_decimales():
+            QTimer.singleShot(0, self._repintar_por_decimales)
+
+    def _repintar_por_decimales(self):
+        self.recargar_partidas()
+        self.actualizar_total()
+        if hasattr(self, 'tbl_ins'):
+            self.cargar_insumos(getattr(self, '_ins_estado', None))
+        if hasattr(self, '_resumen_layout'):
+            self.cargar_resumen()
+        if self._partida_actual_id:
+            self.cargar_acu(self._partida_actual_id)
 
     def _texto_cuadrilla(self, tipo, unidad, cuadrilla) -> str:
         """Texto de la celda Cuadrilla del ACU en pantalla: el número solo
@@ -5621,6 +5649,10 @@ class ProyectoView(QWidget):
         self.tbl_acu.setRowCount(0)
         self._acu_row_ids: list[int] = []
 
+        # Montos con los decimales de Configuración (como el árbol). El
+        # precio del insumo conserva al menos cuatro: es el que se edita.
+        dec = get_decimales_ppto()
+        self._decimales_pintados = self._huella_decimales()
         current_tipo = None
         for it in items:
             tipo = it['tipo'] or 'MAT'
@@ -5668,8 +5700,8 @@ class ProyectoView(QWidget):
                 it['unidad'] or '',
                 self._texto_cuadrilla(tipo, it['unidad'], cuad),
                 f"{cant:.{get_decimales_cant_acu(tipo)}f}",
-                f"{precio:.4f}",
-                fmt(it['parcial'] or 0, self._moneda),
+                f"{precio:.{max(4, dec)}f}",
+                fmt(it['parcial'] or 0, self._moneda, dec),
             ]
             for c, v in enumerate(vals, start=1):
                 cell = QTableWidgetItem(str(v))
@@ -5691,9 +5723,9 @@ class ProyectoView(QWidget):
 
         # Actualizar subtotales y barras
         for tipo, lbl in self._sub_labels.items():
-            lbl.setText(fmt(totales_tipo.get(tipo, 0), self._moneda))
+            lbl.setText(fmt(totales_tipo.get(tipo, 0), self._moneda, dec))
         pu = partida['precio_unitario'] or 0
-        self.lbl_pu.setText(fmt(pu, self._moneda))
+        self.lbl_pu.setText(fmt(pu, self._moneda, dec))
 
         # Cargar metrados si el tab es visible
         if self.tabs.currentIndex() == 2:
@@ -5811,7 +5843,7 @@ class ProyectoView(QWidget):
 
             codigo  = (row.get('codigo') or '').strip()
             tip_ins = (f"{tr('Código')}: {codigo or '—'}   ·   "
-                       f"{row['unidad'] or '—'}   ·   {fmt(precio, self._moneda)}")
+                       f"{row['unidad'] or '—'}   ·   {fmt(precio, self._moneda, dec)}")
 
             badge = _TipoItem(tipo)
             badge.setBackground(QColor("#FFFFFF"))
@@ -5833,8 +5865,8 @@ class ProyectoView(QWidget):
                     f"{tr('Clic derecho → Unificar precio')}"
                 )
 
-            vals = [desc, row['unidad'] or '', f"{cant:.2f}",
-                    fmt(precio, self._moneda), fmt(parcial, self._moneda)]
+            vals = [desc, row['unidad'] or '', f"{cant:.{get_decimales_cant_acu(tipo)}f}",
+                    fmt(precio, self._moneda, dec), fmt(parcial, self._moneda, dec)]
             nums = {3: cant, 4: precio, 5: parcial}
             for c, v in enumerate(vals, start=1):
                 it = NumItem(str(v), nums[c]) if c in nums else QTableWidgetItem(str(v))
@@ -5877,7 +5909,7 @@ class ProyectoView(QWidget):
 
         if hasattr(self, '_ins_tipo_labels'):
             for tipo, lv in self._ins_tipo_labels.items():
-                lv.setText(fmt(totales_tipo.get(tipo, 0), self._moneda))
+                lv.setText(fmt(totales_tipo.get(tipo, 0), self._moneda, dec))
             for w in self._ins_tipo_widgets:
                 w.setVisible(True)
 
@@ -5979,11 +6011,11 @@ class ProyectoView(QWidget):
                 # ya no apunta a ella. Las celdas viajan con su fila.
                 it_p = tbl.item(ri, 5)
                 it_precio.setData(Qt.UserRole, float(nuevo))
-                it_precio.setText(fmt(nuevo, self._moneda))
+                it_precio.setText(fmt(nuevo, self._moneda, dec))
                 if it_p:
                     parcial_n = _rn(cant * nuevo, dec)
                     it_p.setData(Qt.UserRole, float(parcial_n))
-                    it_p.setText(fmt(parcial_n, self._moneda))
+                    it_p.setText(fmt(parcial_n, self._moneda, dec))
                 QTimer.singleShot(0, lambda: self._guardar_precio_insumo_inline(rec_id, nuevo))
             if delta:
                 QTimer.singleShot(20, lambda: self._abrir_editor_precio_ins(ri + delta))
