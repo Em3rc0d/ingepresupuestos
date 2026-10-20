@@ -9,6 +9,7 @@ Equivalente a las funciones _cpm_python() y _semanas_dist() del Flask.
 import re
 import math
 import json
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 
@@ -59,6 +60,47 @@ def numerar_filas(partidas: list) -> dict:
         if tipo != 'sub':   # proyecto/inicio/fin/partida → registrables
             rownum[clave] = i
     return rownum
+
+
+def fecha_dia1(proy: dict) -> datetime:
+    """Fecha del día 1 del proyecto: `fecha_inicio`, si no `costo_al`
+    (legacy) y si no hoy. Es la MISMA para los días no laborables del CPM y
+    para las fechas que muestran el Gantt y la Curva S (#24): sin fecha
+    guardada el Gantt ya mostraba hoy, pero el CPM no saltaba ningún domingo
+    ni feriado, y «Días lab.» salía igual a «Días cal.»."""
+    for key in ('fecha_inicio', 'costo_al'):
+        fi = (proy.get(key) or '').strip()
+        if fi:
+            try:
+                return datetime.strptime(fi, '%Y-%m-%d')
+            except ValueError:
+                pass
+    return datetime.combine(date.today(), datetime.min.time())
+
+
+def dias_no_laborables(proy: dict, n_dias: int) -> set:
+    """Días corridos (1..n_dias) que son domingos o feriados del proyecto,
+    contados desde `fecha_dia1`. Vacío si `salta_no_laborables` está apagado.
+    Única definición: la usan la vista del cronograma y los reportes PDF."""
+    if int(proy.get('salta_no_laborables', 1) or 0) == 0:
+        return set()
+    f_ini = fecha_dia1(proy)
+    feriados = set()
+    raw = (proy.get('feriados') or '').strip()
+    for tok in raw.replace(';', ',').split(','):
+        tok = tok.strip()
+        if tok:
+            try:
+                datetime.strptime(tok, '%Y-%m-%d')
+                feriados.add(tok)
+            except ValueError:
+                pass
+    out = set()
+    for d in range(1, max(1, n_dias) + 1):
+        fecha = f_ini + timedelta(days=d - 1)
+        if fecha.weekday() == 6 or fecha.strftime('%Y-%m-%d') in feriados:
+            out.add(d)
+    return out
 
 
 def contar_laborables(a: int, b: int, non_working: set = None) -> int:

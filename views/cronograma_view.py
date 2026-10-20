@@ -304,36 +304,15 @@ class CronogramaView(QWidget):
             self._lbl_plazo.setText(f"{max_ef} días programados")
 
     def _non_working_set(self, n_dias: int) -> set:
-        """Conjunto de día corridos (1..n_dias) que son domingos o feriados,
-        según fecha_inicio y feriados del proyecto. Vacío si la opción
-        `salta_no_laborables` está deshabilitada."""
-        if int(self._proy.get('salta_no_laborables', 1) or 0) == 0:
-            return set()
-        from datetime import timedelta
-        try:
-            fi = self._proy.get('fecha_inicio', '') or self._proy.get('costo_al', '')
-            if not fi:
-                return set()
-            f_ini = datetime.strptime(fi, '%Y-%m-%d')
-        except Exception:
-            return set()
-        # Feriados como set de YYYY-MM-DD
-        feriados = set()
-        raw = (self._proy.get('feriados') or '').strip()
-        for tok in raw.replace(';', ',').split(','):
-            tok = tok.strip()
-            if tok:
-                try:
-                    datetime.strptime(tok, '%Y-%m-%d')
-                    feriados.add(tok)
-                except Exception:
-                    pass
-        out = set()
-        for d in range(1, max(1, n_dias) + 1):
-            fecha = f_ini + timedelta(days=d - 1)
-            if fecha.weekday() == 6 or fecha.strftime('%Y-%m-%d') in feriados:
-                out.add(d)
-        return out
+        """Días corridos (1..n_dias) que son domingos o feriados del proyecto
+        (ver `core.cronograma.dias_no_laborables`)."""
+        from core.cronograma import dias_no_laborables
+        return dias_no_laborables(self._proy, n_dias)
+
+    def fecha_dia1(self) -> datetime:
+        """Día 1 del proyecto (ver `core.cronograma.fecha_dia1`)."""
+        from core.cronograma import fecha_dia1
+        return fecha_dia1(self._proy)
 
     def _proj_end(self) -> int:
         """Día corrido en que termina el proyecto (mayor EF, mínimo el plazo)."""
@@ -2284,10 +2263,12 @@ class GanttWidget(QWidget):
             w = w.parent()
 
     def _on_fecha_inicio(self, qd):
-        """Guarda fecha_inicio en proyecto y refresca tabla + Gantt."""
+        """Guarda fecha_inicio en proyecto y refresca tabla + Gantt. Los
+        domingos y feriados caen en otros días corridos: recalcular el CPM."""
         nueva = qd.toString("yyyy-MM-dd")
         self._save_proy_field('fecha_inicio', nueva)
         self._cv._proy['fecha_inicio'] = nueva
+        self._cv._calcular_cpm()
         self._llenar_tabla()
         self._render_gantt()
 
@@ -5954,17 +5935,8 @@ class GanttWidget(QWidget):
     # ──────────────────────────────────────────────────────────────────────
 
     def _project_start(self):
-        """Devuelve datetime para el día 1 del proyecto. Usa el campo
-        `fecha_inicio` si está configurado; cae a `costo_al` (legacy) y
-        finalmente a la fecha actual."""
-        for key in ('fecha_inicio', 'costo_al'):
-            fi = (self._cv._proy.get(key) or '').strip()
-            if fi:
-                try:
-                    return datetime.strptime(fi, '%Y-%m-%d')
-                except Exception:
-                    pass
-        return datetime.now()
+        """Datetime del día 1 del proyecto (ver `CronogramaView.fecha_dia1`)."""
+        return self._cv.fecha_dia1()
 
     def _day_to_date_str(self, d) -> str:
         """Convierte un número de día corrido (1=día 1 del proyecto) a una
@@ -9039,14 +9011,7 @@ class CurvaSWidget(QWidget):
 
     # ── Helpers ─────────────────────────────────────────────────────────
     def _project_start(self):
-        for key in ('fecha_inicio', 'costo_al'):
-            fi = (self._cv._proy.get(key) or '').strip()
-            if fi:
-                try:
-                    return datetime.strptime(fi, '%Y-%m-%d')
-                except Exception:
-                    pass
-        return datetime.now()
+        return self._cv.fecha_dia1()
 
     def _periodo_label(self, unidad: str, i: int) -> str:
         """Etiqueta como 'Sem 1\n01/01–07/01' si _show_fechas y hay fecha."""

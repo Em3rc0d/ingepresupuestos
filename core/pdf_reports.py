@@ -1732,34 +1732,10 @@ def _png_curva_s_b64(periodos: list[float], acum_pct: list[float], *,
 
 
 def _non_working_set_for(proy: dict, n_dias: int) -> set:
-    """Conjunto de días corridos (1..n_dias) no laborables — espejo de
-    `CronogramaView._non_working_set`. Vacío si `salta_no_laborables=0`."""
-    if int(proy.get('salta_no_laborables', 1) or 0) == 0:
-        return set()
-    from datetime import datetime, timedelta
-    try:
-        fi = proy.get('fecha_inicio', '') or proy.get('costo_al', '')
-        if not fi:
-            return set()
-        f_ini = datetime.strptime(fi, '%Y-%m-%d')
-    except Exception:
-        return set()
-    feriados = set()
-    raw = (proy.get('feriados') or '').strip()
-    for tok in raw.replace(';', ',').split(','):
-        tok = tok.strip()
-        if tok:
-            try:
-                datetime.strptime(tok, '%Y-%m-%d')
-                feriados.add(tok)
-            except Exception:
-                pass
-    out = set()
-    for d in range(1, max(1, n_dias) + 1):
-        fecha = f_ini + timedelta(days=d - 1)
-        if fecha.weekday() == 6 or fecha.strftime('%Y-%m-%d') in feriados:
-            out.add(d)
-    return out
+    """Días corridos no laborables, la misma regla que la pantalla
+    (`core.cronograma.dias_no_laborables`)."""
+    from core.cronograma import dias_no_laborables
+    return dias_no_laborables(proy, n_dias)
 
 
 def _cargar_cronograma_data(pid: int) -> tuple[dict, dict, dict]:
