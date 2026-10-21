@@ -61,6 +61,9 @@ datas = [
     ('resources/DS-011-79-VC.pdf',           'resources'),
     # QR de Yape de «Apoya al proyecto» (Acerca de).
     ('resources/qr_yape.png',                'resources'),
+    # Traducciones de la interfaz (utils/i18n.py): un JSON por idioma con el
+    # texto en español como clave. Sin ellos la app sale toda en español.
+    ('resources/i18n/*.json',                'resources/i18n'),
     # Mapa QML (QtLocation/OSM) para marcar la ubicación del proyecto.
     ('resources/map.qml',                    'resources'),
     # Repositorio de proveedores de tiles propio (calle OSM + satélite Esri,

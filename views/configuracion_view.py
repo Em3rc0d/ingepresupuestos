@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QByteArray
 from PySide6.QtGui import QFont, QPixmap
 
+from utils.i18n import N_
 from core.database import (get_db, get_decimales_ppto, set_decimales_ppto,
                            get_decimales_metrado, set_decimales_metrado,
                            get_decimales_cant_acu, set_decimales_cant_acu,
@@ -89,19 +90,19 @@ class ConfiguracionView(QWidget):
     # tarjetas en un solo scroll (Marco, 8 sep 2026: «hago mucho scroll»);
     # ahora cada tarjeta es una sección, igual que «Editar formato».
     _SECCIONES = (
-        ('pais',        "País",                    "General"),
-        ('empresa',     "Empresa",                 "General"),
-        ('jornada',     "Jornada laboral",         "General"),
-        ('decimales',   "Decimales",               "General"),
-        ('backups',     "Copias de seguridad",     "Sistema"),
-        ('exportacion', "Carpeta de exportación",  "Sistema"),
-        ('barra',       "Barra de título",         "Sistema"),
-        ('ia',          "Inteligencia artificial", "Sistema"),
-        ('tuxia',       "Asistente Tuxia",         "Sistema"),
-        ('apariencia',  "Apariencia",              "Interfaz"),
-        ('atajos',      "Atajos de teclado",       "Interfaz"),
-        ('idioma',      "Idioma",                  "Interfaz"),
-        ('usuarios',    "Usuarios",                "Cuenta"),
+        ('pais',        N_("País"),                    N_("General")),
+        ('empresa',     N_("Empresa"),                 N_("General")),
+        ('jornada',     N_("Jornada laboral"),         N_("General")),
+        ('decimales',   N_("Decimales"),               N_("General")),
+        ('backups',     N_("Copias de seguridad"),     N_("Sistema")),
+        ('exportacion', N_("Carpeta de exportación"),  N_("Sistema")),
+        ('barra',       N_("Barra de título"),         N_("Sistema")),
+        ('ia',          N_("Inteligencia artificial"), N_("Sistema")),
+        ('tuxia',       N_("Asistente Tuxia"),         N_("Sistema")),
+        ('apariencia',  N_("Apariencia"),              N_("Interfaz")),
+        ('atajos',      N_("Atajos de teclado"),       N_("Interfaz")),
+        ('idioma',      N_("Idioma"),                  N_("Interfaz")),
+        ('usuarios',    N_("Usuarios"),                N_("Cuenta")),
     )
     # Nombres viejos de pestaña que siguen llegando por `set_tab`.
     _ALIAS = {'general': 'empresa', 'accesibilidad': 'apariencia'}
@@ -306,12 +307,9 @@ class ConfiguracionView(QWidget):
         hl = QHBoxLayout()
         hl.setSpacing(8)
 
-        _IDIOMAS = [
-            ('es', "Español (Perú)", "Idioma principal de la aplicación"),
-            ('en', "English", "Interface in English (partial — expanding)"),
-        ]
+        from utils.i18n import IDIOMAS
 
-        for codigo, nombre, desc in _IDIOMAS:
+        for codigo, nombre, desc in IDIOMAS:
             btn = QPushButton(nombre)
             btn.setCheckable(True)
             btn.setFixedHeight(36)
@@ -333,8 +331,8 @@ class ConfiguracionView(QWidget):
         vl.addLayout(hl)
 
         nota2 = QLabel(
-            "La traducción al inglés se está expandiendo gradualmente.\n"
-            "Textos sin traducción se muestran en español."
+            tr("La traducción al inglés se está expandiendo gradualmente.\n"
+               "Textos sin traducción se muestran en español.")
         )
         nota2.setWordWrap(True)
         nota2.setStyleSheet(_NOTE_SS)

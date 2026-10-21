@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from utils.i18n import N_
+
 
 # ── PALETA BASE ──────────────────────────────────────────────────────────────
 # Niveles de saturación: 50 (más claro) → 900 (más oscuro). Mantener estos
@@ -146,14 +148,14 @@ WHITE = "#FFFFFF"
 # blanco (ver `tinte`), nunca a saturación plena — si no, compite con la
 # franja de estado y además mata el contraste del texto (SLATE_700).
 POSTIT_COLORES = [
-    ("",           "Sin color", ""),
-    ("banana",     "Amarillo",  YELLOW_500),
-    ("orange",     "Naranja",   ORANGE_500),
-    ("strawberry", "Rojo",      RED_500),
-    ("lime",       "Verde",     GREEN_500),
-    ("blueberry",  "Azul",      BLUE_700),
-    ("grape",      "Morado",    PURPLE_500),
-    ("slate",      "Gris",      SILVER_700),
+    ("",           N_("Sin color"), ""),
+    ("banana",     N_("Amarillo"),  YELLOW_500),
+    ("orange",     N_("Naranja"),   ORANGE_500),
+    ("strawberry", N_("Rojo"),      RED_500),
+    ("lime",       N_("Verde"),     GREEN_500),
+    ("blueberry",  N_("Azul"),      BLUE_700),
+    ("grape",      N_("Morado"),    PURPLE_500),
+    ("slate",      N_("Gris"),      SILVER_700),
 ]
 
 # Mezcla del color con el fondo de la card. 0.14 mantiene el texto SLATE_700
