@@ -30,6 +30,7 @@ from PySide6.QtGui import (QColor, QFont, QPainter, QBrush, QKeySequence,
 
 from core.database import get_db, get_decimales_metrado, get_config, set_config
 from utils.formatting import fmt_num, parse_num, parse_num_opt
+from utils.i18n import tr, N_
 import core.valorizacion as V
 import core.parte_diario as PD
 import core.requerimientos as REQ
@@ -104,15 +105,15 @@ NCOLS = 18
 COL_ACT = COL_C_METR   # única columna editable (metrado del período actual)
 
 # Sub-cabecera (fila inferior) por columna y grupos (fila superior, con span).
-_SUBS = ["Ítem", "Descripción", "Und",
-         "Metrado", "P.U.", "Parcial",
-         "Metrado", "Valorizado", "%",
-         "Metrado", "Valorizado", "%",
-         "Metrado", "Valorizado", "%",
-         "Metrado", "Valor", "%"]
-_GROUPS = [("Presupuesto base", COL_B_METR, 3), ("Anterior", COL_A_METR, 3),
-           ("Actual", COL_C_METR, 3), ("Acumulado", COL_K_METR, 3),
-           ("Saldo", COL_S_METR, 3)]
+_SUBS = [N_("Ítem"), N_("Descripción"), N_("Und"),
+         N_("Metrado"), N_("P.U."), N_("Parcial"),
+         N_("Metrado"), N_("Valorizado"), "%",
+         N_("Metrado"), N_("Valorizado"), "%",
+         N_("Metrado"), N_("Valorizado"), "%",
+         N_("Metrado"), N_("Valor"), "%"]
+_GROUPS = [(N_("Presupuesto base"), COL_B_METR, 3), (N_("Anterior"), COL_A_METR, 3),
+           (N_("Actual"), COL_C_METR, 3), (N_("Acumulado"), COL_K_METR, 3),
+           (N_("Saldo"), COL_S_METR, 3)]
 
 
 class _GroupedHeader(QHeaderView):
@@ -141,7 +142,7 @@ class _GroupedHeader(QHeaderView):
         painter.setFont(f)
         painter.setPen(QColor(SLATE_700))
         painter.drawText(rect.adjusted(2, 0, -2, 0),
-                         Qt.AlignCenter | Qt.TextWordWrap, str(text or ''))
+                         Qt.AlignCenter | Qt.TextWordWrap, tr(str(text or '')))
 
     def paintEvent(self, event):
         painter = QPainter(self.viewport())
@@ -206,7 +207,7 @@ class ControlObraView(QWidget):
         hl.setContentsMargins(8, 4, 10, 4)
         hl.setSpacing(6)
 
-        btn_back = QPushButton("← Presupuesto")
+        btn_back = QPushButton(tr("← Presupuesto"))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
             "QPushButton { background:rgba(255,255,255,0.12); color:white;"
@@ -223,8 +224,8 @@ class ControlObraView(QWidget):
         # Orden del flujo de obra: requerir → registrar (cuaderno) → valorizar →
         # derivados (avance/curva S) → cerrar (liquidación).
         # «Liquidación» queda para una actualización mayor (oculta en esta versión).
-        self._tabs = ["Requerimientos", "Almacén", "Cuaderno", "Valorizaciones",
-                      "Curva S real"]
+        self._tabs = [N_("Requerimientos"), N_("Almacén"), N_("Cuaderno"), N_("Valorizaciones"),
+                      N_("Curva S real")]
         self._tab_btns: list[QPushButton] = []
 
         # Índices funcionales (independientes del orden de las pestañas).
@@ -235,7 +236,7 @@ class ControlObraView(QWidget):
         self._idx_curva = self._tabs.index("Curva S real")
 
         for i, lbl in enumerate(self._tabs):
-            btn = QPushButton(lbl)
+            btn = QPushButton(tr(lbl))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setStyleSheet(self._tab_style(i == 0))
             btn.clicked.connect(lambda _, ix=i: self._select_tab(ix))
@@ -300,7 +301,7 @@ class ControlObraView(QWidget):
         w.setStyleSheet(f"background:{SILVER_100};")
         v = QVBoxLayout(w)
         v.addStretch()
-        lbl = QLabel(f"« {nombre} »\n\nPróximamente — fase siguiente del módulo.")
+        lbl = QLabel(tr("« {nombre} »\n\nPróximamente — fase siguiente del módulo.").format(nombre=tr(nombre)))
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(
             f"color:{SLATE_300}; font-size:14px; background:transparent;"
@@ -319,7 +320,7 @@ class ControlObraView(QWidget):
         fn = getattr(panel, 'pdf_rapido', None)
         if fn is None:
             return None
-        return (f'control_{idx}', self._tabs[idx], fn)
+        return (f'control_{idx}', tr(self._tabs[idx]), fn)
 
     def mostrar_tab(self, idx: int):
         if 0 <= idx < len(self._tab_btns):
@@ -336,12 +337,12 @@ class ControlObraView(QWidget):
             self._ro_banner.hide()
         else:
             from core.config import ESTADOS_PROYECTO_NOMBRE
-            est = ESTADOS_PROYECTO_NOMBRE.get(
-                (self._proy or {}).get('estado'), 'En elaboración')
+            est = tr(ESTADOS_PROYECTO_NOMBRE.get(
+                (self._proy or {}).get('estado'), 'En elaboración'))
             self._ro_banner.setText(
-                f"🔒  Solo lectura — el proyecto está en «{est}». El Control de "
+                tr("🔒  Solo lectura — el proyecto está en «{est}». El Control de "
                 "Obra se registra cuando la obra pasa a «En ejecución». "
-                "Cambia el estado para editar.")
+                "Cambia el estado para editar.").format(est=est))
             self._ro_banner.show()
         # Cargar la pestaña visible (la primera = Requerimientos).
         self._select_tab(self._stack.currentIndex())
@@ -354,8 +355,8 @@ class _ValorizacionesPanel(QWidget):
     def pdf_rapido(self, path: str):
         """Ctrl+P: la valorización a la vista, sin diálogos."""
         if not self._val_id:
-            QMessageBox.information(self, "Imprimir",
-                                    "No hay ninguna valorización a la vista.")
+            QMessageBox.information(self, tr("Imprimir"),
+                                    tr("No hay ninguna valorización a la vista."))
             return None
         from core import pdf_reports
         pdf_reports.generar_valorizacion_pdf(self._val_id, path)
@@ -385,7 +386,7 @@ class _ValorizacionesPanel(QWidget):
 
         # Toolbar: selector de valorización + acciones
         tb = QHBoxLayout(); tb.setSpacing(6)
-        lbl = QLabel("Valorización:")
+        lbl = QLabel(tr("Valorización:"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;"
                           " background:transparent; border:none;")
         tb.addWidget(lbl)
@@ -402,13 +403,13 @@ class _ValorizacionesPanel(QWidget):
         self.lbl_periodo = QLabel()
         self.lbl_periodo.setStyleSheet("background:transparent; border:none;"
                                        " font-size:11px;")
-        self.lbl_periodo.setToolTip("Clic para editar el período (fechas) de esta "
-                                    "valorización.")
+        self.lbl_periodo.setToolTip(tr("Clic para editar el período (fechas) de esta "
+                                    "valorización."))
         self.lbl_periodo.linkActivated.connect(lambda _: self._editar_fecha())
         tb.addWidget(self.lbl_periodo)
 
         def _btn(txt, fn, primary=False):
-            b = QPushButton(txt)
+            b = QPushButton(tr(txt))
             b.setCursor(Qt.PointingHandCursor)
             if primary:
                 b.setStyleSheet(
@@ -425,13 +426,13 @@ class _ValorizacionesPanel(QWidget):
             b.clicked.connect(fn)
             return b
 
-        self.btn_nueva = _btn("+ Nueva valorización", self._nueva, primary=True)
+        self.btn_nueva = _btn(N_("+ Nueva valorización"), self._nueva, primary=True)
         tb.addWidget(self.btn_nueva)
-        self.btn_cerrar = _btn("Cerrar", self._cerrar_reabrir)
+        self.btn_cerrar = _btn(N_("Cerrar"), self._cerrar_reabrir)
         tb.addWidget(self.btn_cerrar)
-        self.btn_elim = _btn("Eliminar", self._eliminar)
+        self.btn_elim = _btn(N_("Eliminar"), self._eliminar)
         tb.addWidget(self.btn_elim)
-        self.btn_reporte = _btn("📄 Reporte", lambda: None)
+        self.btn_reporte = _btn(N_("📄 Reporte"), lambda: None)
         _rm = QMenu(self.btn_reporte)
         _rm.addAction("PDF", lambda: self._reporte('pdf'))
         _rm.addAction("Excel (.xlsx)", lambda: self._reporte('xlsx'))
@@ -497,8 +498,8 @@ class _ValorizacionesPanel(QWidget):
 
         # Estado vacío (sin presupuesto)
         self.lbl_vacio = QLabel(
-            "Para valorizar necesitas el presupuesto del proyecto.\n"
-            "Impórtalo o créalo desde la pestaña «Presupuesto».")
+            tr("Para valorizar necesitas el presupuesto del proyecto.\n"
+            "Impórtalo o créalo desde la pestaña «Presupuesto»."))
         self.lbl_vacio.setAlignment(Qt.AlignCenter)
         self.lbl_vacio.setStyleSheet(
             f"color:{SLATE_300}; font-size:13px; background:transparent;"
@@ -552,14 +553,14 @@ class _ValorizacionesPanel(QWidget):
         for vrow in vals:
             # El período va aparte (enlace editable); aquí solo el número + estado.
             cerr = "  🔒" if vrow['estado'] == 'cerrada' else ""
-            self.cmb.addItem(f"Valorización N°{vrow['numero']}{cerr}", vrow['id'])
+            self.cmb.addItem(tr("Valorización N°{numero}{cerr}").format(numero=vrow['numero'], cerr=cerr), vrow['id'])
         self.cmb.blockSignals(False)
         if not vals:
             self._val_id = None
             self.tbl.setRowCount(0)
             self.tbl_total.setVisible(False)
-            self.lbl_resumen.setText("Sin valorizaciones. Crea la primera con "
-                                     "«+ Nueva valorización».")
+            self.lbl_resumen.setText(tr("Sin valorizaciones. Crea la primera con "
+                                     "«+ Nueva valorización»."))
             self._sync_botones(None)
             self.lbl_periodo.setText("")
             return
@@ -583,7 +584,7 @@ class _ValorizacionesPanel(QWidget):
         rango = (f"{_fmt_fecha(v.get('periodo_desde'))} – "
                  f"{_fmt_fecha(v.get('periodo_hasta'))}"
                  if (v.get('periodo_desde') or v.get('periodo_hasta'))
-                 else "sin período")
+                 else tr("sin período"))
         if cerrada:   # cerrada / solo lectura: solo texto, no editable
             self.lbl_periodo.setText(
                 f'<span style="color:{SLATE_500}">📅 {rango}</span>')
@@ -728,8 +729,8 @@ class _ValorizacionesPanel(QWidget):
         self._set(r, COL_C_METR, _m(f['act_metr'], dm), num=True,
                   editable=(abierta and not es_diario),
                   bg=(DIARIO_BG if es_diario else BANANA_100),
-                  tip=("Metrado calculado desde el parte diario (cuaderno de "
-                       "obra). Para cambiarlo, edita los partes del período."
+                  tip=(tr("Metrado calculado desde el parte diario (cuaderno de "
+                       "obra). Para cambiarlo, edita los partes del período.")
                        if es_diario else None))
         self._set(r, COL_C_VAL, money(f['act_val']), num=True, bg=BANANA_SOFT)
         self._set(r, COL_C_PCT, _pp(f['act_val'], base), num=True, bg=BANANA_SOFT)
@@ -746,7 +747,7 @@ class _ValorizacionesPanel(QWidget):
         def money(v):
             return fmt_num(v, moneda)
         vals = {
-            COL_DESC: ("TOTAL", Qt.AlignLeft | Qt.AlignVCenter),
+            COL_DESC: (tr("TOTAL"), Qt.AlignLeft | Qt.AlignVCenter),
             COL_B_PARC: (money(base), None),
             COL_A_VAL: (money(resumen.get('ant_val', 0)), None),
             COL_A_PCT: (_pp(resumen.get('ant_val', 0), base), None),
@@ -797,9 +798,9 @@ class _ValorizacionesPanel(QWidget):
         moneda = self._proy.get('moneda', 'Soles')
         pct = resumen.get('pct_fisico', 0) or 0
         self.lbl_resumen.setText(
-            f"Avance físico: {pct:.2f}%    ·    "
-            f"Acumulado: {fmt_num(resumen.get('acu_val', 0), moneda)}    ·    "
-            f"Saldo: {fmt_num(resumen.get('sal_val', 0), moneda)}")
+            tr("Avance físico: {pct:.2f}%    ·    "
+            "Acumulado: {acumulado}    ·    "
+            "Saldo: {saldo}").format(pct=pct, acumulado=fmt_num(resumen.get('acu_val', 0), moneda), saldo=fmt_num(resumen.get('sal_val', 0), moneda)))
         self._sync_botones(resumen.get('estado'))
 
     def _set(self, row, col, text, *, pid_part=None, es_tit=False, nivel=1,
@@ -942,17 +943,17 @@ class _ValorizacionesPanel(QWidget):
     def _sync_botones(self, estado):
         cerrada = (estado == 'cerrada')
         co = _co_editable(self._proy)
-        self.btn_cerrar.setText("Reabrir" if cerrada else "Cerrar")
+        self.btn_cerrar.setText(tr("Reabrir") if cerrada else tr("Cerrar"))
         self.btn_cerrar.setEnabled(estado is not None and co)
         self.btn_elim.setEnabled(estado == 'abierta' and co)
         if estado is None:
             self.lbl_estado.setText("")
         elif cerrada:
-            self.lbl_estado.setText("🔒 CERRADA")
+            self.lbl_estado.setText(tr("🔒 CERRADA"))
             self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                 f" font-size:11px; font-weight:700; color:{RED_700};")
         else:
-            self.lbl_estado.setText("● ABIERTA")
+            self.lbl_estado.setText(tr("● ABIERTA"))
             self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                 f" font-size:11px; font-weight:700; color:{GREEN_700};")
 
@@ -970,19 +971,19 @@ class _ValorizacionesPanel(QWidget):
             return
         v = V.get_valorizacion(self._val_id)
         if v.get('estado') == 'cerrada':
-            QMessageBox.information(self, "Editar fecha",
-                "La valorización está cerrada. Reábrela para cambiar su período.")
+            QMessageBox.information(self, tr("Editar fecha"),
+                tr("La valorización está cerrada. Reábrela para cambiar su período."))
             return
         dlg = _PeriodoDialog(self, desde=v.get('periodo_desde') or '',
                              hasta=v.get('periodo_hasta') or '',
-                             titulo=f"Editar período — Valorización N°{v['numero']}",
-                             boton="Guardar")
+                             titulo=tr("Editar período — Valorización N°{numero}").format(numero=v['numero']),
+                             boton=tr("Guardar"))
         if dlg.exec() != QDialog.Accepted:
             return
         desde, hasta = dlg.valores()
         if not V.set_periodo(self._val_id, desde, hasta):
-            QMessageBox.warning(self, "Editar fecha",
-                                "No se pudo cambiar el período.")
+            QMessageBox.warning(self, tr("Editar fecha"),
+                                tr("No se pudo cambiar el período."))
             return
         self._recargar_lista()
         idx = self.cmb.findData(self._val_id)
@@ -997,9 +998,9 @@ class _ValorizacionesPanel(QWidget):
             V.reabrir_valorizacion(self._val_id)
         else:
             if QMessageBox.question(
-                self, "Cerrar valorización",
-                "Al cerrar, la valorización queda congelada (no se podrá editar "
-                "su metrado). ¿Continuar?") != QMessageBox.Yes:
+                self, tr("Cerrar valorización"),
+                tr("Al cerrar, la valorización queda congelada (no se podrá editar "
+                "su metrado). ¿Continuar?")) != QMessageBox.Yes:
                 return
             V.cerrar_valorizacion(self._val_id)
         self._recargar_lista()
@@ -1016,7 +1017,7 @@ class _ValorizacionesPanel(QWidget):
         default = os.path.join(_dir_reportes(),
                                f"valorizacion_{v['numero']:02d}.{ext}")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar valorización", default, filtro)
+            self, tr("Guardar valorización"), default, filtro)
         if not path:
             return
         try:
@@ -1031,25 +1032,25 @@ class _ValorizacionesPanel(QWidget):
                 from core import ods_reports
                 ods_reports.generar_ods_valorizacion(self._val_id, path)
             _guardar_dir_reportes(path)
-            QMessageBox.information(self, "Reporte", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reporte"), tr("Guardado en:\n{path}").format(path=path))
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self, "Reporte",
-                                 f"No se pudo generar el reporte:\n{e}")
+            QMessageBox.critical(self, tr("Reporte"),
+                                 tr("No se pudo generar el reporte:\n{e}").format(e=e))
 
     def _eliminar(self):
         if not self._val_id:
             return
         v = V.get_valorizacion(self._val_id)
         if QMessageBox.question(
-            self, "Eliminar valorización",
-            f"¿Eliminar la Valorización N°{v['numero']}? "
-            "Solo se puede borrar la última y abierta.") != QMessageBox.Yes:
+            self, tr("Eliminar valorización"),
+            tr("¿Eliminar la Valorización N°{numero}? "
+            "Solo se puede borrar la última y abierta.").format(numero=v['numero'])) != QMessageBox.Yes:
             return
         if not V.eliminar_valorizacion(self._val_id):
-            QMessageBox.warning(self, "Eliminar",
-                "Solo se puede eliminar la ÚLTIMA valorización y si está abierta.")
+            QMessageBox.warning(self, tr("Eliminar"),
+                tr("Solo se puede eliminar la ÚLTIMA valorización y si está abierta."))
             return
         self._val_id = None
         self._recargar_lista()
@@ -1063,26 +1064,26 @@ class _ValorizacionesPanel(QWidget):
 # verlos juntos sin desplazarse a los días lejanos.
 (CUA_ITEM, CUA_DESC, CUA_UND, CUA_BASE, CUA_ACUM) = range(5)
 CUA_NFIJAS = 5
-_CUA_FIJAS = ["Ítem", "Descripción", "Und", "Metrado\ncontractual",
-              "Ejecutado\nacumulado"]
+_CUA_FIJAS = [N_("Ítem"), N_("Descripción"), N_("Und"), N_("Metrado\ncontractual"),
+              N_("Ejecutado\nacumulado")]
 DAY_CLOSED_BG = "#F0F1F2"     # columna de un día cerrado (solo lectura)
 ACTIVE_DAY_BG = BANANA_SOFT   # columna del día seleccionado
 ACUM_BG = "#EEF1F4"           # columna de acumulado
 
 # Planilla de metrados (referencia del proyecto + del día) — mismas columnas
 # que la hoja de metrados del presupuesto. Parcial = producto de dims llenas.
-_MET_COLS = ["Descripción", "N°Est.", "N°Elem.", "Área", "Largo", "Ancho",
-             "Alto", "Parcial"]
+_MET_COLS = [N_("Descripción"), N_("N°Est."), N_("N°Elem."), N_("Área"), N_("Largo"), N_("Ancho"),
+             N_("Alto"), N_("Parcial")]
 _MET_DIMS = ('n_estructuras', 'n_elementos', 'area', 'largo', 'ancho', 'alto')
 
 # Recursos del día (Fase B): mano de obra (personas) e insumos (consumo).
 (RES_DESC, RES_UND, RES_CANT) = range(3)
-_RES_COLS = ["Recurso", "Und", "Cantidad"]
+_RES_COLS = [N_("Recurso"), N_("Und"), N_("Cantidad")]
 
 
-_MESES = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO',
-          'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
-_DIAS_SEM = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom']  # 0=lunes
+_MESES = [N_('ENERO'), N_('FEBRERO'), N_('MARZO'), N_('ABRIL'), N_('MAYO'), N_('JUNIO'), N_('JULIO'),
+          N_('AGOSTO'), N_('SEPTIEMBRE'), N_('OCTUBRE'), N_('NOVIEMBRE'), N_('DICIEMBRE')]
+_DIAS_SEM = [N_('lun'), N_('mar'), N_('mié'), N_('jue'), N_('vie'), N_('sáb'), N_('dom')]  # 0=lunes
 
 
 def _fecha_larga(iso):
@@ -1401,9 +1402,9 @@ class _CuadernoPanel(QWidget):
         # Botón «+ Días» (se ubica en la cabecera del día, abajo; ver _build_ui
         # del panel). Cada columna del grid es un día; se selecciona haciendo clic
         # en su columna y se registran sus datos en el panel de abajo.
-        self.btn_nuevo = QPushButton("+ Días")
-        self.btn_nuevo.setToolTip("Generar uno o varios días (rango) para el "
-            "cuaderno. Cada columna del grid es un día.")
+        self.btn_nuevo = QPushButton(tr("+ Días"))
+        self.btn_nuevo.setToolTip(tr("Generar uno o varios días (rango) para el "
+            "cuaderno. Cada columna del grid es un día."))
         self.btn_nuevo.setCursor(Qt.PointingHandCursor)
         self.btn_nuevo.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
@@ -1428,7 +1429,7 @@ class _CuadernoPanel(QWidget):
 
         self.tbl_fix = QTableWidget()
         self.tbl_fix.setColumnCount(CUA_NFIJAS)
-        self.tbl_fix.setHorizontalHeaderLabels(_CUA_FIJAS)
+        self.tbl_fix.setHorizontalHeaderLabels([tr(c) for c in _CUA_FIJAS])
         self.tbl_fix.verticalHeader().setVisible(False)
         self.tbl_fix.setAlternatingRowColors(True)
         self.tbl_fix.setWordWrap(True)
@@ -1465,7 +1466,7 @@ class _CuadernoPanel(QWidget):
         # queda en blanco y no es obvio qué hacer. Overlay clickable que invita
         # a crear el primer día (equivale al botón «+ Días»).
         self._lbl_dias_vacio = QLabel(
-            "Sin días registrados.\n\nHaz clic aquí o en «+ Días»\npara crear el primero.",
+            tr("Sin días registrados.\n\nHaz clic aquí o en «+ Días»\npara crear el primero."),
             self.tbl_dias.viewport())
         self._lbl_dias_vacio.setAlignment(Qt.AlignCenter)
         self._lbl_dias_vacio.setCursor(Qt.PointingHandCursor)
@@ -1514,7 +1515,7 @@ class _CuadernoPanel(QWidget):
         pv.setContentsMargins(10, 8, 10, 8)
         pv.setSpacing(6)
         def _sbtn(txt, fn):
-            b = QPushButton(txt)
+            b = QPushButton(tr(txt))
             b.setCursor(Qt.PointingHandCursor)
             b.setStyleSheet(
                 f"QPushButton {{ background:white; color:{SLATE_700};"
@@ -1532,13 +1533,13 @@ class _CuadernoPanel(QWidget):
         cab.addWidget(self.lbl_dia)
         cab.addWidget(self.btn_nuevo)   # «+ Días» junto a la fecha
         # «Vista para cuaderno» al costado de la fecha del día.
-        self.btn_cuaderno = _sbtn("📋 Vista para cuaderno", self._vista_cuaderno)
-        self.btn_cuaderno.setToolTip("Arma el asiento del día (mano de obra, "
-            "materiales, actividades y observaciones) listo para transcribir.")
+        self.btn_cuaderno = _sbtn(N_("📋 Vista para cuaderno"), self._vista_cuaderno)
+        self.btn_cuaderno.setToolTip(tr("Arma el asiento del día (mano de obra, "
+            "materiales, actividades y observaciones) listo para transcribir."))
         cab.addWidget(self.btn_cuaderno)
-        self.btn_reporte = _sbtn("📄 Reporte", lambda: None)
-        self.btn_reporte.setToolTip("Genera un reporte del cuaderno con los días "
-                                    "que elijas (PDF, Word u ODT).")
+        self.btn_reporte = _sbtn(N_("📄 Reporte"), lambda: None)
+        self.btn_reporte.setToolTip(tr("Genera un reporte del cuaderno con los días "
+                                    "que elijas (PDF, Word u ODT)."))
         _rm = QMenu(self.btn_reporte)
         _rm.addAction("PDF", lambda: self._reporte('pdf'))
         _rm.addAction("Word (.docx)", lambda: self._reporte('docx'))
@@ -1550,8 +1551,8 @@ class _CuadernoPanel(QWidget):
         self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                                       " font-size:11px; font-weight:700;")
         cab.addWidget(self.lbl_estado)
-        self.btn_cerrar = _sbtn("Cerrar", self._cerrar_reabrir)
-        self.btn_elim = _sbtn("Eliminar", self._eliminar)
+        self.btn_cerrar = _sbtn(N_("Cerrar"), self._cerrar_reabrir)
+        self.btn_elim = _sbtn(N_("Eliminar"), self._eliminar)
         cab.addWidget(self.btn_cerrar)
         cab.addWidget(self.btn_elim)
         pv.addLayout(cab)
@@ -1581,7 +1582,7 @@ class _CuadernoPanel(QWidget):
         self.txt_obs = QPlainTextEdit()
         self.txt_obs.setMinimumHeight(84)
         self.txt_obs.setPlaceholderText(
-            "Ocurrencias, instrucciones del supervisor, observaciones del residente…")
+            tr("Ocurrencias, instrucciones del supervisor, observaciones del residente…"))
         self.txt_obs.setStyleSheet(
             f"QPlainTextEdit {{ border:none; padding:2px; font-size:11px;"
             f" background:white; }}")
@@ -1589,16 +1590,16 @@ class _CuadernoPanel(QWidget):
         il.addWidget(self.txt_obs, stretch=1)
         # Orden de pestañas: Mano de obra · Insumos · Incidencias.
         self._res_tbl = {}
-        self.tabs_dia.addTab(self._mk_tab_recursos('mo', _sbtn), "Mano de obra")
-        self.tabs_dia.addTab(self._mk_tab_insumos(_sbtn), "Insumos")
-        self.tabs_dia.addTab(winc, "Incidencias")
+        self.tabs_dia.addTab(self._mk_tab_recursos('mo', _sbtn), tr("Mano de obra"))
+        self.tabs_dia.addTab(self._mk_tab_insumos(_sbtn), tr("Insumos"))
+        self.tabs_dia.addTab(winc, tr("Incidencias"))
         cuerpo.addWidget(self.tabs_dia)
 
         # Derecha — metrados de la partida seleccionada, en pestañas.
         der = QWidget(); der.setStyleSheet("background:transparent;")
         rv = QVBoxLayout(der); rv.setContentsMargins(0, 0, 0, 0); rv.setSpacing(2)
-        self.lbl_part = QLabel("Selecciona una partida para ver y registrar sus "
-                               "metrados del día.")
+        self.lbl_part = QLabel(tr("Selecciona una partida para ver y registrar sus "
+                               "metrados del día."))
         self.lbl_part.setWordWrap(True)
         self.lbl_part.setStyleSheet(f"color:{SLATE_700}; font-size:11px;"
             " font-weight:700; background:transparent; border:none;")
@@ -1622,12 +1623,12 @@ class _CuadernoPanel(QWidget):
         self.lbl_ref_total.setStyleSheet(f"color:{SLATE_700}; font-size:10px;"
             " font-weight:700; background:transparent; border:none;")
         wrl.addWidget(self.lbl_ref_total)
-        self.tabs_met.addTab(wref, "Del proyecto (referencia)")
+        self.tabs_met.addTab(wref, tr("Del proyecto (referencia)"))
         # Pestaña «Del día» (editable).
         wdia = QWidget(); wdia.setStyleSheet("background:white;")
         wdl = QVBoxLayout(wdia); wdl.setContentsMargins(4, 4, 4, 4); wdl.setSpacing(2)
-        hint_cp = QLabel("Copia filas de «Del proyecto» (Ctrl+C / clic derecho) y "
-                         "pégalas aquí (Ctrl+V).")
+        hint_cp = QLabel(tr("Copia filas de «Del proyecto» (Ctrl+C / clic derecho) y "
+                         "pégalas aquí (Ctrl+V)."))
         hint_cp.setStyleSheet(f"color:{SLATE_300}; font-size:9px; font-style:italic;"
             " background:transparent; border:none;")
         wdl.addWidget(hint_cp)
@@ -1639,7 +1640,7 @@ class _CuadernoPanel(QWidget):
         self.lbl_dia_total.setStyleSheet(f"color:{SLATE_700}; font-size:10px;"
             " font-weight:700; background:transparent; border:none;")
         wdl.addWidget(self.lbl_dia_total)
-        self.tabs_met.addTab(wdia, "Del día (editable)")
+        self.tabs_met.addTab(wdia, tr("Del día (editable)"))
         self.tabs_met.setCurrentIndex(1)   # arranca en «Del día»
         rv.addWidget(self.tabs_met, stretch=1)
         cuerpo.addWidget(der)
@@ -1660,8 +1661,8 @@ class _CuadernoPanel(QWidget):
 
         # Estado vacío (sin presupuesto).
         self.lbl_vacio = QLabel(
-            "Para registrar avance necesitas el presupuesto del proyecto.\n"
-            "Impórtalo o créalo desde la pestaña «Presupuesto».")
+            tr("Para registrar avance necesitas el presupuesto del proyecto.\n"
+            "Impórtalo o créalo desde la pestaña «Presupuesto»."))
         self.lbl_vacio.setAlignment(Qt.AlignCenter)
         self.lbl_vacio.setStyleSheet(
             f"color:{SLATE_300}; font-size:13px; background:transparent;"
@@ -1746,11 +1747,11 @@ class _CuadernoPanel(QWidget):
             self._col_fecha[j] = str(pr['fecha'])
             p = str(pr['fecha']).split('-')
             if len(p) == 3:
-                mes = f"{_MESES[int(p[1]) - 1]} {p[0]}"
+                mes = f"{tr(_MESES[int(p[1]) - 1])} {p[0]}"
                 try:
                     from datetime import date as _date
                     wd = _date(int(p[0]), int(p[1]), int(p[2])).weekday()
-                    dia = f"{_DIAS_SEM[wd]} {int(p[2])}"
+                    dia = f"{tr(_DIAS_SEM[wd])} {int(p[2])}"
                 except ValueError:
                     dia = str(int(p[2]))
             else:
@@ -1817,7 +1818,7 @@ class _CuadernoPanel(QWidget):
                             num=True,
                             editable=(not cerr and not det and _co_editable(self._proy)),
                             daybg=(DAY_CLOSED_BG if cerr else None),
-                            rotip=("Metrado calculado desde la planilla del día."
+                            rotip=(tr("Metrado calculado desde la planilla del día.")
                                    if det else None))
             self._celda(self.tbl_fix, r, CUA_ACUM, (_m(total, dm) if total else ""),
                         num=True, acum=True, over=_excede(total, p['metrado'] or 0))
@@ -1984,7 +1985,7 @@ class _CuadernoPanel(QWidget):
         «Cantidad» del insumo con ese recurso_id (materiales)."""
         # Ir a la pestaña «Insumos» del panel del día.
         for i in range(self.tabs_dia.count()):
-            if self.tabs_dia.tabText(i) == "Insumos":
+            if self.tabs_dia.tabText(i) == tr("Insumos"):
                 self.tabs_dia.setCurrentIndex(i)
                 break
         tbl = (self._res_tbl or {}).get('mat')
@@ -2060,17 +2061,17 @@ class _CuadernoPanel(QWidget):
         # Editable solo si el día está abierto Y la obra está «En ejecución».
         abierto = (parte['estado'] == 'abierto') and _co_editable(self._proy)
         self._dia_abierto = abierto   # estado del DÍA (no depende de la partida sel.)
-        self.lbl_dia.setText(f"Día {_fmt_fecha(parte['fecha'])}")
-        self.btn_cerrar.setText("Reabrir" if not abierto else "Cerrar")
+        self.lbl_dia.setText(tr("Día {fecha}").format(fecha=_fmt_fecha(parte['fecha'])))
+        self.btn_cerrar.setText(tr("Reabrir") if not abierto else tr("Cerrar"))
         self.btn_cerrar.setEnabled(_co_editable(self._proy))
         self.btn_elim.setEnabled(abierto)
         self.btn_cuaderno.setEnabled(True)
         if abierto:
-            self.lbl_estado.setText("● ABIERTO")
+            self.lbl_estado.setText(tr("● ABIERTO"))
             self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                 f" font-size:11px; font-weight:700; color:{GREEN_700};")
         else:
-            self.lbl_estado.setText("🔒 CERRADO")
+            self.lbl_estado.setText(tr("🔒 CERRADO"))
             self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                 f" font-size:11px; font-weight:700; color:{RED_700};")
         self.txt_obs.blockSignals(True)
@@ -2096,7 +2097,7 @@ class _CuadernoPanel(QWidget):
 
     def _mk_met_table(self, editable):
         t = _MetTable(0, len(_MET_COLS))
-        t.setHorizontalHeaderLabels(_MET_COLS)
+        t.setHorizontalHeaderLabels([tr(c) for c in _MET_COLS])
         t.verticalHeader().setVisible(False)
         t.setMinimumHeight(96)
         t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -2137,8 +2138,8 @@ class _CuadernoPanel(QWidget):
         dm = get_decimales_metrado()
         pid_part = self._partida_sel
         if pid_part is None or self._dia_parte is None:
-            self.lbl_part.setText("Selecciona una partida para ver y registrar "
-                                  "sus metrados del día.")
+            self.lbl_part.setText(tr("Selecciona una partida para ver y registrar "
+                                  "sus metrados del día."))
             self._met_loading = True
             self.tbl_ref.setRowCount(0)
             self.tbl_dia.setRowCount(0)
@@ -2149,27 +2150,27 @@ class _CuadernoPanel(QWidget):
             return   # NO tocar _dia_abierto: es estado del DÍA, no de la partida
         p = self._part_by_id.get(pid_part, {})
         self.lbl_part.setText(
-            f"Metrados — {p.get('item','')}  {p.get('descripcion','')}".strip())
+            tr("Metrados — {item}  {descripcion}").format(item=p.get('item',''), descripcion=p.get('descripcion','')).strip())
         ref, reftot = PD.get_metrado_detalle_proyecto(pid_part)
         self._llenar_met(self.tbl_ref, ref, dm, editable=False)
-        self.lbl_ref_total.setText(f"Total proyecto: {_m(reftot, dm)}")
+        self.lbl_ref_total.setText(tr("Total proyecto: {total}").format(total=_m(reftot, dm)))
         parte = PD.get_parte(self._dia_parte)
         abierto = bool(parte and parte['estado'] == 'abierto')
         dia, diatot = PD.get_metrado_detalle_dia(self._dia_parte, pid_part)
         self._llenar_met(self.tbl_dia, dia, dm, editable=abierto, add_empty=abierto)
-        self.lbl_dia_total.setText(f"Total del día: {_m(diatot, dm)}")
+        self.lbl_dia_total.setText(tr("Total del día: {total}").format(total=_m(diatot, dm)))
         self.tbl_dia.setEnabled(True)
 
     # ── Copiar / pegar / eliminar (Ctrl+C / Ctrl+V / Supr / clic derecho) ─────
 
     def _menu_metrados(self, tbl, pos, editable):
         m = QMenu(self)
-        act_cop = m.addAction("Copiar")
+        act_cop = m.addAction(tr("Copiar"))
         act_peg = act_eli = None
         if editable and self._dia_abierto:
-            act_peg = m.addAction("Pegar")
+            act_peg = m.addAction(tr("Pegar"))
             m.addSeparator()
-            act_eli = m.addAction("Eliminar fila(s)")
+            act_eli = m.addAction(tr("Eliminar fila(s)"))
         chosen = m.exec(tbl.viewport().mapToGlobal(pos))
         if chosen is None:
             return
@@ -2274,21 +2275,21 @@ class _CuadernoPanel(QWidget):
         total = PD.save_metrado_detalle_dia(self._dia_parte, self._partida_sel, filas)
         if total is None:
             return
-        self.lbl_dia_total.setText(f"Total del día: {_m(total, dm)}")
+        self.lbl_dia_total.setText(tr("Total del día: {total}").format(total=_m(total, dm)))
         self._reflejar_metrado_en_grilla(self._partida_sel, self._dia_parte, total)
 
     # ── Mano de obra / insumos del día (Fase B) ───────────────────────────────
 
     def _btn_estimar(self, sbtn, permitir_req=False):
         if not permitir_req:
-            btn = sbtn("⤓ Estimar del metrado", self._estimar_recursos)
-            btn.setToolTip("Calcula mano de obra, materiales, equipos y servicios "
-                           "del día desde el ACU y el metrado registrado.")
+            btn = sbtn(N_("⤓ Estimar del metrado"), self._estimar_recursos)
+            btn.setToolTip(tr("Calcula mano de obra, materiales, equipos y servicios "
+                           "del día desde el ACU y el metrado registrado."))
             self._res_btn_estimar.append(btn)
             return btn
-        btn = sbtn("⤓ Estimar", lambda: None)
-        btn.setToolTip("Estima los insumos del día desde el ACU × metrado, o "
-                       "tráelos de los requerimientos. Luego los ajustas.")
+        btn = sbtn(N_("⤓ Estimar"), lambda: None)
+        btn.setToolTip(tr("Estima los insumos del día desde el ACU × metrado, o "
+                       "tráelos de los requerimientos. Luego los ajustas."))
         menu = QMenu(btn)
         menu.aboutToShow.connect(lambda m=menu: self._build_estimar_menu(m))
         btn.setMenu(menu)
@@ -2296,11 +2297,11 @@ class _CuadernoPanel(QWidget):
         return btn
 
     def _chk_estimar(self):
-        chk = QCheckBox("Enteros")
-        chk.setToolTip("Redondea materiales, equipos y servicios a unidades enteras "
+        chk = QCheckBox(tr("Enteros"))
+        chk.setToolTip(tr("Redondea materiales, equipos y servicios a unidades enteras "
             "de pedido (bolsas, varillas, galones, und…), como en los "
             "requerimientos. Las unidades continuas (kg, m³, ml) conservan "
-            "decimales. Aplica al volver a estimar.")
+            "decimales. Aplica al volver a estimar."))
         chk.setCursor(Qt.PointingHandCursor)
         chk.setChecked(self._estimar_enteros)
         chk.setStyleSheet(f"QCheckBox {{ color:{SLATE_700}; font-size:11px; }}")
@@ -2318,9 +2319,9 @@ class _CuadernoPanel(QWidget):
         """Menú del botón Estimar (Insumos): de los requerimientos (recomendado) o
         del metrado (guía teórica)."""
         menu.clear()
-        a_req = menu.addAction("De los requerimientos…  (recomendado)")
+        a_req = menu.addAction(tr("De los requerimientos…  (recomendado)"))
         a_req.triggered.connect(self._estimar_desde_requerimientos)
-        a_metr = menu.addAction("Del metrado (guía teórica ACU × metrado)")
+        a_metr = menu.addAction(tr("Del metrado (guía teórica ACU × metrado)"))
         a_metr.triggered.connect(self._estimar_recursos)
 
     def _mk_tab_recursos(self, clase, sbtn):
@@ -2349,7 +2350,7 @@ class _CuadernoPanel(QWidget):
 
         # Encabezado de columnas FIJO (una tabla de solo cabecera, 0 filas).
         hdrbar = QTableWidget(0, len(_RES_COLS))
-        hdrbar.setHorizontalHeaderLabels(_RES_COLS)
+        hdrbar.setHorizontalHeaderLabels([tr(c) for c in _RES_COLS])
         hdrbar.verticalHeader().setVisible(False)
         hdrbar.setFrameShape(QFrame.NoFrame)
         hdrbar.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -2379,9 +2380,9 @@ class _CuadernoPanel(QWidget):
         inner = QWidget(); inner.setStyleSheet("background:white;")
         il = QVBoxLayout(inner)
         il.setContentsMargins(0, 0, 0, 0); il.setSpacing(2)
-        for clase, titulo in (('mat', 'Materiales'), ('eq', 'Equipos'),
-                              ('sc', 'Servicios')):
-            lbl = QLabel(titulo)
+        for clase, titulo in (('mat', N_('Materiales')), ('eq', N_('Equipos')),
+                              ('sc', N_('Servicios'))):
+            lbl = QLabel(tr(titulo))
             lbl.setStyleSheet(f"color:{SLATE_700}; font-size:11px; font-weight:700;"
                 " background:transparent; border:none;")
             il.addWidget(lbl)
@@ -2399,7 +2400,7 @@ class _CuadernoPanel(QWidget):
 
     def _mk_recurso_table(self, clase):
         t = _MetTable(0, len(_RES_COLS))
-        t.setHorizontalHeaderLabels(_RES_COLS)
+        t.setHorizontalHeaderLabels([tr(c) for c in _RES_COLS])
         t.verticalHeader().setVisible(False)
         t.setMinimumHeight(84)
         t.horizontalHeader().setSectionResizeMode(RES_DESC, QHeaderView.Stretch)
@@ -2563,12 +2564,12 @@ class _CuadernoPanel(QWidget):
 
     def _menu_recursos(self, tbl, clase, pos):
         m = QMenu(self)
-        ac = m.addAction("Copiar")
+        ac = m.addAction(tr("Copiar"))
         aa = ae = None
         if self._dia_abierto:
-            aa = m.addAction("Agregar fila")
+            aa = m.addAction(tr("Agregar fila"))
             m.addSeparator()
-            ae = m.addAction("Eliminar fila(s)")
+            ae = m.addAction(tr("Eliminar fila(s)"))
         ch = m.exec(tbl.viewport().mapToGlobal(pos))
         if ch is None:
             return
@@ -2586,9 +2587,9 @@ class _CuadernoPanel(QWidget):
             return
         res = PD.estimar_consumo_dia(self._dia_parte, self._estimar_enteros)
         if not any(res.get(c) for c in ('mo', 'mat', 'eq', 'sc')):
-            QMessageBox.information(self, "Estimar",
-                "No hay metrado del día (o las partidas no tienen ACU) para "
-                "estimar. Registra primero el metrado del día.")
+            QMessageBox.information(self, tr("Estimar"),
+                tr("No hay metrado del día (o las partidas no tienen ACU) para "
+                "estimar. Registra primero el metrado del día."))
             return
         self._aplicar_estimacion(res)
 
@@ -2598,24 +2599,24 @@ class _CuadernoPanel(QWidget):
         from core import requerimientos as RQ
         reqs = RQ.listar_requerimientos(self.pid)
         if not reqs:
-            QMessageBox.information(self, "Requerimientos",
-                "No hay requerimientos creados en este proyecto.")
+            QMessageBox.information(self, tr("Requerimientos"),
+                tr("No hay requerimientos creados en este proyecto."))
             return
         sel = self._pedir_requerimientos(reqs)
         if sel is None:        # cancelado
             return
         if not sel:
-            QMessageBox.information(self, "Requerimientos",
-                "No marcaste ningún requerimiento.")
+            QMessageBox.information(self, tr("Requerimientos"),
+                tr("No marcaste ningún requerimiento."))
             return
         if not self._confirmar_estimar():
             return
         res = PD.estimar_consumo_requerimientos(
             self._dia_parte, sel, self._estimar_enteros)
         if not any(res.get(c) for c in ('mo', 'mat', 'eq', 'sc')):
-            QMessageBox.information(self, "Estimar",
-                "Los requerimientos seleccionados no tienen insumos y no hay "
-                "metrado del día para la mano de obra.")
+            QMessageBox.information(self, tr("Estimar"),
+                tr("Los requerimientos seleccionados no tienen insumos y no hay "
+                "metrado del día para la mano de obra."))
             return
         self._aplicar_estimacion(res)
 
@@ -2624,11 +2625,11 @@ class _CuadernoPanel(QWidget):
         defecto). Devuelve la lista de ids marcados, o None si se cancela."""
         from core import requerimientos as RQ
         dlg = QDialog(self)
-        dlg.setWindowTitle("Estimar de los requerimientos")
+        dlg.setWindowTitle(tr("Estimar de los requerimientos"))
         v = QVBoxLayout(dlg)
-        lbl = QLabel("Marca los requerimientos que limitan QUÉ insumos registrar "
+        lbl = QLabel(tr("Marca los requerimientos que limitan QUÉ insumos registrar "
                      "hoy.\nLa cantidad sale del metrado del día (no del total "
-                     "pedido). Usa «Enteros» para redondear.")
+                     "pedido). Usa «Enteros» para redondear."))
         lbl.setStyleSheet("background:transparent; border:none;")
         v.addWidget(lbl)
         checks = []
@@ -2636,14 +2637,14 @@ class _CuadernoPanel(QWidget):
             cat = (r.get('categoria') or '').strip() or \
                 RQ.tipo_de_requerimiento(r).upper()
             n = sum(len(RQ.get_detalle(r['id'], t)) for t in ('mat', 'eq', 'sc'))
-            cb = QCheckBox(f"N°{r['numero']} — {cat}   ({n} insumo"
-                           f"{'s' if n != 1 else ''})")
+            cb = QCheckBox(tr("N°{numero} — {cat}   ({n} insumo{s})").format(
+                           numero=r['numero'], cat=cat, n=n, s='s' if n != 1 else ''))
             cb.setChecked(True)
             cb._rid = r['id']
             checks.append(cb)
             v.addWidget(cb)
         bar = QHBoxLayout(); bar.addStretch()
-        b_ok = QPushButton("Aplicar"); b_ca = QPushButton("Cancelar")
+        b_ok = QPushButton(tr("Aplicar")); b_ca = QPushButton(tr("Cancelar"))
         b_ok.setCursor(Qt.PointingHandCursor); b_ca.setCursor(Qt.PointingHandCursor)
         b_ok.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
@@ -2660,10 +2661,10 @@ class _CuadernoPanel(QWidget):
         hay = any(PD.get_recursos_dia(self._dia_parte, c)
                   for c in ('mo', 'mat', 'eq', 'sc'))
         return not hay or QMessageBox.question(
-            self, "Estimar mano de obra e insumos",
-            "Esto recalcula la mano de obra, materiales, equipos y servicios del "
+            self, tr("Estimar mano de obra e insumos"),
+            tr("Esto recalcula la mano de obra, materiales, equipos y servicios del "
             "día. Se CONSERVAN los que agregaste a mano (acelerante, aditivos, "
-            "herramientas, personal extra, etc.). ¿Continuar?"
+            "herramientas, personal extra, etc.). ¿Continuar?")
         ) == QMessageBox.Yes
 
     def _aplicar_estimacion(self, res: dict):
@@ -2769,7 +2770,7 @@ class _CuadernoPanel(QWidget):
             it.setText(_m(total, dm) if total else "")
             flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
             if total > 0:
-                it.setToolTip("Metrado calculado desde la planilla del día.")
+                it.setToolTip(tr("Metrado calculado desde la planilla del día."))
                 self._con_detalle.add((parte_id, partida_id))
             else:
                 it.setToolTip("")
@@ -2845,8 +2846,8 @@ class _CuadernoPanel(QWidget):
         if d1 < d0:
             d0, d1 = d1, d0
         if (d1 - d0).days > 90:
-            QMessageBox.warning(self, "Rango muy grande",
-                "El rango no puede superar 90 días por vez.")
+            QMessageBox.warning(self, tr("Rango muy grande"),
+                tr("El rango no puede superar 90 días por vez."))
             return
         self._guardar_obs()
         # Un parte por cada día del rango (crear_parte es idempotente por fecha).
@@ -2869,9 +2870,9 @@ class _CuadernoPanel(QWidget):
             PD.reabrir_parte(self._dia_parte)
         else:
             if QMessageBox.question(
-                self, "Cerrar parte",
-                "Al cerrar, el parte del día queda congelado (no se podrá "
-                "editar su metrado ni observaciones). ¿Continuar?"
+                self, tr("Cerrar parte"),
+                tr("Al cerrar, el parte del día queda congelado (no se podrá "
+                "editar su metrado ni observaciones). ¿Continuar?")
             ) != QMessageBox.Yes:
                 return
             PD.cerrar_parte(self._dia_parte)
@@ -2882,14 +2883,14 @@ class _CuadernoPanel(QWidget):
             return
         parte = PD.get_parte(self._dia_parte)
         if QMessageBox.question(
-            self, "Eliminar parte",
-            f"¿Eliminar el parte del {_fmt_fecha(parte['fecha'])}? "
-            "Se descontará su avance de la valorización del período."
+            self, tr("Eliminar parte"),
+            tr("¿Eliminar el parte del {fecha}? "
+            "Se descontará su avance de la valorización del período.").format(fecha=_fmt_fecha(parte['fecha']))
         ) != QMessageBox.Yes:
             return
         if not PD.eliminar_parte(self._dia_parte):
-            QMessageBox.warning(self, "Eliminar",
-                "Solo se puede eliminar un parte abierto.")
+            QMessageBox.warning(self, tr("Eliminar"),
+                tr("Solo se puede eliminar un parte abierto."))
             return
         self._dia_parte = None
         self._render()
@@ -2943,12 +2944,12 @@ class _CuadernoPanel(QWidget):
         self._guardar_obs()   # incluir lo último escrito en observaciones
         txt = self._texto_asiento(self._dia_parte)
         dlg = QDialog(self)
-        dlg.setWindowTitle("Vista para el cuaderno de obra")
+        dlg.setWindowTitle(tr("Vista para el cuaderno de obra"))
         dlg.setWindowModality(Qt.WindowModal)
         dlg.resize(560, 540)
         v = QVBoxLayout(dlg); v.setContentsMargins(14, 12, 14, 12); v.setSpacing(8)
-        hint = QLabel("Asiento del día listo para transcribir al cuaderno (o "
-                      "copiar). Edita en las pestañas y vuelve a abrir para refrescar.")
+        hint = QLabel(tr("Asiento del día listo para transcribir al cuaderno (o "
+                      "copiar). Edita en las pestañas y vuelve a abrir para refrescar."))
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         v.addWidget(hint)
@@ -2962,15 +2963,15 @@ class _CuadernoPanel(QWidget):
         bar.addWidget(lbl_ok); bar.addStretch()
         def _copiar():
             QApplication.clipboard().setText(txt)
-            lbl_ok.setText("✓ Copiado al portapapeles")
-        bcop = QPushButton("📋 Copiar")
+            lbl_ok.setText(tr("✓ Copiado al portapapeles"))
+        bcop = QPushButton(tr("📋 Copiar"))
         bcop.setCursor(Qt.PointingHandCursor)
         bcop.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 14px; font-weight:600; }}"
             f"QPushButton:hover {{ background:#C0621A; }}")
         bcop.clicked.connect(_copiar)
-        bcer = QPushButton("Cerrar"); bcer.clicked.connect(dlg.accept)
+        bcer = QPushButton(tr("Cerrar")); bcer.clicked.connect(dlg.accept)
         bcer.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700};"
             f" border:1px solid {SILVER_300}; border-radius:6px; padding:6px 14px; }}")
@@ -2986,20 +2987,20 @@ class _CuadernoPanel(QWidget):
         from PySide6.QtWidgets import QRadioButton, QButtonGroup
         partes = PD.listar_partes(self.pid)
         if not partes:
-            QMessageBox.information(self, "Reporte del cuaderno",
-                                    "Aún no hay días registrados.")
+            QMessageBox.information(self, tr("Reporte del cuaderno"),
+                                    tr("Aún no hay días registrados."))
             return None
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Reporte del cuaderno")
+        dlg.setWindowTitle(tr("Reporte del cuaderno"))
         dlg.setWindowModality(Qt.WindowModal)
         dlg.resize(380, 500)
         v = QVBoxLayout(dlg); v.setContentsMargins(16, 14, 16, 14); v.setSpacing(6)
 
         grp = QButtonGroup(dlg)
-        rb_todos = QRadioButton(f"Todos los días registrados  ({len(partes)})")
-        rb_uno = QRadioButton("Un solo día:")
-        rb_elegir = QRadioButton("Elegir meses/días…")
+        rb_todos = QRadioButton(tr("Todos los días registrados  ({n})").format(n=len(partes)))
+        rb_uno = QRadioButton(tr("Un solo día:"))
+        rb_elegir = QRadioButton(tr("Elegir meses/días…"))
         for b in (rb_todos, rb_uno, rb_elegir):
             grp.addButton(b)
         rb_todos.setChecked(True)   # por defecto: TODOS
@@ -3036,10 +3037,10 @@ class _CuadernoPanel(QWidget):
         _ck = Qt.ItemIsUserCheckable
         _tri = Qt.ItemIsAutoTristate
         for y, meses in arbol.items():
-            yit = QTreeWidgetItem(tree, [f"Año {y}"])
+            yit = QTreeWidgetItem(tree, [tr("Año {y}").format(y=y)])
             yit.setFlags(yit.flags() | _ck | _tri)
             for mo, prs in meses.items():
-                mlbl = f"{_MESES[mo - 1]} {y}" if mo else str(y)
+                mlbl = f"{tr(_MESES[mo - 1])} {y}" if mo else str(y)
                 mit = QTreeWidgetItem(yit, [mlbl])
                 mit.setFlags(mit.flags() | _ck | _tri)
                 for pr in prs:
@@ -3059,8 +3060,8 @@ class _CuadernoPanel(QWidget):
         rb_elegir.toggled.connect(tree.setEnabled)
 
         bar = QHBoxLayout(); bar.addStretch()
-        b_ca = QPushButton("Cancelar"); b_ca.clicked.connect(dlg.reject)
-        b_ok = QPushButton("Generar"); b_ok.clicked.connect(dlg.accept)
+        b_ca = QPushButton(tr("Cancelar")); b_ca.clicked.connect(dlg.reject)
+        b_ok = QPushButton(tr("Generar")); b_ok.clicked.connect(dlg.accept)
         b_ok.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
@@ -3083,14 +3084,14 @@ class _CuadernoPanel(QWidget):
         if ids is None:
             return
         if not ids:
-            QMessageBox.information(self, "Reporte", "No marcaste ningún día.")
+            QMessageBox.information(self, tr("Reporte"), tr("No marcaste ningún día."))
             return
         ext = {'pdf': 'pdf', 'docx': 'docx', 'odt': 'odt'}[fmt]
         filtro = {'pdf': 'PDF (*.pdf)', 'docx': 'Word (*.docx)',
                   'odt': 'LibreOffice (*.odt)'}[fmt]
         destino = os.path.join(_dir_reportes(), f"cuaderno_obra.{ext}")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar cuaderno de obra", destino, filtro)
+            self, tr("Guardar cuaderno de obra"), destino, filtro)
         if not path:
             return
         try:
@@ -3104,11 +3105,11 @@ class _CuadernoPanel(QWidget):
                 from core import odt_reports
                 odt_reports.generar_odt_cuaderno(self.pid, ids, path)
             _guardar_dir_reportes(path)
-            QMessageBox.information(self, "Reporte", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reporte"), tr("Guardado en:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Reporte",
-                                 f"No se pudo generar el reporte:\n{e}")
+            QMessageBox.critical(self, tr("Reporte"),
+                                 tr("No se pudo generar el reporte:\n{e}").format(e=e))
 
     def hideEvent(self, e):
         self._guardar_obs()
@@ -3118,7 +3119,7 @@ class _CuadernoPanel(QWidget):
 # ── Requerimientos ────────────────────────────────────────────────────────────
 
 (REQ_ITEM, REQ_DESC, REQ_UND, REQ_PRES, REQ_REQ) = range(5)
-_REQ_COLS = ["#", "Recurso", "Und", "Presup.", "Requerido"]
+_REQ_COLS = ["#", N_("Recurso"), N_("Und"), N_("Presup."), N_("Requerido")]
 
 
 class _ReqTable(_MetTable):
@@ -3280,7 +3281,7 @@ class _TDRWorker(QThread):
             self.done.emit(self._req_id, texto or '', error or '')
         except Exception as e:   # noqa: BLE001
             import traceback; traceback.print_exc()
-            self.done.emit(self._req_id, '', f"Error inesperado: {e}")
+            self.done.emit(self._req_id, '', tr("Error inesperado: {e}").format(e=e))
 
 
 class _TdrHighlighter(QSyntaxHighlighter):
@@ -3325,7 +3326,7 @@ class _CheckArbolDelegate(QStyledItemDelegate):
             self._panel._check_icon().paint(painter, x, y, sz, sz)
 
 
-_ALM_COLS = ["Insumo", "Und", "Pedido", "Ingresado", "Consumido", "Stock", "Por llegar"]
+_ALM_COLS = [N_("Insumo"), N_("Und"), N_("Pedido"), N_("Ingresado"), N_("Consumido"), N_("Stock"), N_("Por llegar")]
 (ALM_DESC, ALM_UND, ALM_PED, ALM_ING, ALM_CONS, ALM_STOCK, ALM_LLEG) = range(7)
 _TIPO_NOMBRE = {'MAT': 'MATERIALES', 'EQ': 'EQUIPOS', 'SC': 'SERVICIOS'}
 _AMBAR = "#C0621A"
@@ -3359,7 +3360,7 @@ class _AlmacenPanel(QWidget):
         v.setSpacing(6)
 
         cab = QHBoxLayout(); cab.setSpacing(8)
-        ttl = QLabel("Control de materiales — Kárdex de obra")
+        ttl = QLabel(tr("Control de materiales — Kárdex de obra"))
         ttl.setStyleSheet(f"color:{SLATE_700}; font-size:13px; font-weight:700;"
                           " background:transparent; border:none;")
         cab.addWidget(ttl)
@@ -3368,7 +3369,7 @@ class _AlmacenPanel(QWidget):
         self.lbl_aviso.setStyleSheet("background:transparent; border:none;"
                                      f" font-size:11px; font-weight:700; color:{RED_700};")
         cab.addWidget(self.lbl_aviso)
-        self.btn_reporte = QPushButton("📄 Reporte")
+        self.btn_reporte = QPushButton(tr("📄 Reporte"))
         self.btn_reporte.setCursor(Qt.PointingHandCursor)
         self.btn_reporte.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700};"
@@ -3382,17 +3383,17 @@ class _AlmacenPanel(QWidget):
         cab.addWidget(self.btn_reporte)
         v.addLayout(cab)
 
-        leyenda = QLabel("Pedido = Σ requerimientos · Ingresado = entradas al "
+        leyenda = QLabel(tr("Pedido = Σ requerimientos · Ingresado = entradas al "
                          "almacén · Consumido = Σ cuaderno · Stock = Ingresado − "
                          "Consumido · Por llegar = Pedido − Ingresado. Selecciona un "
-                         "insumo y registra sus ingresos a la derecha →")
+                         "insumo y registra sus ingresos a la derecha →"))
         leyenda.setWordWrap(True)
         leyenda.setStyleSheet(f"color:{SLATE_300}; font-size:10px; background:transparent;"
                               " border:none;")
         v.addWidget(leyenda)
 
         self.tbl = QTableWidget(0, len(_ALM_COLS))
-        self.tbl.setHorizontalHeaderLabels(_ALM_COLS)
+        self.tbl.setHorizontalHeaderLabels([tr(c) for c in _ALM_COLS])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setAlternatingRowColors(True)
         self.tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -3421,15 +3422,15 @@ class _AlmacenPanel(QWidget):
         kv = QVBoxLayout(self._kbox)
         kv.setContentsMargins(8, 8, 8, 8); kv.setSpacing(5)
         krow = QHBoxLayout(); krow.setSpacing(6)
-        self.k_titulo = QLabel("Kárdex por día")
+        self.k_titulo = QLabel(tr("Kárdex por día"))
         self.k_titulo.setWordWrap(True)
         self.k_titulo.setStyleSheet(f"color:{SLATE_700}; font-size:12px;"
             " font-weight:700; background:transparent; border:none;")
         krow.addWidget(self.k_titulo, stretch=1)
-        self.btn_ingreso = QPushButton("+ Ingreso")
+        self.btn_ingreso = QPushButton(tr("+ Ingreso"))
         self.btn_ingreso.setCursor(Qt.PointingHandCursor)
-        self.btn_ingreso.setToolTip("Registrar una entrada de este material al "
-            "almacén (fecha + cantidad). El material puede llegar en varias entregas.")
+        self.btn_ingreso.setToolTip(tr("Registrar una entrada de este material al "
+            "almacén (fecha + cantidad). El material puede llegar en varias entregas."))
         self.btn_ingreso.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; font-size:11px; font-weight:600; padding:4px 12px; }}"
@@ -3439,14 +3440,14 @@ class _AlmacenPanel(QWidget):
         self.btn_ingreso.setEnabled(False)
         krow.addWidget(self.btn_ingreso)
         kv.addLayout(krow)
-        self.k_resumen = QLabel("Selecciona un insumo de la izquierda.")
+        self.k_resumen = QLabel(tr("Selecciona un insumo de la izquierda."))
         self.k_resumen.setWordWrap(True)
         self.k_resumen.setStyleSheet(f"color:{SLATE_500}; font-size:11px;"
             " background:transparent; border:none;")
         kv.addWidget(self.k_resumen)
         self.k_tbl = QTableWidget(0, 5)
         self.k_tbl.setHorizontalHeaderLabels(
-            ["Fecha", "Entrada", "Salida", "Stock", "Observaciones"])
+            [tr("Fecha"), tr("Entrada"), tr("Salida"), tr("Stock"), tr("Observaciones")])
         self.k_tbl.verticalHeader().setVisible(False)
         self.k_tbl.setAlternatingRowColors(True)
         self.k_tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -3472,9 +3473,9 @@ class _AlmacenPanel(QWidget):
             self.k_tbl.setColumnWidth(c, 64)
         self.k_tbl.verticalHeader().setDefaultSectionSize(22)
         kv.addWidget(self.k_tbl, stretch=1)
-        k_hint = QLabel("Doble clic en Observaciones para anotar · doble clic en "
+        k_hint = QLabel(tr("Doble clic en Observaciones para anotar · doble clic en "
                         "Fecha/Entrada edita la entrada · clic derecho: registrar / "
-                        "editar / eliminar.")
+                        "editar / eliminar."))
         k_hint.setStyleSheet(f"color:{SLATE_300}; font-size:9px; background:transparent;"
                              " border:none;")
         kv.addWidget(k_hint)
@@ -3489,8 +3490,8 @@ class _AlmacenPanel(QWidget):
         self._split.setSizes([580, 380])
         v.addWidget(self._split, stretch=1)
 
-        self.lbl_vacio = QLabel("Aún no hay insumos requeridos, ingresados ni "
-            "consumidos.\nCrea requerimientos y registra ingresos/consumo.")
+        self.lbl_vacio = QLabel(tr("Aún no hay insumos requeridos, ingresados ni "
+            "consumidos.\nCrea requerimientos y registra ingresos/consumo."))
         self.lbl_vacio.setAlignment(Qt.AlignCenter)
         self.lbl_vacio.setStyleSheet(f"color:{SLATE_300}; font-size:13px;"
             " font-weight:600; background:transparent; border:none;")
@@ -3505,7 +3506,7 @@ class _AlmacenPanel(QWidget):
                   'odt': 'LibreOffice (*.odt)'}[fmt]
         destino = os.path.join(_dir_reportes(), f"control_materiales.{ext}")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar control de materiales", destino, filtro)
+            self, tr("Guardar control de materiales"), destino, filtro)
         if not path:
             return
         try:
@@ -3519,11 +3520,11 @@ class _AlmacenPanel(QWidget):
                 from core import odt_reports
                 odt_reports.generar_odt_almacen(self.pid, path)
             _guardar_dir_reportes(path)
-            QMessageBox.information(self, "Reporte", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reporte"), tr("Guardado en:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Reporte",
-                                 f"No se pudo generar el reporte:\n{e}")
+            QMessageBox.critical(self, tr("Reporte"),
+                                 tr("No se pudo generar el reporte:\n{e}").format(e=e))
 
     def cargar(self):
         dm = get_decimales_metrado()
@@ -3549,8 +3550,8 @@ class _AlmacenPanel(QWidget):
             es_pedido = f['pedido'] > 1e-6
             if mostrar_grupos and es_pedido != grupo_actual:
                 grupo_actual = es_pedido
-                self._fila_grupo("PEDIDOS EN REQUERIMIENTOS" if es_pedido
-                                 else "OTROS — SIN REQUERIMIENTO")
+                self._fila_grupo(tr("PEDIDOS EN REQUERIMIENTOS") if es_pedido
+                                 else tr("OTROS — SIN REQUERIMIENTO"))
             stock_neg = f['stock'] < -1e-6
             if stock_neg:
                 neg_stock += 1
@@ -3575,9 +3576,8 @@ class _AlmacenPanel(QWidget):
                 self.tbl.setItem(r, c, it)
         self.tbl.blockSignals(False)
         if neg_stock:
-            self.lbl_aviso.setText(f"⚠ {neg_stock} insumo"
-                f"{'s' if neg_stock != 1 else ''} con stock negativo "
-                "(consumido > ingresado)")
+            self.lbl_aviso.setText(tr("⚠ {n} insumo{s} con stock negativo "
+                "(consumido > ingresado)").format(n=neg_stock, s='s' if neg_stock != 1 else ''))
         else:
             self.lbl_aviso.setText("")
         # Mantener el insumo seleccionado, o el primero, para no dejar el kárdex vacío.
@@ -3621,8 +3621,8 @@ class _AlmacenPanel(QWidget):
         und = f['unidad']
         self.k_titulo.setText(f"{f['descripcion']}  ({und})" if und else f['descripcion'])
         self.k_resumen.setText(
-            f"Pedido {_m(f['pedido'], dm)} · Ingresado {_m(f['ingresado'], dm)} · "
-            f"Consumido {_m(f['consumido'], dm)} · Stock {_m(f['stock'], dm)}")
+            tr("Pedido {pedido} · Ingresado {ingresado} · "
+            "Consumido {consumido} · Stock {stock}").format(pedido=_m(f['pedido'], dm), ingresado=_m(f['ingresado'], dm), consumido=_m(f['consumido'], dm), stock=_m(f['stock'], dm)))
         mov = ALM.movimientos(self.pid, rid)
         self._k_loading = True
         self.k_tbl.setRowCount(0)
@@ -3638,10 +3638,10 @@ class _AlmacenPanel(QWidget):
             es_ingreso = es_ent and m.get('ingreso_id')
             if es_ingreso:
                 self._k_ingreso_ids[r] = m['ingreso_id']
-                tip = "Doble clic para editar la fecha o la cantidad de esta entrada."
+                tip = tr("Doble clic para editar la fecha o la cantidad de esta entrada.")
             elif not es_ent:
                 self._k_salida_fecha[r] = m['fecha']
-                tip = ("Salida del cuaderno de obra (solo lectura). Doble clic para "
+                tip = tr("Salida del cuaderno de obra (solo lectura). Doble clic para "
                        "ir a ese día en el Cuaderno y editar el consumo ahí.")
             else:
                 tip = ""
@@ -3664,15 +3664,15 @@ class _AlmacenPanel(QWidget):
                 # con la obra «En ejecución».
                 if c == 4 and es_ingreso and _co_editable(self._proy):
                     it.setFlags(it.flags() | Qt.ItemIsEditable)
-                    it.setToolTip("Doble clic para escribir una observación.")
+                    it.setToolTip(tr("Doble clic para escribir una observación."))
                 else:
                     it.setFlags(it.flags() & ~Qt.ItemIsEditable)
                 self.k_tbl.setItem(r, c, it)
         if not mov:
             r = self.k_tbl.rowCount()
             self.k_tbl.insertRow(r)
-            it = QTableWidgetItem("Sin movimientos. Usa «+ Ingreso» para registrar "
-                                  "la llegada del material.")
+            it = QTableWidgetItem(tr("Sin movimientos. Usa «+ Ingreso» para registrar "
+                                  "la llegada del material."))
             it.setForeground(QColor(SLATE_300))
             self.k_tbl.setItem(r, 0, it)
             self.k_tbl.setSpan(r, 0, 1, 5)
@@ -3699,8 +3699,8 @@ class _AlmacenPanel(QWidget):
         modo edición."""
         editar = inicial is not None
         dlg = QDialog(self)
-        dlg.setWindowTitle("Editar ingreso de material" if editar
-                           else "Registrar ingreso de material")
+        dlg.setWindowTitle(tr("Editar ingreso de material") if editar
+                           else tr("Registrar ingreso de material"))
         lay = QVBoxLayout(dlg)
         lbl = QLabel(f"{f['descripcion']}" + (f"  ({f['unidad']})" if f['unidad'] else ""))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-weight:700;"
@@ -3709,8 +3709,8 @@ class _AlmacenPanel(QWidget):
         form = QFormLayout()
         de = QDateEdit(); de.setCalendarPopup(True)
         de.setDisplayFormat("dd/MM/yyyy")
-        cant = QLineEdit(); cant.setPlaceholderText("Cantidad que llegó")
-        obs = QLineEdit(); obs.setPlaceholderText("Opcional (guía, proveedor, N° vale…)")
+        cant = QLineEdit(); cant.setPlaceholderText(tr("Cantidad que llegó"))
+        obs = QLineEdit(); obs.setPlaceholderText(tr("Opcional (guía, proveedor, N° vale…)"))
         if editar:
             fi, ci, oi = (list(inicial) + [''])[:3]
             d = QDate.fromString(str(fi), "yyyy-MM-dd")
@@ -3719,13 +3719,13 @@ class _AlmacenPanel(QWidget):
             obs.setText(oi or '')
         else:
             de.setDate(QDate.currentDate())
-        form.addRow("Fecha de llegada:", de)
-        form.addRow("Cantidad:", cant)
-        form.addRow("Observación:", obs)
+        form.addRow(tr("Fecha de llegada:"), de)
+        form.addRow(tr("Cantidad:"), cant)
+        form.addRow(tr("Observación:"), obs)
         lay.addLayout(form)
         bar = QHBoxLayout(); bar.addStretch()
-        b_ok = QPushButton("Guardar" if editar else "Registrar")
-        b_ca = QPushButton("Cancelar")
+        b_ok = QPushButton(tr("Guardar") if editar else tr("Registrar"))
+        b_ca = QPushButton(tr("Cancelar"))
         b_ok.setCursor(Qt.PointingHandCursor); b_ca.setCursor(Qt.PointingHandCursor)
         b_ok.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
@@ -3753,16 +3753,16 @@ class _AlmacenPanel(QWidget):
         co = _co_editable(self._proy)
         m = QMenu(self)
         # Registrar una nueva entrada (cantidad + fecha) desde el clic derecho.
-        a_new = m.addAction("＋ Registrar ingreso…")
+        a_new = m.addAction(tr("＋ Registrar ingreso…"))
         a_new.setEnabled(self._rid_sel is not None and co)
         a_ed = a_del = a_go = None
         if ing_id and co:
             m.addSeparator()
-            a_ed = m.addAction("Editar este ingreso…")
-            a_del = m.addAction("Eliminar este ingreso")
+            a_ed = m.addAction(tr("Editar este ingreso…"))
+            a_del = m.addAction(tr("Eliminar este ingreso"))
         elif fecha_sal:
             m.addSeparator()
-            a_go = m.addAction("Ir a ese día en el Cuaderno de obra…")
+            a_go = m.addAction(tr("Ir a ese día en el Cuaderno de obra…"))
         ch = m.exec(self.k_tbl.viewport().mapToGlobal(pos))
         if ch is None:
             return
@@ -3857,15 +3857,15 @@ class _AlmacenPanel(QWidget):
 
 _CS_LINEAS = {'solida': Qt.SolidLine, 'guiones': Qt.DashLine, 'puntos': Qt.DotLine,
               'guion_punto': Qt.DashDotLine}
-_CS_LINEA_OPC = [('Sólida', 'solida'), ('Guiones', 'guiones'),
-                 ('Puntos', 'puntos'), ('Guion-punto', 'guion_punto')]
-_CS_MARCA_OPC = [('Círculo', 'circulo'), ('Cuadrado', 'cuadrado'),
-                 ('Triángulo', 'triangulo'), ('Rombo', 'rombo'),
-                 ('Sin marca', 'ninguna')]
+_CS_LINEA_OPC = [(N_('Sólida'), 'solida'), (N_('Guiones'), 'guiones'),
+                 (N_('Puntos'), 'puntos'), (N_('Guion-punto'), 'guion_punto')]
+_CS_MARCA_OPC = [(N_('Círculo'), 'circulo'), (N_('Cuadrado'), 'cuadrado'),
+                 (N_('Triángulo'), 'triangulo'), (N_('Rombo'), 'rombo'),
+                 (N_('Sin marca'), 'ninguna')]
 # clave · etiqueta · color por defecto · línea por defecto
-_CS_SERIES = [('prog', 'Programado', BLUE, 'solida'),
-              ('reprog', 'Reprogramado', PURPLE, 'guiones'),
-              ('real', 'Real', ORANGE, 'solida')]
+_CS_SERIES = [('prog', N_('Programado'), BLUE, 'solida'),
+              ('reprog', N_('Reprogramado'), PURPLE, 'guiones'),
+              ('real', N_('Real'), ORANGE, 'solida')]
 
 
 class _CurvaSChart(QWidget):
@@ -3933,27 +3933,27 @@ class _CurvaSChart(QWidget):
     def contextMenuEvent(self, ev):
         m = QMenu(self)
         for key, lbl, _c, _l in _CS_SERIES:
-            sub = m.addMenu(lbl)
-            sub.addAction("Color…", lambda k=key: self._elegir_color(k))
-            ml = sub.addMenu("Línea")
+            sub = m.addMenu(tr(lbl))
+            sub.addAction(tr("Color…"), lambda k=key: self._elegir_color(k))
+            ml = sub.addMenu(tr("Línea"))
             for txt, val in _CS_LINEA_OPC:
-                a = ml.addAction(txt); a.setCheckable(True)
+                a = ml.addAction(tr(txt)); a.setCheckable(True)
                 a.setChecked(self._estilos[key]['linea'] == val)
                 a.triggered.connect(
                     lambda _=False, k=key, vv=val: self._set_estilo(k, 'linea', vv))
-            mk = sub.addMenu("Marca")
+            mk = sub.addMenu(tr("Marca"))
             for txt, val in _CS_MARCA_OPC:
-                a = mk.addAction(txt); a.setCheckable(True)
+                a = mk.addAction(tr(txt)); a.setCheckable(True)
                 a.setChecked(self._estilos[key]['marca'] == val)
                 a.triggered.connect(
                     lambda _=False, k=key, vv=val: self._set_estilo(k, 'marca', vv))
         m.addSeparator()
-        m.addAction("Restablecer colores y estilos", self._reset_estilos)
+        m.addAction(tr("Restablecer colores y estilos"), self._reset_estilos)
         m.exec(ev.globalPos())
 
     def _elegir_color(self, key):
         c = QColorDialog.getColor(QColor(self._estilos[key]['color']), self,
-                                  "Color de la serie")
+                                  tr("Color de la serie"))
         if c.isValid():
             self._set_estilo(key, 'color', c.name())
 
@@ -4029,8 +4029,8 @@ class _CurvaSChart(QWidget):
         if not d or n <= 0 or not hay_serie:
             p.setPen(QColor(SLATE_300))
             p.drawText(self.rect(), Qt.AlignCenter,
-                       "Genera el cronograma y registra valorizaciones\n"
-                       "para ver la curva programada vs real.")
+                       tr("Genera el cronograma y registra valorizaciones\n"
+                       "para ver la curva programada vs real."))
             p.end(); return
 
         def px(x):   # x en períodos [0..n] → píxel
@@ -4080,7 +4080,7 @@ class _CurvaSChart(QWidget):
         p.end()
 
     def _dibujar_leyenda(self, p, x0, y1, presentes):
-        entries = [(k, lbl) for k, lbl, _c, _l in _CS_SERIES if presentes.get(k)]
+        entries = [(k, tr(lbl)) for k, lbl, _c, _l in _CS_SERIES if presentes.get(k)]
         if not entries:
             return
         f = QFont(); f.setPointSize(8); p.setFont(f)
@@ -4105,16 +4105,16 @@ class _CurvaSChart(QWidget):
                        Qt.AlignLeft | Qt.AlignVCenter, lbl)
 
 
-_CURVA_SUBS = ["#", "Período",
-               "Monto", "% Ejec", "% Acum",
-               "Monto", "% Ejec", "% Acum",
-               "Monto", "% Ejec", "% Acum", "Desv."]
+_CURVA_SUBS = ["#", N_("Período"),
+               N_("Monto"), N_("% Ejec"), N_("% Acum"),
+               N_("Monto"), N_("% Ejec"), N_("% Acum"),
+               N_("Monto"), N_("% Ejec"), N_("% Acum"), N_("Desv.")]
 (CC_NUM, CC_PER,
  CC_P_MON, CC_P_EJE, CC_P_ACU,
  CC_R_MON, CC_R_EJE, CC_R_ACU,
  CC_X_MON, CC_X_EJE, CC_X_ACU, CC_DESV) = range(12)
-_CURVA_GROUPS = [("Programado", CC_P_MON, 3), ("Reprogramado", CC_R_MON, 3),
-                 ("Real", CC_X_MON, 4)]   # Real incluye la Desviación
+_CURVA_GROUPS = [(N_("Programado"), CC_P_MON, 3), (N_("Reprogramado"), CC_R_MON, 3),
+                 (N_("Real"), CC_X_MON, 4)]   # Real incluye la Desviación
 
 
 class _CurvaSRealPanel(QWidget):
@@ -4144,63 +4144,63 @@ class _CurvaSRealPanel(QWidget):
         self.chart = _CurvaSChart()   # antes de la toolbar (los checks lo usan)
 
         cab = QHBoxLayout(); cab.setSpacing(8)
-        ttl = QLabel("Curva S real — programado vs ejecutado")
+        ttl = QLabel(tr("Curva S real — programado vs ejecutado"))
         ttl.setStyleSheet(f"color:{SLATE_700}; font-size:13px; font-weight:700;"
                           " background:transparent; border:none;")
         cab.addWidget(ttl)
-        lbl_p = QLabel("Período:")
+        lbl_p = QLabel(tr("Período:"))
         lbl_p.setStyleSheet(f"color:{SLATE_500}; font-size:11px; background:transparent;"
                             " border:none;")
         cab.addWidget(lbl_p)
         self.cmb = QComboBox()
         self._bases = ['semana', 'mes', 'mes_cal']
-        self.cmb.addItems(["Semanal", "Mensual (rodante)", "Mensual (fin de mes)"])
+        self.cmb.addItems([tr("Semanal"), tr("Mensual (rodante)"), tr("Mensual (fin de mes)")])
         self.cmb.setCurrentIndex(2)   # default: fin de mes calendario
-        self.cmb.setToolTip("Fin de mes = cortes a fin de mes calendario (la "
+        self.cmb.setToolTip(tr("Fin de mes = cortes a fin de mes calendario (la "
             "valorización mensual; primer mes parcial si arrancas a la quincena). "
-            "Rodante = cada 30/7 días desde el inicio de la obra.")
+            "Rodante = cada 30/7 días desde el inicio de la obra."))
         self.cmb.currentIndexChanged.connect(self._on_periodo)
         self.cmb.setStyleSheet("QComboBox { min-height:0; padding:2px 8px;"
             f" font-size:11px; border:1px solid {SILVER_300}; border-radius:4px; }}")
         cab.addWidget(self.cmb)
         _chk_ss = f"QCheckBox {{ color:{SLATE_500}; font-size:11px; padding:0 4px; }}"
-        self.chk_prog = QCheckBox("Programado")
+        self.chk_prog = QCheckBox(tr("Programado"))
         self.chk_prog.setChecked(True)
-        self.chk_prog.setToolTip("Mostrar u ocultar la curva y las columnas de "
-                                 "Programado.")
+        self.chk_prog.setToolTip(tr("Mostrar u ocultar la curva y las columnas de "
+                                 "Programado."))
         self.chk_prog.setStyleSheet(_chk_ss)
         self.chk_prog.toggled.connect(self._toggle_prog)
         cab.addWidget(self.chk_prog)
-        self.chk_reprog = QCheckBox("Reprogramado")
+        self.chk_reprog = QCheckBox(tr("Reprogramado"))
         self.chk_reprog.setChecked(True)
-        self.chk_reprog.setToolTip("Mostrar u ocultar la curva y las columnas de "
-                                   "Reprogramado.")
+        self.chk_reprog.setToolTip(tr("Mostrar u ocultar la curva y las columnas de "
+                                   "Reprogramado."))
         self.chk_reprog.setStyleSheet(_chk_ss)
         self.chk_reprog.toggled.connect(self._toggle_reprog)
         cab.addWidget(self.chk_reprog)
-        self.chk_real = QCheckBox("Real")
+        self.chk_real = QCheckBox(tr("Real"))
         self.chk_real.setChecked(True)
-        self.chk_real.setToolTip("Mostrar u ocultar la curva y las columnas de Real.")
+        self.chk_real.setToolTip(tr("Mostrar u ocultar la curva y las columnas de Real."))
         self.chk_real.setStyleSheet(_chk_ss)
         self.chk_real.toggled.connect(self._toggle_real)
         cab.addWidget(self.chk_real)
-        self.chk_pct = QCheckBox("Mostrar %")
+        self.chk_pct = QCheckBox(tr("Mostrar %"))
         self.chk_pct.setChecked(True)
         self.chk_pct.setStyleSheet(_chk_ss)
         self.chk_pct.toggled.connect(self.chart.set_show_pct)
         cab.addWidget(self.chk_pct)
-        self.btn_limpiar = QPushButton("Restablecer")
+        self.btn_limpiar = QPushButton(tr("Restablecer"))
         self.btn_limpiar.setCursor(Qt.PointingHandCursor)
-        self.btn_limpiar.setToolTip("Borra los valores editados (etiqueta, "
+        self.btn_limpiar.setToolTip(tr("Borra los valores editados (etiqueta, "
             "programado y reprogramado) de esta base y vuelve a lo derivado del "
-            "cronograma.")
+            "cronograma."))
         self.btn_limpiar.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700};"
             f" border:1px solid {SILVER_300}; border-radius:6px; font-size:11px;"
             f" padding:3px 10px; }} QPushButton:hover {{ background:{SILVER_200}; }}")
         self.btn_limpiar.clicked.connect(self._limpiar_reprog)
         cab.addWidget(self.btn_limpiar)
-        self.btn_reporte = QPushButton("📄 Reporte")
+        self.btn_reporte = QPushButton(tr("📄 Reporte"))
         self.btn_reporte.setCursor(Qt.PointingHandCursor)
         self.btn_reporte.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700};"
@@ -4280,18 +4280,18 @@ class _CurvaSRealPanel(QWidget):
         self._split.setStretchFactor(1, 2)
         v.addWidget(self._split, stretch=1)
 
-        hint = QLabel("Celdas en amarillo editables: «Período» (etiqueta) y el "
+        hint = QLabel(tr("Celdas en amarillo editables: «Período» (etiqueta) y el "
                       "«Monto» o «% Ejec» del período en Programado, Reprogramado y "
                       "Real (el % Acum se deriva). Real toma las valorizaciones; deja "
                       "vacío para volver al valor automático. La última fila agrega "
-                      "un período.")
+                      "un período."))
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color:{SLATE_300}; font-size:10px; background:transparent;"
                            " border:none;")
         v.addWidget(hint)
 
-        self.lbl_vacio = QLabel("Aún no hay cronograma ni valorizaciones.\n"
-            "Genera el cronograma y registra valorizaciones para comparar avance.")
+        self.lbl_vacio = QLabel(tr("Aún no hay cronograma ni valorizaciones.\n"
+            "Genera el cronograma y registra valorizaciones para comparar avance."))
         self.lbl_vacio.setAlignment(Qt.AlignCenter)
         self.lbl_vacio.setStyleSheet(f"color:{SLATE_300}; font-size:13px;"
             " font-weight:600; background:transparent; border:none;")
@@ -4379,7 +4379,7 @@ class _CurvaSRealPanel(QWidget):
                   'odt': 'LibreOffice (*.odt)'}[fmt]
         destino = os.path.join(_dir_reportes(), f"curva_s.{ext}")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar Curva S", destino, filtro)
+            self, tr("Guardar Curva S"), destino, filtro)
         if not path:
             return
         vis = {'prog': self.chk_prog.isChecked(),
@@ -4397,17 +4397,17 @@ class _CurvaSRealPanel(QWidget):
                 from core import odt_reports
                 odt_reports.generar_odt_curva_s(self.pid, path, base=self._base, vis=vis)
             _guardar_dir_reportes(path)
-            QMessageBox.information(self, "Reporte", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reporte"), tr("Guardado en:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Reporte",
-                                 f"No se pudo generar el reporte:\n{e}")
+            QMessageBox.critical(self, tr("Reporte"),
+                                 tr("No se pudo generar el reporte:\n{e}").format(e=e))
 
     def _limpiar_reprog(self):
         if CS.get_overrides(self.pid, self._base) and \
-           QMessageBox.question(self, "Restablecer curva",
-               "¿Borrar los valores editados (etiqueta, programado y "
-               "reprogramado) de esta base y volver a lo derivado del cronograma?"
+           QMessageBox.question(self, tr("Restablecer curva"),
+               tr("¿Borrar los valores editados (etiqueta, programado y "
+               "reprogramado) de esta base y volver a lo derivado del cronograma?")
                ) != QMessageBox.Yes:
             return
         CS.limpiar_reprogramacion(self.pid, self._base)
@@ -4443,12 +4443,12 @@ class _CurvaSRealPanel(QWidget):
             obj = u['pct_reprog'] if u['pct_reprog'] is not None else u['pct_prog']
             if obj is not None:
                 dv = u['pct_real'] - obj
-                estado = ("atraso" if dv < -1e-6 else "adelanto" if dv > 1e-6
-                          else "en línea")
-                ref = "reprog" if u['pct_reprog'] is not None else "prog"
+                estado = (tr("atraso") if dv < -1e-6 else tr("adelanto") if dv > 1e-6
+                          else tr("en línea"))
+                ref = tr("reprog") if u['pct_reprog'] is not None else tr("prog")
                 self.lbl_resumen.setText(
-                    f"Real {u['pct_real']:.1f}% vs {ref} {obj:.1f}%  "
-                    f"({dv:+.1f}% · {estado})")
+                    tr("Real {real:.1f}% vs {ref} {obj:.1f}%  "
+                    "({dv:+.1f}% · {estado})").format(real=u['pct_real'], ref=ref, obj=obj, dv=dv, estado=estado))
             else:
                 self.lbl_resumen.setText("")
         else:
@@ -4466,7 +4466,7 @@ class _CurvaSRealPanel(QWidget):
         nuevo = r is None
         idx = idx if nuevo else r['idx']
         if nuevo:
-            cells = [(CC_NUM, str(idx)), (CC_PER, "＋ nuevo período")]
+            cells = [(CC_NUM, str(idx)), (CC_PER, tr("＋ nuevo período"))]
             cells += [(c, "") for c in range(CC_P_MON, CC_DESV + 1)]
             desv = None
         else:
@@ -4511,7 +4511,7 @@ class _CurvaSRealPanel(QWidget):
             return vals[-1] if vals else None
 
         cells = {
-            CC_PER: "TOTAL",
+            CC_PER: tr("TOTAL"),
             CC_P_MON: self._mon(_suma('p_mon')), CC_P_ACU: self._pct(_ult('p_acu')),
             CC_R_MON: self._mon(_suma('r_mon')), CC_R_ACU: self._pct(_ult('r_acu')),
             CC_X_MON: self._mon(_suma('x_mon')), CC_X_ACU: self._pct(_ult('x_acu')),
@@ -4571,8 +4571,8 @@ class _RequerimientosPanel(QWidget):
     def pdf_rapido(self, path: str):
         """Ctrl+P: el requerimiento (TDR) a la vista."""
         if not getattr(self, '_req_id', None):
-            QMessageBox.information(self, "Imprimir",
-                                    "No hay ningún requerimiento a la vista.")
+            QMessageBox.information(self, tr("Imprimir"),
+                                    tr("No hay ningún requerimiento a la vista."))
             return None
         from core import pdf_reports
         pdf_reports.generar_tdr_pdf(path, self._req_id)
@@ -4631,24 +4631,24 @@ class _RequerimientosPanel(QWidget):
         left = QWidget(); lv = QVBoxLayout(left)
         lv.setContentsMargins(0, 0, 0, 0); lv.setSpacing(4)
         selrow = QHBoxLayout(); selrow.setSpacing(6)
-        ll = QLabel("Insumos del proyecto")
+        ll = QLabel(tr("Insumos del proyecto"))
         ll.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:700;"
             " background:transparent; border:none;")
         selrow.addWidget(ll)
         # Pista de la acción, en la misma fila (antes de «Agrupar»).
-        hint_top = QLabel("⇢ arrástralo al requerimiento o doble clic")
+        hint_top = QLabel(tr("⇢ arrástralo al requerimiento o doble clic"))
         hint_top.setStyleSheet(
             f"color:{ORANGE}; font-size:10px; font-weight:600; padding:2px 7px;"
             f" background:{SELECT_BG}; border:1px solid {ORANGE}; border-radius:5px;")
         selrow.addSpacing(6); selrow.addWidget(hint_top)
         selrow.addStretch()
-        ag = QLabel("Agrupar:")
+        ag = QLabel(tr("Agrupar:"))
         ag.setStyleSheet(f"color:{SLATE_500}; font-size:10px;"
             " background:transparent; border:none;")
         selrow.addWidget(ag)
         self.cmb_grupo = QComboBox()
-        self.cmb_grupo.addItem("Por categoría", "categoria")
-        self.cmb_grupo.addItem("Por índice", "indice")
+        self.cmb_grupo.addItem(tr("Por categoría"), "categoria")
+        self.cmb_grupo.addItem(tr("Por índice"), "indice")
         self.cmb_grupo.setStyleSheet(
             f"QComboBox {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:2px 8px; font-size:11px; background:white; }}")
@@ -4657,7 +4657,7 @@ class _RequerimientosPanel(QWidget):
         lv.addLayout(selrow)
         self.tree = QTreeWidget()
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Insumo", "Und", "Cant."])
+        self.tree.setHeaderLabels([tr("Insumo"), tr("Und"), tr("Cant.")])
         self.tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.tree.header().setSectionResizeMode(1, QHeaderView.Fixed)
         self.tree.header().setSectionResizeMode(2, QHeaderView.Fixed)
@@ -4680,11 +4680,11 @@ class _RequerimientosPanel(QWidget):
             f" border-bottom:1px solid {SILVER_300}; padding:2px 4px;"
             f" font-size:9px; font-weight:600; }}")
         self.tree.setToolTip(
-            "Arrastra uno o varios insumos a la tabla del requerimiento (derecha),\n"
-            "o haz doble clic para agregarlo. El ✓ marca los que ya incluiste.")
+            tr("Arrastra uno o varios insumos a la tabla del requerimiento (derecha),\n"
+            "o haz doble clic para agregarlo. El ✓ marca los que ya incluiste."))
         self.tree.itemDoubleClicked.connect(self._on_tree_dbl)
         lv.addWidget(self.tree, stretch=1)
-        legend = QLabel("✓  ya incluido en algún requerimiento")
+        legend = QLabel(tr("✓  ya incluido en algún requerimiento"))
         legend.setStyleSheet(f"color:{SLATE_300}; font-size:10px;"
             " background:transparent; border:none;")
         lv.addWidget(legend)
@@ -4718,7 +4718,7 @@ class _RequerimientosPanel(QWidget):
         v.addLayout(trow)
 
         def _btn(txt, fn):
-            b = QPushButton(txt); b.setCursor(Qt.PointingHandCursor)
+            b = QPushButton(tr(txt)); b.setCursor(Qt.PointingHandCursor)
             b.setStyleSheet(
                 f"QPushButton {{ background:white; color:{SLATE_700};"
                 f" border:1px solid {SILVER_300}; border-radius:6px;"
@@ -4730,8 +4730,8 @@ class _RequerimientosPanel(QWidget):
             return b
 
         brow = QHBoxLayout(); brow.setSpacing(6)
-        self.btn_cerrar = _btn("Cerrar", self._cerrar_reabrir)
-        self.btn_elim = _btn("Eliminar", self._eliminar)
+        self.btn_cerrar = _btn(N_("Cerrar"), self._cerrar_reabrir)
+        self.btn_elim = _btn(N_("Eliminar"), self._eliminar)
         brow.addWidget(self.btn_cerrar)
         brow.addWidget(self.btn_elim); brow.addStretch()
         self.lbl_cat = QLabel("")
@@ -4744,7 +4744,7 @@ class _RequerimientosPanel(QWidget):
         # insumos arrastrados desde el árbol de la izquierda.
         self.tbl = _ReqTable(0, len(_REQ_COLS))
         self.tbl.on_drop = self._add_recursos
-        self.tbl.setHorizontalHeaderLabels(_REQ_COLS)
+        self.tbl.setHorizontalHeaderLabels([tr(c) for c in _REQ_COLS])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.horizontalHeader().setSectionResizeMode(REQ_DESC, QHeaderView.Stretch)
         self.tbl.setColumnWidth(REQ_ITEM, 34)
@@ -4772,7 +4772,7 @@ class _RequerimientosPanel(QWidget):
         self.tbl.on_copy = lambda: self._copiar()
         self.tbl.on_delete = lambda: self._eliminar_filas()
         self.tbl.setToolTip(
-            "Doble clic para editar · arrastra las filas para reordenar los recursos.")
+            tr("Doble clic para editar · arrastra las filas para reordenar los recursos."))
         self.tbl.itemChanged.connect(self._on_item)
         self.tbl.customContextMenuRequested.connect(self._menu)
         # Mismo estilo que las grillas de Valorizaciones/Cuaderno: encabezado
@@ -4791,7 +4791,7 @@ class _RequerimientosPanel(QWidget):
         tv = QVBoxLayout(tdr_box)
         tv.setContentsMargins(0, 0, 0, 0); tv.setSpacing(4)
         thdr = QHBoxLayout(); thdr.setSpacing(6)
-        ltdr = QLabel("Términos de Referencia / Especificaciones Técnicas")
+        ltdr = QLabel(tr("Términos de Referencia / Especificaciones Técnicas"))
         ltdr.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:700;"
             " background:transparent; border:none;")
         thdr.addWidget(ltdr); thdr.addStretch()
@@ -4799,32 +4799,32 @@ class _RequerimientosPanel(QWidget):
         self.lbl_tdr_estado.setStyleSheet(f"color:{SLATE_500}; font-size:10px;"
             " background:transparent; border:none;")
         thdr.addWidget(self.lbl_tdr_estado)
-        self.btn_tdr_prev = _btn("👁 Vista previa", self._toggle_tdr_prev)
-        self.btn_tdr = _btn("✨ Generar con IA", self._generar_tdr)
+        self.btn_tdr_prev = _btn(N_("👁 Vista previa"), self._toggle_tdr_prev)
+        self.btn_tdr = _btn(N_("✨ Generar con IA"), self._generar_tdr)
         self.btn_tdr.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; font-size:11px; padding:5px 12px; font-weight:600; }}"
             f"QPushButton:hover {{ background:#E0631F; }}"
             f"QPushButton:disabled {{ background:{SILVER_300}; color:white; }}")
-        self.btn_tdr_pdf = _btn("📄 Reporte", None)
+        self.btn_tdr_pdf = _btn(N_("📄 Reporte"), None)
         _rm_tdr = QMenu(self.btn_tdr_pdf)
         _rm_tdr.addAction("PDF", lambda: self._exportar_tdr('pdf'))
         _rm_tdr.addAction("Word (.docx)", lambda: self._exportar_tdr('docx'))
         _rm_tdr.addAction("LibreOffice (.odt)", lambda: self._exportar_tdr('odt'))
         self.btn_tdr_pdf.setMenu(_rm_tdr)
-        self.btn_fichas = _btn("📎 Fichas", self._fichas_dialog)
+        self.btn_fichas = _btn(N_("📎 Fichas"), self._fichas_dialog)
         self.btn_fichas.setToolTip(
-            "Fichas técnicas en PDF: la IA usa su contenido al redactar las\n"
-            "especificaciones y se anexan al final del PDF exportado.")
+            tr("Fichas técnicas en PDF: la IA usa su contenido al redactar las\n"
+            "especificaciones y se anexan al final del PDF exportado."))
         thdr.addWidget(self.btn_fichas)
         thdr.addWidget(self.btn_tdr_prev)
         thdr.addWidget(self.btn_tdr); thdr.addWidget(self.btn_tdr_pdf)
         tv.addLayout(thdr)
         self.txt_tdr = QPlainTextEdit()
         self.txt_tdr.setPlaceholderText(
-            "Aún no hay TDR. Pulsa «✨ Generar con IA»: la IA redacta el "
+            tr("Aún no hay TDR. Pulsa «✨ Generar con IA»: la IA redacta el "
             "requerimiento y los términos de referencia / especificaciones "
-            "técnicas a partir de los insumos. Luego puedes editarlo aquí mismo.")
+            "técnicas a partir de los insumos. Luego puedes editarlo aquí mismo."))
         self.txt_tdr.setStyleSheet(
             f"QPlainTextEdit {{ background:white; color:{SLATE_700};"
             f" border:1px solid {SILVER_300}; border-radius:6px; padding:6px;"
@@ -4850,8 +4850,8 @@ class _RequerimientosPanel(QWidget):
         v.addWidget(vsplit, stretch=1)
 
         self.lbl_vacio = QLabel(
-            "Sin requerimientos. Crea el primero con «+ Nuevo requerimiento» "
-            "(eliges la categoría) y precarga los insumos del presupuesto.")
+            tr("Sin requerimientos. Crea el primero con «+ Nuevo requerimiento» "
+            "(eliges la categoría) y precarga los insumos del presupuesto."))
         self.lbl_vacio.setAlignment(Qt.AlignCenter); self.lbl_vacio.setWordWrap(True)
         self.lbl_vacio.setStyleSheet(f"color:{SLATE_300}; font-size:13px;"
             " background:transparent; border:none;")
@@ -4900,8 +4900,8 @@ class _RequerimientosPanel(QWidget):
     def _add_recursos(self, datos):
         """Agrega insumos (arrastrados o doble-clic) al requerimiento activo."""
         if not self._req_abierto():
-            QMessageBox.information(self, "Requerimiento",
-                "Crea o selecciona un requerimiento ABIERTO para agregar insumos.")
+            QMessageBox.information(self, tr("Requerimiento"),
+                tr("Crea o selecciona un requerimiento ABIERTO para agregar insumos."))
             return
         existentes = set()
         for r in range(self.tbl.rowCount()):
@@ -4957,10 +4957,11 @@ class _RequerimientosPanel(QWidget):
         for q in reqs:
             cat = (q.get('categoria') or '').strip()
             lock = " 🔒" if q['estado'] == 'cerrado' else ""
-            self.tabbar.addTab(f"N°{q['numero']}  {cat}{lock}".rstrip())
+            self.tabbar.addTab(tr("N°{numero}  {cat}{lock}").format(
+                numero=q['numero'], cat=cat, lock=lock).rstrip())
             self._tab_ids.append(q['id'])
         self.tabbar.addTab("  +  ")   # nueva
-        self.tabbar.setTabToolTip(self.tabbar.count() - 1, "Nuevo requerimiento")
+        self.tabbar.setTabToolTip(self.tabbar.count() - 1, tr("Nuevo requerimiento"))
         self.tabbar.blockSignals(False)
         self._tab_loading = False
         vac = (len(reqs) == 0)
@@ -5007,9 +5008,9 @@ class _RequerimientosPanel(QWidget):
             return
         req_id = self._tab_ids[idx]
         m = QMenu(self)
-        ar = m.addAction("Renombrar categoría…")
+        ar = m.addAction(tr("Renombrar categoría…"))
         m.addSeparator()
-        ae = m.addAction("Eliminar requerimiento")
+        ae = m.addAction(tr("Eliminar requerimiento"))
         ch = m.exec(self.tabbar.mapToGlobal(pos))
         if ch == ar:
             self._renombrar(req_id)
@@ -5024,8 +5025,8 @@ class _RequerimientosPanel(QWidget):
         if not q:
             return
         if q['estado'] == 'cerrado':
-            QMessageBox.information(self, "Renombrar",
-                "El requerimiento está cerrado. Reábrelo para renombrarlo.")
+            QMessageBox.information(self, tr("Renombrar"),
+                tr("El requerimiento está cerrado. Reábrelo para renombrarlo."))
             return
         dlg = _RenombrarReqDialog(clasificador.CATEGORIAS,
                                   q.get('categoria') or '', self)
@@ -5043,9 +5044,9 @@ class _RequerimientosPanel(QWidget):
         abierto = bool(q and q['estado'] == 'abierto') and _co_editable(self._proy)
         cat = (q.get('categoria') or '') if q else ''
         self._tipo = REQ.tipo_de_requerimiento(q) if q else 'mat'
-        _tlbl = {'mat': 'materiales', 'eq': 'equipos', 'sc': 'servicios'}
-        self.lbl_cat.setText(f"Categoría:  {cat or '(sin categoría)'}"
-                             f"   ·   {_tlbl.get(self._tipo, '')}")
+        _tlbl = {'mat': tr('materiales'), 'eq': tr('equipos'), 'sc': tr('servicios')}
+        self.lbl_cat.setText(tr("Categoría:  {cat}   ·   {tipo}").format(
+                             cat=cat or tr('(sin categoría)'), tipo=_tlbl.get(self._tipo, '')))
         filas = REQ.get_detalle(self._req_id, self._tipo)
         self._llenar(filas, abierto)
         self._sync_botones(q['estado'] if q else None)
@@ -5097,12 +5098,12 @@ class _RequerimientosPanel(QWidget):
             f"Arial,sans-serif; color:{SLATE_700}; line-height:1.5;\">"
             f"{body}</body></html>")
         self.txt_tdr.hide(); self.txt_tdr_prev.show()
-        self.btn_tdr_prev.setText("✏ Editar")
+        self.btn_tdr_prev.setText(tr("✏ Editar"))
         self._tdr_preview = True
 
     def _mostrar_tdr_editor(self):
         self.txt_tdr_prev.hide(); self.txt_tdr.show()
-        self.btn_tdr_prev.setText("👁 Vista previa")
+        self.btn_tdr_prev.setText(tr("👁 Vista previa"))
         self._tdr_preview = False
 
     def _guardar_tdr_now(self):
@@ -5124,13 +5125,13 @@ class _RequerimientosPanel(QWidget):
             return
         filas = REQ.get_detalle(self._req_id, self._tipo)
         if not any((f.get('descripcion') or '').strip() for f in filas):
-            QMessageBox.information(self, "Generar TDR",
-                "El requerimiento no tiene insumos. Agrega al menos uno antes de "
-                "generar el TDR / especificaciones técnicas.")
+            QMessageBox.information(self, tr("Generar TDR"),
+                tr("El requerimiento no tiene insumos. Agrega al menos uno antes de "
+                "generar el TDR / especificaciones técnicas."))
             return
         if self.txt_tdr.toPlainText().strip():
-            if QMessageBox.question(self, "Generar TDR",
-                "Ya hay un TDR. ¿Reemplazarlo con uno nuevo generado por la IA?"
+            if QMessageBox.question(self, tr("Generar TDR"),
+                tr("Ya hay un TDR. ¿Reemplazarlo con uno nuevo generado por la IA?")
             ) != QMessageBox.Yes:
                 return
         dlg = _DatosTDRDialog(self._req_id, self)
@@ -5139,7 +5140,7 @@ class _RequerimientosPanel(QWidget):
         datos = dlg.valores()
         self._flush_tdr()
         self.btn_tdr.setEnabled(False)
-        self.lbl_tdr_estado.setText("Generando con IA…  ⏳")
+        self.lbl_tdr_estado.setText(tr("Generando con IA…  ⏳"))
         self._tdr_worker = _TDRWorker(self._req_id, datos)
         self._tdr_worker.done.connect(self._on_tdr_generado)
         self._tdr_worker.start()
@@ -5149,7 +5150,7 @@ class _RequerimientosPanel(QWidget):
         self.btn_tdr.setEnabled(True)
         self.lbl_tdr_estado.setText("")
         if error:
-            QMessageBox.warning(self, "Generar TDR", error)
+            QMessageBox.warning(self, tr("Generar TDR"), error)
             return
         # Mostrar solo si seguimos en el mismo requerimiento.
         if req_id == self._req_id:
@@ -5163,12 +5164,12 @@ class _RequerimientosPanel(QWidget):
                 self._mostrar_tdr_preview()
             else:
                 self._mostrar_tdr_editor()
-        self.lbl_tdr_estado.setText("✓ Generado")
+        self.lbl_tdr_estado.setText(tr("✓ Generado"))
         QTimer.singleShot(2500, lambda: self.lbl_tdr_estado.setText(""))
 
     def _upd_btn_fichas(self):
         n = len(REQ.get_adjuntos(self._req_id)) if self._req_id else 0
-        self.btn_fichas.setText(f"📎 Fichas ({n})" if n else "📎 Fichas")
+        self.btn_fichas.setText(tr("📎 Fichas ({n})").format(n=n) if n else tr("📎 Fichas"))
         self.btn_fichas.setEnabled(self._req_id is not None)
 
     def _fichas_dialog(self):
@@ -5180,7 +5181,7 @@ class _RequerimientosPanel(QWidget):
             listar=lambda: REQ.get_adjuntos(rid),
             agregar=lambda ruta: REQ.agregar_adjunto(rid, ruta),
             quitar=lambda nombre: REQ.quitar_adjunto(rid, nombre),
-            intro=("Adjunta fichas técnicas en PDF (la del cemento, del "
+            intro=tr("Adjunta fichas técnicas en PDF (la del cemento, del "
                    "geotanque…). Al generar el TDR, la IA usa sus datos reales "
                    "en las especificaciones; al exportar el PDF, van como "
                    "anexos al final. Un PDF escaneado (imagen) solo puede ir "
@@ -5194,8 +5195,8 @@ class _RequerimientosPanel(QWidget):
             return
         texto = self.txt_tdr.toPlainText().strip()
         if not texto:
-            QMessageBox.information(self, "Exportar",
-                "No hay TDR para exportar. Genéralo primero con la IA.")
+            QMessageBox.information(self, tr("Exportar"),
+                tr("No hay TDR para exportar. Genéralo primero con la IA."))
             return
         self._flush_tdr()
         import os
@@ -5207,7 +5208,7 @@ class _RequerimientosPanel(QWidget):
         sug = f"TDR_Req_N{q['numero']}.{ext}" if q else f"TDR.{ext}"
         destino = os.path.join(_dir_reportes(), sug)
         ruta, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Requerimiento / TDR", destino, filtro)
+            self, tr("Exportar Requerimiento / TDR"), destino, filtro)
         if not ruta:
             return
         if not ruta.lower().endswith('.' + ext):
@@ -5223,10 +5224,10 @@ class _RequerimientosPanel(QWidget):
                 from core import odt_reports
                 odt_reports.generar_odt_tdr(self._req_id, ruta)
             _guardar_dir_reportes(ruta)
-            QMessageBox.information(self, "Exportar", f"Guardado en:\n{ruta}")
+            QMessageBox.information(self, tr("Exportar"), tr("Guardado en:\n{path}").format(path=ruta))
         except Exception as e:  # noqa: BLE001
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Exportar", f"No se pudo exportar:\n{e}")
+            QMessageBox.warning(self, tr("Exportar"), tr("No se pudo exportar:\n{e}").format(e=e))
 
     def _llenar(self, filas, abierto):
         self._loading = True
@@ -5443,12 +5444,12 @@ class _RequerimientosPanel(QWidget):
 
     def _menu(self, pos):
         m = QMenu(self)
-        ac = m.addAction("Copiar")
+        ac = m.addAction(tr("Copiar"))
         aa = ae = None
         if self._req_abierto():
-            aa = m.addAction("Agregar fila")
+            aa = m.addAction(tr("Agregar fila"))
             m.addSeparator()
-            ae = m.addAction("Eliminar fila(s)")
+            ae = m.addAction(tr("Eliminar fila(s)"))
         ch = m.exec(self.tbl.viewport().mapToGlobal(pos))
         if ch is None:
             return
@@ -5464,17 +5465,17 @@ class _RequerimientosPanel(QWidget):
     def _sync_botones(self, estado):
         cerrado = (estado == 'cerrado')
         co = _co_editable(self._proy)
-        self.btn_cerrar.setText("Reabrir" if cerrado else "Cerrar")
+        self.btn_cerrar.setText(tr("Reabrir") if cerrado else tr("Cerrar"))
         self.btn_cerrar.setEnabled(estado is not None and co)
         self.btn_elim.setEnabled(estado == 'abierto' and co)
         if estado is None:
             self.lbl_estado.setText("")
         elif cerrado:
-            self.lbl_estado.setText("🔒 CERRADO")
+            self.lbl_estado.setText(tr("🔒 CERRADO"))
             self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                 f" font-size:11px; font-weight:700; color:{RED_700};")
         else:
-            self.lbl_estado.setText("● ABIERTO")
+            self.lbl_estado.setText(tr("● ABIERTO"))
             self.lbl_estado.setStyleSheet("background:transparent; border:none;"
                 f" font-size:11px; font-weight:700; color:{GREEN_700};")
 
@@ -5508,8 +5509,8 @@ class _RequerimientosPanel(QWidget):
         if q['estado'] == 'cerrado':
             REQ.reabrir_requerimiento(self._req_id)
         else:
-            if QMessageBox.question(self, "Cerrar requerimiento",
-                "Al cerrar queda congelado (no editable). ¿Continuar?"
+            if QMessageBox.question(self, tr("Cerrar requerimiento"),
+                tr("Al cerrar queda congelado (no editable). ¿Continuar?")
             ) != QMessageBox.Yes:
                 return
             REQ.cerrar_requerimiento(self._req_id)
@@ -5519,13 +5520,13 @@ class _RequerimientosPanel(QWidget):
         if not self._req_id or not _co_editable(self._proy):
             return
         q = REQ.get_requerimiento(self._req_id)
-        if QMessageBox.question(self, "Eliminar requerimiento",
-            f"¿Eliminar el Requerimiento N°{q['numero']}?"
+        if QMessageBox.question(self, tr("Eliminar requerimiento"),
+            tr("¿Eliminar el Requerimiento N°{numero}?").format(numero=q['numero'])
         ) != QMessageBox.Yes:
             return
         if not REQ.eliminar_requerimiento(self._req_id):
-            QMessageBox.warning(self, "Eliminar",
-                "No se pudo eliminar. Si está cerrado, reábrelo primero.")
+            QMessageBox.warning(self, tr("Eliminar"),
+                tr("No se pudo eliminar. Si está cerrado, reábrelo primero."))
             return
         self._req_id = None
         self._recargar_lista()
@@ -5540,11 +5541,11 @@ class _NuevoReqDialog(QDialog):
 
     def __init__(self, categorias, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Nuevo requerimiento")
+        self.setWindowTitle(tr("Nuevo requerimiento"))
         self.setWindowModality(Qt.WindowModal)
         v = QVBoxLayout(self)
         v.setContentsMargins(18, 16, 18, 16); v.setSpacing(10)
-        lc = QLabel("Categoría del requerimiento:")
+        lc = QLabel(tr("Categoría del requerimiento:"))
         lc.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;")
         v.addWidget(lc)
         self.cmb = QComboBox()
@@ -5555,23 +5556,23 @@ class _NuevoReqDialog(QDialog):
             f"QComboBox {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:4px 10px; font-size:12px; background:white; }}")
         v.addWidget(self.cmb)
-        lf = QLabel("Fecha:")
+        lf = QLabel(tr("Fecha:"))
         lf.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;")
         v.addWidget(lf)
         self.d = QDateEdit(QDate.currentDate())
         self.d.setCalendarPopup(True); self.d.setDisplayFormat("dd/MM/yyyy")
         v.addWidget(self.d)
-        self.chk_vacio = QCheckBox("Crear vacío (lo lleno a mano, sin precargar)")
+        self.chk_vacio = QCheckBox(tr("Crear vacío (lo lleno a mano, sin precargar)"))
         self.chk_vacio.setStyleSheet(f"color:{SLATE_500}; font-size:11px;"
             " background:transparent; border:none;")
         self.chk_vacio.setToolTip(
-            "Para requerimientos individuales (un servicio o una maquinaria por\n"
+            tr("Para requerimientos individuales (un servicio o una maquinaria por\n"
             "documento). Crea el requerimiento vacío y le agregas los insumos\n"
-            "arrastrándolos del panel izquierdo o con el menú.")
+            "arrastrándolos del panel izquierdo o con el menú."))
         v.addWidget(self.chk_vacio)
         botones = QHBoxLayout(); botones.addStretch()
-        cancelar = QPushButton("Cancelar"); cancelar.clicked.connect(self.reject)
-        crear = QPushButton("Crear"); crear.clicked.connect(self.accept)
+        cancelar = QPushButton(tr("Cancelar")); cancelar.clicked.connect(self.reject)
+        crear = QPushButton(tr("Crear")); crear.clicked.connect(self.accept)
         crear.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
@@ -5590,14 +5591,14 @@ class _RenombrarReqDialog(QDialog):
 
     def __init__(self, categorias, actual='', parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Renombrar categoría")
+        self.setWindowTitle(tr("Renombrar categoría"))
         self.setWindowModality(Qt.WindowModal)
         v = QVBoxLayout(self)
         v.setContentsMargins(18, 16, 18, 16); v.setSpacing(10)
-        lc = QLabel("Categoría / nombre del requerimiento:")
+        lc = QLabel(tr("Categoría / nombre del requerimiento:"))
         lc.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;")
         v.addWidget(lc)
-        hint = QLabel("Elige una de la lista o escribe la tuya.")
+        hint = QLabel(tr("Elige una de la lista o escribe la tuya."))
         hint.setStyleSheet(f"color:{SLATE_500}; font-size:10px;"
             " background:transparent; border:none;")
         v.addWidget(hint)
@@ -5611,8 +5612,8 @@ class _RenombrarReqDialog(QDialog):
             f" padding:4px 10px; font-size:12px; background:white; }}")
         v.addWidget(self.cmb)
         botones = QHBoxLayout(); botones.addStretch()
-        cancelar = QPushButton("Cancelar"); cancelar.clicked.connect(self.reject)
-        ok = QPushButton("Guardar"); ok.clicked.connect(self.accept)
+        cancelar = QPushButton(tr("Cancelar")); cancelar.clicked.connect(self.reject)
+        ok = QPushButton(tr("Guardar")); ok.clicked.connect(self.accept)
         ok.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
@@ -5635,25 +5636,25 @@ class _DatosTDRDialog(QDialog):
     # «Cargo del destinatario», «Unidad orgánica», «Meta presupuestal» y
     # «Objetivo» (los render de PDF/Word ya los tratan como opcionales).
     _CAMPOS = [   # (clave_config, etiqueta, placeholder)
-        ('destinatario', "Destinatario (A)", "solo sector público — dejar vacío si privado"),
-        ('atencion', "Atención", "p.ej. Oficina de Logística"),
-        ('solicitante', "Solicitante (DE) / membrete", "tu nombre o empresa"),
-        ('cargo_solicitante', "Cargo del solicitante", "p.ej. Residente de Obra"),
-        ('entidad', "Entidad / institución", "p.ej. Municipalidad Distrital de…"),
-        ('lugar', "Lugar (entrega/prestación)", "p.ej. distrito, provincia"),
+        ('destinatario', N_("Destinatario (A)"), N_("solo sector público — dejar vacío si privado")),
+        ('atencion', N_("Atención"), N_("p.ej. Oficina de Logística")),
+        ('solicitante', N_("Solicitante (DE) / membrete"), N_("tu nombre o empresa")),
+        ('cargo_solicitante', N_("Cargo del solicitante"), N_("p.ej. Residente de Obra")),
+        ('entidad', N_("Entidad / institución"), N_("p.ej. Municipalidad Distrital de…")),
+        ('lugar', N_("Lugar (entrega/prestación)"), N_("p.ej. distrito, provincia")),
     ]
 
     def __init__(self, req_id, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Datos para el TDR / Especificaciones técnicas")
+        self.setWindowTitle(tr("Datos para el TDR / Especificaciones técnicas"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumWidth(520)
         v = QVBoxLayout(self)
         v.setContentsMargins(18, 16, 18, 16); v.setSpacing(10)
         intro = QLabel(
-            "Completa lo que aplique a tu caso. Lo que pongas se recuerda para la "
+            tr("Completa lo que aplique a tu caso. Lo que pongas se recuerda para la "
             "próxima vez. Si no eres entidad pública, deja vacíos «Destinatario», "
-            "«Atención» y «Entidad» y se generará un documento privado.")
+            "«Atención» y «Entidad» y se generará un documento privado."))
         intro.setWordWrap(True)
         intro.setStyleSheet(f"color:{SLATE_500}; font-size:11px;"
             " background:transparent; border:none;")
@@ -5667,61 +5668,61 @@ class _DatosTDRDialog(QDialog):
         from core.pdf_reports import empresa_info
         empresa = empresa_info()['nombre']
         for clave, etiqueta, ph in self._CAMPOS:
-            le = QLineEdit(); le.setPlaceholderText(ph); le.setStyleSheet(_ss)
+            le = QLineEdit(); le.setPlaceholderText(tr(ph)); le.setStyleSheet(_ss)
             prev = get_config(f'req_tdr_{clave}', '')
             if clave == 'solicitante':
                 prev = prev or empresa
             le.setText(prev)
             self._inp[clave] = le
-            form.addRow(etiqueta + ":", le)
+            form.addRow(tr(etiqueta) + ":", le)
 
         # Plazo (valor + unidad)
         prow = QHBoxLayout(); prow.setSpacing(6)
         self.inp_plazo = QLineEdit(get_config('req_tdr_plazo', ''))
-        self.inp_plazo.setPlaceholderText("p.ej. 30"); self.inp_plazo.setStyleSheet(_ss)
+        self.inp_plazo.setPlaceholderText(tr("p.ej. 30")); self.inp_plazo.setStyleSheet(_ss)
         self.inp_plazo.setMaximumWidth(90)
         self.cmb_plazo_u = QComboBox(); self.cmb_plazo_u.setStyleSheet(_ss)
-        self.cmb_plazo_u.addItem("días calendario", "dias")
-        self.cmb_plazo_u.addItem("meses", "meses")
+        self.cmb_plazo_u.addItem(tr("días calendario"), "dias")
+        self.cmb_plazo_u.addItem(tr("meses"), "meses")
         _u = get_config('req_tdr_plazo_unidad', 'dias')
         self.cmb_plazo_u.setCurrentIndex(1 if _u == 'meses' else 0)
         prow.addWidget(self.inp_plazo); prow.addWidget(self.cmb_plazo_u); prow.addStretch()
-        form.addRow("Plazo de ejecución:", prow)
+        form.addRow(tr("Plazo de ejecución:"), prow)
 
         # Forma de pago
         self.cmb_pago = QComboBox(); self.cmb_pago.setStyleSheet(_ss)
-        for t in ["Pago único previa conformidad", "Pago mensual",
-                  "Pago por avance", "Según contrato"]:
-            self.cmb_pago.addItem(t, t)
+        for t in [N_("Pago único previa conformidad"), N_("Pago mensual"),
+                  N_("Pago por avance"), N_("Según contrato")]:
+            self.cmb_pago.addItem(tr(t), t)
         _fp = get_config('req_tdr_forma_pago', '')
         if _fp:
-            i = self.cmb_pago.findText(_fp)
+            i = self.cmb_pago.findData(_fp)
             self.cmb_pago.setCurrentIndex(i if i >= 0 else 0)
-        form.addRow("Forma de pago:", self.cmb_pago)
+        form.addRow(tr("Forma de pago:"), self.cmb_pago)
 
         # Fecha
         self.d = QDateEdit(QDate.currentDate())
         self.d.setCalendarPopup(True); self.d.setDisplayFormat("dd/MM/yyyy")
         self.d.setStyleSheet(_ss)
-        form.addRow("Fecha:", self.d)
+        form.addRow(tr("Fecha:"), self.d)
 
         # Instrucciones libres para la IA (el prompt extra que faltaba:
         # generar_tdr_ia ya lo aceptaba pero la UI nunca lo mandaba).
         self.txt_prompt = QPlainTextEdit()
         self.txt_prompt.setPlaceholderText(
-            "p.ej. tono formal; incluir garantía de 1 año; citar la norma "
-            "técnica del insumo; el plazo cuenta desde la orden de compra…")
+            tr("p.ej. tono formal; incluir garantía de 1 año; citar la norma "
+            "técnica del insumo; el plazo cuenta desde la orden de compra…"))
         self.txt_prompt.setPlainText(get_config('req_tdr_prompt_extra', ''))
         self.txt_prompt.setFixedHeight(64)
         self.txt_prompt.setStyleSheet(
             f"QPlainTextEdit {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:4px 8px; font-size:12px; background:white; }}")
-        form.addRow("Instrucciones a la IA:", self.txt_prompt)
+        form.addRow(tr("Instrucciones a la IA:"), self.txt_prompt)
         v.addLayout(form)
 
         botones = QHBoxLayout(); botones.addStretch()
-        cancelar = QPushButton("Cancelar"); cancelar.clicked.connect(self.reject)
-        gen = QPushButton("Generar"); gen.clicked.connect(self.accept)
+        cancelar = QPushButton(tr("Cancelar")); cancelar.clicked.connect(self.reject)
+        gen = QPushButton(tr("Generar")); gen.clicked.connect(self.accept)
         gen.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
@@ -5748,12 +5749,12 @@ class _FechaDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Nuevo(s) parte(s) diario(s)")
+        self.setWindowTitle(tr("Nuevo(s) parte(s) diario(s)"))
         self.setWindowModality(Qt.WindowModal)
         v = QVBoxLayout(self)
         v.setContentsMargins(18, 16, 18, 16)
         v.setSpacing(10)
-        lbl = QLabel("Días a generar:")
+        lbl = QLabel(tr("Días a generar:"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;")
         v.addWidget(lbl)
         fila = QHBoxLayout()
@@ -5765,17 +5766,17 @@ class _FechaDialog(QDialog):
         # Si «Al» queda antes que «Del», emparejarlos.
         self.d1.dateChanged.connect(
             lambda qd: self.d2.setDate(qd) if self.d2.date() < qd else None)
-        fila.addWidget(QLabel("Del:")); fila.addWidget(self.d1)
-        fila.addWidget(QLabel("Al:")); fila.addWidget(self.d2)
+        fila.addWidget(QLabel(tr("Del:"))); fila.addWidget(self.d1)
+        fila.addWidget(QLabel(tr("Al:"))); fila.addWidget(self.d2)
         v.addLayout(fila)
-        hint = QLabel("Se crea un parte por cada día. Para un solo día, deja «Al» "
-                      "igual a «Del».")
+        hint = QLabel(tr("Se crea un parte por cada día. Para un solo día, deja «Al» "
+                      "igual a «Del»."))
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color:{SLATE_300}; font-size:10px; font-style:italic;")
         v.addWidget(hint)
         botones = QHBoxLayout(); botones.addStretch()
-        cancelar = QPushButton("Cancelar"); cancelar.clicked.connect(self.reject)
-        crear = QPushButton("Crear"); crear.clicked.connect(self.accept)
+        cancelar = QPushButton(tr("Cancelar")); cancelar.clicked.connect(self.reject)
+        crear = QPushButton(tr("Crear")); crear.clicked.connect(self.accept)
         crear.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
@@ -5792,14 +5793,14 @@ class _PeriodoDialog(QDialog):
     (defaults hoy) o editar (fechas iniciales + título/botón propios)."""
 
     def __init__(self, parent=None, *, desde='', hasta='',
-                 titulo="Nueva valorización", boton="Crear"):
+                 titulo=N_("Nueva valorización"), boton=N_("Crear")):
         super().__init__(parent)
-        self.setWindowTitle(titulo)
+        self.setWindowTitle(tr(titulo))
         self.setWindowModality(Qt.WindowModal)
         v = QVBoxLayout(self)
         v.setContentsMargins(18, 16, 18, 16)
         v.setSpacing(10)
-        lbl = QLabel("Período de la valorización:")
+        lbl = QLabel(tr("Período de la valorización:"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;")
         v.addWidget(lbl)
         fila = QHBoxLayout()
@@ -5810,12 +5811,12 @@ class _PeriodoDialog(QDialog):
         for d in (self.d1, self.d2):
             d.setCalendarPopup(True)
             d.setDisplayFormat("dd/MM/yyyy")
-        fila.addWidget(QLabel("Del:")); fila.addWidget(self.d1)
-        fila.addWidget(QLabel("Al:")); fila.addWidget(self.d2)
+        fila.addWidget(QLabel(tr("Del:"))); fila.addWidget(self.d1)
+        fila.addWidget(QLabel(tr("Al:"))); fila.addWidget(self.d2)
         v.addLayout(fila)
         botones = QHBoxLayout(); botones.addStretch()
-        cancelar = QPushButton("Cancelar"); cancelar.clicked.connect(self.reject)
-        crear = QPushButton(boton); crear.clicked.connect(self.accept)
+        cancelar = QPushButton(tr("Cancelar")); cancelar.clicked.connect(self.reject)
+        crear = QPushButton(tr(boton)); crear.clicked.connect(self.accept)
         crear.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
@@ -5830,13 +5831,13 @@ class _PeriodoDialog(QDialog):
 class _FechaUnicaDialog(QDialog):
     """Pide una sola fecha (p. ej. la de un requerimiento)."""
 
-    def __init__(self, titulo="Fecha", parent=None):
+    def __init__(self, titulo=N_("Fecha"), parent=None):
         super().__init__(parent)
-        self.setWindowTitle(titulo)
+        self.setWindowTitle(tr(titulo))
         self.setWindowModality(Qt.WindowModal)
         v = QVBoxLayout(self)
         v.setContentsMargins(18, 16, 18, 16); v.setSpacing(10)
-        lbl = QLabel("Fecha:")
+        lbl = QLabel(tr("Fecha:"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-size:12px; font-weight:600;")
         v.addWidget(lbl)
         self.d = QDateEdit(QDate.currentDate())
@@ -5844,8 +5845,8 @@ class _FechaUnicaDialog(QDialog):
         self.d.setDisplayFormat("dd/MM/yyyy")
         v.addWidget(self.d)
         botones = QHBoxLayout(); botones.addStretch()
-        cancelar = QPushButton("Cancelar"); cancelar.clicked.connect(self.reject)
-        crear = QPushButton("Crear"); crear.clicked.connect(self.accept)
+        cancelar = QPushButton(tr("Cancelar")); cancelar.clicked.connect(self.reject)
+        crear = QPushButton(tr("Crear")); crear.clicked.connect(self.accept)
         crear.setStyleSheet(
             f"QPushButton {{ background:{ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 16px; font-weight:600; }}")
