@@ -10,7 +10,7 @@ sus ACU items (mano de obra, materiales, equipo) referenciando recursos del
 catálogo de insumos.
 
 Columnas:
-    Descripción · Unidad · Rendimiento · Costo Unit. · Grupo · ACU · Usos
+    Descripción · Unidad · Rendimiento · Costo Unit. · Grupo · ACU
 
 Panel inferior (splitter) muestra los recursos del CU seleccionado.
 """
@@ -226,9 +226,10 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         self.kpi_total = self._mk_kpi("Total CU", "0", SLATE_500)
         self.kpi_grupos = self._mk_kpi("Grupos", "0", TIPO_TEXTO['MAT'])
         self.kpi_con_acu = self._mk_kpi("Con ACU detallado", "0", TIPO_TEXTO['MO'])
-        from utils.theme import accent_color as _acc
-        self.kpi_usados = self._mk_kpi("Más reutilizado (usos)", "0", _acc())
-        for k in (self.kpi_total, self.kpi_grupos, self.kpi_con_acu, self.kpi_usados):
+        # Sin «Más reutilizado (usos)» ni columna Usos (21-10-2026): el
+        # contador `biblioteca_cu.usos` no lo incrementa nada y marcaba 0 en
+        # los 8883 CU de una base real (ronda 7 de David Ramos).
+        for k in (self.kpi_total, self.kpi_grupos, self.kpi_con_acu):
             pie.addWidget(k)
         pie.addStretch(1)
 
@@ -284,9 +285,9 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         )
 
         # Tabla principal
-        self.tbl = QTableWidget(0, 7)
+        self.tbl = QTableWidget(0, 6)
         self.tbl.setHorizontalHeaderLabels(
-            ["Descripción", "Unidad", "Rendimiento", "Costo Unit.", "Grupo", "ACU", "Usos"]
+            ["Descripción", "Unidad", "Rendimiento", "Costo Unit.", "Grupo", "ACU"]
         )
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setAlternatingRowColors(True)
@@ -307,7 +308,6 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         h.setSectionResizeMode(3, QHeaderView.Fixed); h.resizeSection(3, 110)
         h.setSectionResizeMode(4, QHeaderView.Fixed); h.resizeSection(4, 220)
         h.setSectionResizeMode(5, QHeaderView.Fixed); h.resizeSection(5, 60)
-        h.setSectionResizeMode(6, QHeaderView.Fixed); h.resizeSection(6, 60)
         self.splitter.addWidget(self.tbl)
 
         # Panel inferior — detalle de ACU items del CU seleccionado
@@ -436,7 +436,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         # orden alfabético y los CU del usuario que caían después nunca
         # aparecían, aunque su grupo saliera en el desplegable (David Ramos,
         # ronda 7). Cargar los ~7500 cuesta lo mismo que los 5300 insumos.
-        sql += " ORDER BY cu.usos DESC, cu.descripcion"
+        sql += " ORDER BY cu.descripcion"
 
         conn = get_db()
         conn.create_function("_norm", 1, norm_busqueda)
@@ -444,8 +444,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         kpis = conn.execute(
             "SELECT COUNT(*) AS total, "
             "       COUNT(DISTINCT NULLIF(grupo,'')) AS n_grupos, "
-            "       (SELECT COUNT(DISTINCT cu_id) FROM biblioteca_acu_items) AS n_con_acu, "
-            "       MAX(usos) AS max_usos "
+            "       (SELECT COUNT(DISTINCT cu_id) FROM biblioteca_acu_items) AS n_con_acu "
             "FROM biblioteca_cu"
         ).fetchone()
         conn.close()
@@ -506,14 +505,6 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
                     it_a.setForeground(col_muted)
                 self.tbl.setItem(row, 5, it_a)
 
-                usos = r['usos'] or 0
-                it_us = NumItem(str(usos) if usos else '—', usos)
-                it_us.setTextAlignment(align_center)
-                it_us.setFlags(flag)
-                if usos == 0:
-                    it_us.setForeground(col_muted)
-                self.tbl.setItem(row, 6, it_us)
-
             self.tbl.setSortingEnabled(True)
         finally:
             self.tbl.blockSignals(False)
@@ -523,7 +514,6 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         self.kpi_total.lbl_valor.setText(str(kpis['total'] or 0))
         self.kpi_grupos.lbl_valor.setText(str(kpis['n_grupos'] or 0))
         self.kpi_con_acu.lbl_valor.setText(str(kpis['n_con_acu'] or 0))
-        self.kpi_usados.lbl_valor.setText(str(kpis['max_usos'] or 0))
 
         n_filt = len(rows)
         n_total = kpis['total'] or 0

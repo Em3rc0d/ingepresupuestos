@@ -200,8 +200,8 @@ _NEUTRAL_BG = QColor('#F0F2F5')   # fondo neutro para celdas no editables
 
 def _cols_acu():
     from utils.i18n import tr
-    return [tr("Tipo"), tr("Descripción"), "Und.", tr("Cuadrilla"), tr("Cantidad"), tr("Precio"), tr("Parcial")]
-COLS_ACU  = ["Tipo", "Descripción", "Und.", "Cuadrilla", "Cantidad", "Precio", "Parcial"]
+    return [tr("Tipo"), tr("Descripción"), "Und.", tr("Cuadrilla"), tr("Cantidad"), tr("Precio"), tr("Parcial"), "INEI"]
+COLS_ACU  = ["Tipo", "Descripción", "Und.", "Cuadrilla", "Cantidad", "Precio", "Parcial", "INEI"]
 
 
 
@@ -945,7 +945,7 @@ def _cols_ppto():
     return [tr("Ítem"), tr("Descripción"), "Und.", tr("Cantidad"), "P.U.", tr("Parcial")]
 def _cols_ins():
     from utils.i18n import tr
-    return [tr("Tipo"), tr("Descripción"), "Und.", tr("Cantidad"), tr("Precio"), tr("Parcial")]
+    return [tr("Tipo"), tr("Descripción"), "Und.", tr("Cantidad"), tr("Precio"), tr("Parcial"), "INEI"]
 def _cols_met():
     from utils.i18n import tr
     return [tr("Descripción"), "N°Est.", "N°Elem.", tr("Área"), tr("Largo"), tr("Ancho"), tr("Alto"), tr("Parcial")]
@@ -954,7 +954,26 @@ def _cols_acero():
     return ["#", tr("Descripción"), tr("Diámetro"), "N°Estr.", "N°Elem.", "N°Var.",
             tr("Longitud"), "Parc.(m)", "kg/ml", "Parc.(kg)", ""]
 COLS_PPTO = ["Ítem", "Descripción", "Unid.", "Metrado", "P.U.", "Parcial"]
-COLS_INS  = ["Tipo", "Descripción", "Und.", "Cantidad", "Precio U.", "Parcial"]
+COLS_INS  = ["Tipo", "Descripción", "Und.", "Cantidad", "Precio U.", "Parcial", "INEI"]
+# Columna del índice INEI del insumo, al final de ACU e Insumos (David Ramos,
+# ronda 7: «para ver qué recursos no tienen asignado el índice»). Solo en
+# pantalla: los reportes no la llevan, como pidió.
+_COL_INEI_ACU, _COL_INEI_INS = 7, 6
+
+
+def _celda_inei(recurso: dict) -> QTableWidgetItem:
+    """Código INEI del insumo, vacío si no tiene. Ordenar por la columna
+    junta arriba los que faltan asignar. '00' también es «sin índice»: es el
+    centinela de `core.parte_diario`, como lo trata `core.diccionario_iu`."""
+    cod = (recurso.get('indice_inei') or '').strip()
+    if cod == '00':
+        cod = ''
+    it = QTableWidgetItem(cod)
+    it.setTextAlignment(Qt.AlignCenter)
+    it.setFlags(it.flags() & ~Qt.ItemIsEditable)
+    it.setToolTip(f"Índice INEI {cod}" if cod
+                  else "Sin índice INEI — se asigna en el Catálogo de insumos")
+    return it
 COLS_MET   = ["Descripción", "N°Est.", "N°Elem.", "Área", "Largo", "Ancho", "Alto", "Parcial"]
 COLS_ACERO = ["#", "Descripción", "Diámetro", "N°Estr.", "N°Elem.", "N°Var.",
               "Longitud", "Parc.(m)", "kg/ml", "Parc.(kg)", ""]
@@ -2880,6 +2899,7 @@ class ProyectoView(QWidget):
         self.tbl_acu.setColumnWidth(4, 80)
         self.tbl_acu.setColumnWidth(5, 80)
         self.tbl_acu.setColumnWidth(6, 85)
+        self.tbl_acu.setColumnWidth(_COL_INEI_ACU, 48)
         self.tbl_acu.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tbl_acu.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tbl_acu.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -3080,6 +3100,7 @@ class ProyectoView(QWidget):
         self.tbl_ins.setColumnWidth(3, 82)              # Cantidad
         self.tbl_ins.setColumnWidth(4, 76)              # Precio U.
         self.tbl_ins.setColumnWidth(5, 84)              # Parcial
+        self.tbl_ins.setColumnWidth(_COL_INEI_INS, 48)  # Índice INEI
         self.tbl_ins.setItemDelegateForColumn(0, _AcuBadgeDelegate(self))
         self.tbl_ins.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tbl_ins.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -5736,6 +5757,9 @@ class ProyectoView(QWidget):
                     cell.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                     cell.setFlags(cell.flags() & ~Qt.ItemIsEditable)
                 self.tbl_acu.setItem(r, c, cell)
+            inei = _celda_inei(it)
+            inei.setBackground(_NEUTRAL_BG)
+            self.tbl_acu.setItem(r, _COL_INEI_ACU, inei)
 
         self._acu_loading = False
 
@@ -5900,6 +5924,9 @@ class ProyectoView(QWidget):
                 else:
                     it.setToolTip(tip_ins)
                 self.tbl_ins.setItem(ri, c, it)
+            inei = _celda_inei(row)
+            inei.setBackground(bg)
+            self.tbl_ins.setItem(ri, _COL_INEI_INS, inei)
         self.tbl_ins.setSortingEnabled(True)
 
         es_total = estado is None
@@ -7158,6 +7185,7 @@ class ProyectoView(QWidget):
         from utils.i18n import tr
         menu.addAction(tr("Agregar partida"),  self._nueva_partida)
         menu.addAction(tr("Agregar título"),   self._nuevo_titulo)
+        menu.addAction(tr("Seleccionar todo") + "\tCtrl+A", self.tree.selectAll)
         # Pegar siempre visible si hay clipboard
         if _pclip.hay_clipboard():
             menu.addSeparator()
@@ -7267,12 +7295,39 @@ class ProyectoView(QWidget):
         conn.close()
         if n == 0:
             return
+        # El portapapeles de partidas es interno; el del sistema recibe las
+        # mismas filas como texto, para pegarlas en Excel en columnas
+        # (David Ramos, ronda 7).
+        QApplication.clipboard().setText(self._texto_seleccion_tsv())
         # Indicación visual ligera en la barra de estado
         win = self.window()
         if hasattr(win, 'statusBar') and win.statusBar():
             win.statusBar().showMessage(
-                f"Copiadas {n} partida(s) — usa Ctrl+V para pegar", 4000
+                f"Copiadas {n} partida(s) — Ctrl+V para pegar aquí o en Excel", 4000
             )
+
+    def _texto_seleccion_tsv(self) -> str:
+        """Lo seleccionado en el árbol tal como se ve, una fila por línea y
+        las columnas separadas por tabulador, con la cabecera arriba. Un
+        título trae todo lo que cuelga de él, como al copiar partidas."""
+        cols = [c for c in range(self.tree.columnCount())
+                if not self.tree.isColumnHidden(c)]
+
+        def _celda(t: str) -> str:
+            return ' '.join((t or '').split())
+
+        lineas = ['\t'.join(_celda(self.tree.headerItem().text(c)) for c in cols)]
+
+        def _bajar(it, incluido: bool):
+            incluido = incluido or it.isSelected()
+            if incluido:
+                lineas.append('\t'.join(_celda(it.text(c)) for c in cols))
+            for i in range(it.childCount()):
+                _bajar(it.child(i), incluido)
+
+        for i in range(self.tree.topLevelItemCount()):
+            _bajar(self.tree.topLevelItem(i), False)
+        return '\n'.join(lineas) + '\n'
 
     def _pegar_partidas_clipboard(self):
         """Pega el contenido del clipboard según la selección actual:
@@ -8506,65 +8561,34 @@ class ProyectoView(QWidget):
             QMessageBox.warning(self, "Biblioteca", "Los títulos no se guardan en la biblioteca.")
             return
 
-        existe = conn.execute(
-            "SELECT id, grupo FROM biblioteca_cu WHERE descripcion=?", (p['descripcion'],)
-        ).fetchone()
-
-        # Grupos del catálogo base (seed): no se deben sobrescribir a la ligera.
-        GRUPOS_SEED = {'INGEPRESUPUESTOS', 'LLAMKASUN', 'CAPECO'}
-
-        modo = 'nuevo'   # por defecto cuando no existe ninguna con ese nombre
-        if existe:
-            grupo_exist = (existe['grupo'] or '').strip().upper()
-            es_seed = grupo_exist in GRUPOS_SEED
-            box = QMessageBox(self)
-            box.setWindowTitle("Guardar en biblioteca")
-            box.setIcon(QMessageBox.Question)
-            if es_seed:
-                box.setText(
-                    f'«{p["descripcion"]}» ya existe en la biblioteca '
-                    f'(grupo {grupo_exist}, del catálogo base).'
-                )
-                box.setInformativeText(
-                    "Para no alterar el catálogo base, se recomienda guardarla "
-                    "como copia nueva en «MIS PARTIDAS»."
-                )
-            else:
-                box.setText(f'«{p["descripcion"]}» ya existe en la biblioteca.')
-                box.setInformativeText(
-                    "¿Actualizar la existente o guardar una copia nueva?"
-                )
-            btn_upd    = box.addButton("Actualizar existente",     QMessageBox.AcceptRole)
-            btn_new    = box.addButton("Guardar como copia nueva", QMessageBox.ActionRole)
-            btn_cancel = box.addButton("Cancelar",                 QMessageBox.RejectRole)
-            box.setDefaultButton(btn_new if es_seed else btn_upd)
-            box.exec()
-            clicked = box.clickedButton()
-            if clicked is btn_cancel:
-                conn.close()
-                return
-            modo = 'actualizar' if clicked is btn_upd else 'nuevo'
-
-        if existe and modo == 'actualizar':
-            cu_id = existe['id']
+        conn.close()
+        # Qué CU actualizar o en qué grupo copiar lo decide el usuario viendo
+        # los grupos donde ya existe (David Ramos, ronda 7); antes se tomaba
+        # un duplicado cualquiera y la copia iba siempre a «MIS PARTIDAS».
+        from views.guardar_biblioteca_dialog import GuardarBibliotecaDialog
+        dlg = GuardarBibliotecaDialog(p['descripcion'], p['grupo'] or '',
+                                      self._moneda, self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+        conn = get_db()
+        if dlg.modo == 'actualizar':
+            cu_id = dlg.cu_id
             conn.execute(
                 "UPDATE biblioteca_cu SET unidad=?, rendimiento=?, costo_unitario=? WHERE id=?",
                 (p['unidad'], p['rendimiento'], p['precio_unitario'], cu_id)
             )
-            msg = f'"{p["descripcion"]}" actualizado en la Biblioteca.'
+            grupo = conn.execute("SELECT grupo FROM biblioteca_cu WHERE id=?",
+                                 (cu_id,)).fetchone()[0]
+            msg = f'"{p["descripcion"]}" actualizado en la Biblioteca (grupo {grupo or "sin grupo"}).'
         else:
-            # Copia nueva (ya existía y eligió copiar) o primera vez que se guarda.
-            # La copia siempre va a MIS PARTIDAS para no contaminar el catálogo base.
-            grupo_nuevo = 'MIS PARTIDAS' if existe else (p['grupo'] or 'MIS PARTIDAS')
             cur = conn.execute(
                 "INSERT INTO biblioteca_cu "
                 "(descripcion, unidad, rendimiento, costo_unitario, grupo) VALUES (?,?,?,?,?)",
                 (p['descripcion'], p['unidad'], p['rendimiento'],
-                 p['precio_unitario'], grupo_nuevo)
+                 p['precio_unitario'], dlg.grupo)
             )
             cu_id = cur.lastrowid
-            msg = (f'"{p["descripcion"]}" guardado como copia nueva en MIS PARTIDAS.'
-                   if existe else f'"{p["descripcion"]}" guardado en la Biblioteca.')
+            msg = f'"{p["descripcion"]}" guardado en la Biblioteca, grupo {dlg.grupo}.'
 
         # Reemplazar ACU items en biblioteca (con precio efectivo del proyecto)
         conn.execute("DELETE FROM biblioteca_acu_items WHERE cu_id=?", (cu_id,))
