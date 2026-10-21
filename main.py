@@ -99,6 +99,47 @@ def _preguntar_pais(ventana):
         pass
 
 
+def _ofrecer_appimage(ventana):
+    """Corriendo como AppImage que aún no está en el menú de aplicaciones:
+    ofrecer agregarla, una vez (Acerca de ▸ «Agregar al menú de aplicaciones»
+    queda siempre a mano). El «Ahora no» se recuerda por ruta de AppImage,
+    así que mover el archivo vuelve a ofrecerlo (issue #17)."""
+    try:
+        from core.appimage import appimage_path, esta_integrada
+        img = appimage_path()
+        if img is None or esta_integrada(img):
+            return
+        from PySide6.QtCore import QSettings
+        from PySide6.QtWidgets import QMessageBox
+        qs = QSettings("ingePresupuestos", "avisos")
+        if str(qs.value("appimage/rechazada", "")) == str(img):
+            return
+        box = QMessageBox(ventana)
+        box.setWindowTitle("Menú de aplicaciones")
+        box.setText("¿Agregar IngePresupuestos al menú de aplicaciones?")
+        box.setInformativeText(
+            "Estás usando IngePresupuestos como AppImage. Se agrega un lanzador "
+            "con su icono al menú y los archivos .db muestran su icono de "
+            "documento. No se copia nada: el lanzador apunta a este archivo, "
+            "así que déjalo donde está.")
+        si = box.addButton("Agregar al menú", QMessageBox.AcceptRole)
+        box.addButton("Ahora no", QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is si:
+            from core.appimage import integrar
+            integrar(img)
+        else:
+            qs.setValue("appimage/rechazada", str(img))
+    except Exception:
+        pass
+
+
+def _avisos_de_arranque(ventana):
+    """Los diálogos del primer arranque, uno detrás de otro."""
+    _preguntar_pais(ventana)
+    _ofrecer_appimage(ventana)
+
+
 def main():
     # Bajo Flatpak, /tmp es privado del sandbox y el LibreOffice/mdbtools del
     # host (invocados vía flatpak-spawn) no lo ven. Redirigir los temporales a
@@ -139,6 +180,12 @@ def main():
     app.setApplicationName("ingePresupuestos")
     app.setApplicationVersion("2.0")
     app.setOrganizationName("Ing. Marco Sumari Tellez")
+    # Wayland asocia la ventana a su .desktop por este nombre, y de eso sale
+    # el icono del dock. Dentro del Flatpak la entrada se llama como el id de
+    # la app: sin esto la ventana no se asociaba a su lanzador (icono genérico
+    # en el dock, y el botón «Abrir» de GNOME Software no la veía abrirse).
+    # Issue #17; lo mismo en IngeCAD (77ca931) e IngeTrazo (cb9e86f).
+    app.setDesktopFileName(os.environ.get("FLATPAK_ID") or "ingepresupuestos")
 
     # Traducir todos los textos Qt internos al español
     _translations_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
@@ -256,7 +303,7 @@ def main():
         # "Cargando proyectos…" sea visible mientras se construye el dashboard
         from PySide6.QtCore import QTimer
         QTimer.singleShot(0, lambda: ventana.set_usuario(sesion))
-        QTimer.singleShot(800, lambda: _preguntar_pais(ventana))
+        QTimer.singleShot(800, lambda: _avisos_de_arranque(ventana))
         app.exec()
         # Si hizo logout dentro de la app → continuar al bucle normal
         if usuario_actual() is not None:
@@ -284,7 +331,7 @@ def main():
         ventana.show()
         ventana.asegurar_visible()
         from PySide6.QtCore import QTimer
-        QTimer.singleShot(800, lambda: _preguntar_pais(ventana))
+        QTimer.singleShot(800, lambda: _avisos_de_arranque(ventana))
         app.exec()
 
         if usuario_actual() is not None:

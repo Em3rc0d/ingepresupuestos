@@ -327,6 +327,19 @@ class AcercaView(QWidget):
         btn_update.clicked.connect(self._buscar_actualizaciones)
         col.addWidget(btn_update)
 
+        # Solo como AppImage: poner o quitar el lanzador del menú de
+        # aplicaciones (issue #17). El texto dice lo que va a hacer.
+        from core.appimage import appimage_path
+        self.btn_menu_apps = None
+        if appimage_path() is not None:
+            self.btn_menu_apps = QPushButton()
+            self.btn_menu_apps.setCursor(Qt.PointingHandCursor)
+            self.btn_menu_apps.setFixedHeight(36)
+            self.btn_menu_apps.setStyleSheet(btn_update.styleSheet())
+            self.btn_menu_apps.clicked.connect(self._alternar_menu_apps)
+            self._texto_menu_apps()
+            col.addWidget(self.btn_menu_apps)
+
         # Aviso de licencia (GPL §4: el programa debe mostrar el aviso)
         lbl_libre = QLabel(
             "© 2026 Marco Sumari\n"
@@ -485,6 +498,28 @@ class AcercaView(QWidget):
         """Chequeo manual de actualizaciones (no silencioso)."""
         from views.update_dialog import lanzar_check
         lanzar_check(self, silencioso=False)
+
+    def _texto_menu_apps(self):
+        from core.appimage import appimage_path, esta_integrada
+        if esta_integrada(appimage_path()):
+            self.btn_menu_apps.setText("Quitar del menú de aplicaciones")
+        else:
+            self.btn_menu_apps.setText("Agregar al menú de aplicaciones")
+
+    def _alternar_menu_apps(self):
+        """Agrega o quita el lanzador de la AppImage en el menú del sistema."""
+        from core.appimage import appimage_path, esta_integrada, integrar, quitar
+        img = appimage_path()
+        if img is None:
+            return
+        try:
+            if esta_integrada(img):
+                quitar()
+            else:
+                integrar(img)
+        except OSError as exc:
+            QMessageBox.warning(self, "Menú de aplicaciones", str(exc))
+        self._texto_menu_apps()
 
     # ── Columna derecha: contacto ──
     def _build_col_der(self) -> QWidget:

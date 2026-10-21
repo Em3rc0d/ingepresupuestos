@@ -26,13 +26,16 @@
     <p xml:lang="en">Exports professional reports to PDF, Excel and Word.</p>
   </description>
 
-  <launchable type="desktop-id">com.ingepresupuestos.IngePresupuestos.desktop</launchable>
-
   <screenshots>
     <screenshot type="default">
       <caption>Panel de proyectos</caption>
       <caption xml:lang="en">Projects dashboard</caption>
       <image>https://ingepresupuestos.com/images/screenshots/dashboard-linux.jpeg</image>
+    </screenshot>
+    <screenshot>
+      <caption>Análisis de costos unitarios</caption>
+      <caption xml:lang="en">Unit-cost analysis</caption>
+      <image>https://ingepresupuestos.com/images/screenshots/elabora-acu.jpeg</image>
     </screenshot>
     <screenshot>
       <caption>Centro de reportes</caption>
@@ -50,6 +53,8 @@
       <image>https://ingepresupuestos.com/images/screenshots/control-obra-valorizacion.jpeg</image>
     </screenshot>
   </screenshots>
+
+  <launchable type="desktop-id">com.ingepresupuestos.IngePresupuestos.desktop</launchable>
 
   <categories>
     <category>Office</category>
