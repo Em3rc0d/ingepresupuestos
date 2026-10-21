@@ -53,6 +53,7 @@ from core.database import (
 )
 from models.usuario import Usuario
 from utils.formatting import fmt, fmt_num, parse_num, parse_num_opt
+from utils.i18n import tr, N_
 from utils.icons import icon as load_icon, icon_colored
 from utils import partidas_clipboard as _pclip
 
@@ -191,15 +192,14 @@ ACU_BADGE = {
     'SC':  ("#7A36B1", "#FFFFFF"),   # morado
 }
 ACU_SECTION = {
-    'MO':  ('#FFF9C4', '#7a4900', 'MANO DE OBRA'),                       # ámbar bg, texto marrón
-    'MAT': ('#E8F5E9', '#2d5a27', 'MATERIALES'),                          # verde bg, texto verde oscuro
-    'EQ':  ('#ECEFF1', '#37474F', 'EQUIPO Y HERRAMIENTA'),                # gris-acero bg, texto oscuro
-    'SC':  ('#F3EAFA', '#4A1B7A', 'SUB-CONTRATOS / SERVICIOS'),           # morado bg, texto morado oscuro
+    'MO':  ('#FFF9C4', '#7a4900', N_('MANO DE OBRA')),                       # ámbar bg, texto marrón
+    'MAT': ('#E8F5E9', '#2d5a27', N_('MATERIALES')),                        # verde bg, texto verde oscuro
+    'EQ':  ('#ECEFF1', '#37474F', N_('EQUIPO Y HERRAMIENTA')),                # gris-acero bg, texto oscuro
+    'SC':  ('#F3EAFA', '#4A1B7A', N_('SUB-CONTRATOS / SERVICIOS')),           # morado bg, texto morado oscuro
 }
 _NEUTRAL_BG = QColor('#F0F2F5')   # fondo neutro para celdas no editables
 
 def _cols_acu():
-    from utils.i18n import tr
     return [tr("Tipo"), tr("Descripción"), "Und.", tr("Cuadrilla"), tr("Cantidad"), tr("Precio"), tr("Parcial"), "INEI"]
 COLS_ACU  = ["Tipo", "Descripción", "Und.", "Cuadrilla", "Cantidad", "Precio", "Parcial", "INEI"]
 
@@ -233,7 +233,6 @@ class _SubPptoTab(QPushButton):
         self._apply_full_name(self._full_name)
 
     def contextMenuEvent(self, event):
-        from utils.i18n import tr
         from utils import partidas_clipboard as _pc
         menu = QMenu(self)
         act_rename = menu.addAction(tr("Renombrar")) if self._editable else None
@@ -353,7 +352,7 @@ class _SeleccionarRecursoDialog(QDialog):
     def __init__(self, proyecto_id: int, recurso_id_excluir: int,
                  desc_origen: str, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Reemplazar por otro recurso")
+        self.setWindowTitle(tr("Reemplazar por otro recurso"))
         self.setMinimumSize(640, 460)
         self.setModal(True)
         self.selected_id: int | None = None
@@ -365,15 +364,12 @@ class _SeleccionarRecursoDialog(QDialog):
         vl.setSpacing(10)
 
         lbl = QLabel(
-            f"Reemplazar todas las apariciones de:\n"
-            f"  • <b>{desc_origen}</b>\n"
-            f"por otro recurso <b>que ya está en este proyecto</b>."
+            tr("Reemplazar todas las apariciones de:\n  • <b>{desc_origen}</b>\npor otro recurso <b>que ya está en este proyecto</b>.").format(desc_origen=desc_origen)
         )
         lbl.setWordWrap(True)
         lbl.setStyleSheet("background:transparent; border:none;")
         vl.addWidget(lbl)
 
-        from utils.i18n import tr
         self.inp = QLineEdit()
         self.inp.setPlaceholderText(tr("Buscar") + "…")
         self.inp.textChanged.connect(self._filtrar)
@@ -381,7 +377,7 @@ class _SeleccionarRecursoDialog(QDialog):
 
         self.tbl = QTableWidget(0, 4, self)
         self.tbl.setHorizontalHeaderLabels(
-            ['Código', 'Descripción', 'Unidad', f'Precio {self._simbolo_moneda()}']
+            [tr('Código'), tr('Descripción'), tr('Unidad'), tr("Precio {moneda}").format(moneda=self._simbolo_moneda())]
         )
         self.tbl.setSelectionBehavior(QTableWidget.SelectRows)
         self.tbl.setSelectionMode(QTableWidget.SingleSelection)
@@ -397,10 +393,10 @@ class _SeleccionarRecursoDialog(QDialog):
 
         bb = QHBoxLayout()
         bb.addStretch()
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.clicked.connect(self.reject)
         bb.addWidget(btn_cancel)
-        self.btn_ok = QPushButton("Reemplazar")
+        self.btn_ok = QPushButton(tr("Reemplazar"))
         self.btn_ok.setStyleSheet(_BTN_PRIMARY_SS_FALLBACK)
         self.btn_ok.clicked.connect(self._aceptar)
         bb.addWidget(self.btn_ok)
@@ -486,7 +482,7 @@ class _EditarRecursoDialog(QDialog):
 
     def __init__(self, recurso: dict, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Editar insumo")
+        self.setWindowTitle(tr("Editar insumo"))
         self.setMinimumWidth(460)
         self.setModal(True)
 
@@ -501,7 +497,7 @@ class _EditarRecursoDialog(QDialog):
         # Descripción
         self._inp_desc = QLineEdit(recurso.get('descripcion', ''))
         self._inp_desc.setMinimumHeight(32)
-        form.addRow("Descripción:", self._inp_desc)
+        form.addRow(tr("Descripción:"), self._inp_desc)
 
         # Unidad con autocompletado
         self._inp_und = QLineEdit(recurso.get('unidad', ''))
@@ -518,7 +514,7 @@ class _EditarRecursoDialog(QDialog):
             "QListView::item:selected { background:#FDE8D0; color:#7A3800; }"
         )
         self._inp_und.setCompleter(comp)
-        form.addRow("Unidad:", self._inp_und)
+        form.addRow(tr("Unidad:"), self._inp_und)
 
         # Tipo
         self._cmb_tipo = QComboBox()
@@ -527,14 +523,14 @@ class _EditarRecursoDialog(QDialog):
         idx = {"MO": 0, "MAT": 1, "EQ": 2, "SC": 3}.get(tipo_actual, 1)
         self._cmb_tipo.setCurrentIndex(idx)
         self._cmb_tipo.setMinimumHeight(32)
-        form.addRow("Tipo:", self._cmb_tipo)
+        form.addRow(tr("Tipo:"), self._cmb_tipo)
 
         # Índice INEI (catálogo unificado)
         self._cmb_inei = QComboBox()
         self._cmb_inei.setMinimumHeight(32)
         self._cmb_inei.setMaxVisibleItems(15)
         self._cmb_inei.setStyleSheet("QComboBox { combobox-popup: 0; }")
-        self._cmb_inei.addItem("— Sin índice INEI —", "")
+        self._cmb_inei.addItem(tr("— Sin índice INEI —"), "")
         try:
             from core.indices_inei import catalogo as _catalogo_inei
             cat_inei = _catalogo_inei()
@@ -542,16 +538,16 @@ class _EditarRecursoDialog(QDialog):
             cat_inei = []
         cod_inei = (recurso.get('indice_inei') or '').strip()
         if cod_inei and cod_inei not in {c for c, _ in cat_inei}:
-            self._cmb_inei.addItem(f"{cod_inei} — (personalizado)", cod_inei)
+            self._cmb_inei.addItem(tr("{cod} — (personalizado)").format(cod=cod_inei), cod_inei)
         for cod, desc in cat_inei:
             self._cmb_inei.addItem(f"{cod} — {desc}", cod)
         ix = self._cmb_inei.findData(cod_inei)
         self._cmb_inei.setCurrentIndex(ix if ix >= 0 else 0)
-        form.addRow("Índice INEI:", self._cmb_inei)
+        form.addRow(tr("Índice INEI:"), self._cmb_inei)
 
         vl.addLayout(form)
 
-        lbl_w = QLabel("Estos cambios se aplican al catálogo global de insumos.")
+        lbl_w = QLabel(tr("Estos cambios se aplican al catálogo global de insumos."))
         lbl_w.setStyleSheet("font-size:10px; color:#7F8C8D;")
         vl.addWidget(lbl_w)
 
@@ -561,10 +557,10 @@ class _EditarRecursoDialog(QDialog):
 
         btns = QHBoxLayout()
         btns.addStretch()
-        btn_can = QPushButton("Cancelar")
+        btn_can = QPushButton(tr("Cancelar"))
         btn_can.clicked.connect(self.reject)
         btns.addWidget(btn_can)
-        btn_ok = QPushButton("Guardar")
+        btn_ok = QPushButton(tr("Guardar"))
         btn_ok.setStyleSheet(
             "background:#485a6c; color:white; border-radius:6px; padding:6px 20px;"
         )
@@ -574,7 +570,7 @@ class _EditarRecursoDialog(QDialog):
 
     def _validar(self):
         if not self._inp_desc.text().strip():
-            self._lbl_err.setText("La descripción no puede estar vacía.")
+            self._lbl_err.setText(tr("La descripción no puede estar vacía."))
             return
         self.accept()
 
@@ -598,10 +594,10 @@ class _AcuBarrasWidget(QWidget):
     """Barras de porcentaje MO/MAT/EQ/SC para el espacio libre del ACU."""
 
     _TIPOS = [
-        ('MO',  'Mano de Obra',     '#F39C12'),
-        ('MAT', 'Materiales',       '#27AE60'),
-        ('EQ',  'Equipos y Herr.',  '#607D8B'),
-        ('SC',  'Sub-contratos',    '#7A36B1'),
+        ('MO',  N_('Mano de Obra'),     '#F39C12'),
+        ('MAT', N_('Materiales'),       '#27AE60'),
+        ('EQ',  N_('Equipos y Herr.'),  '#607D8B'),
+        ('SC',  N_('Sub-contratos'),    '#7A36B1'),
     ]
 
     def __init__(self, parent=None):
@@ -642,7 +638,7 @@ class _AcuBarrasWidget(QWidget):
             painter.setPen(QColor(color))
             painter.setFont(QFont('', 9, QFont.Bold))
             painter.drawText(8, cy - 6, lbl_w - 8, 16,
-                             Qt.AlignLeft | Qt.AlignVCenter, label)
+                             Qt.AlignLeft | Qt.AlignVCenter, tr(label))
 
             # Fondo de la barra
             bar_rect = QRect(bar_x, cy - bar_h // 2, bar_w, bar_h)
@@ -941,16 +937,12 @@ class _InputCellDelegate(QStyledItemDelegate):
 
 
 def _cols_ppto():
-    from utils.i18n import tr
     return [tr("Ítem"), tr("Descripción"), "Und.", tr("Cantidad"), "P.U.", tr("Parcial")]
 def _cols_ins():
-    from utils.i18n import tr
     return [tr("Tipo"), tr("Descripción"), "Und.", tr("Cantidad"), tr("Precio"), tr("Parcial"), "INEI"]
 def _cols_met():
-    from utils.i18n import tr
     return [tr("Descripción"), "N°Est.", "N°Elem.", tr("Área"), tr("Largo"), tr("Ancho"), tr("Alto"), tr("Parcial")]
 def _cols_acero():
-    from utils.i18n import tr
     return ["#", tr("Descripción"), tr("Diámetro"), "N°Estr.", "N°Elem.", "N°Var.",
             tr("Longitud"), "Parc.(m)", "kg/ml", "Parc.(kg)", ""]
 COLS_PPTO = ["Ítem", "Descripción", "Unid.", "Metrado", "P.U.", "Parcial"]
@@ -2026,7 +2018,7 @@ class ProyectoView(QWidget):
                 if it is not None:
                     it.setFlags(it.flags() & ~Qt.ItemIsEditable)
 
-    def _require_editable(self, accion: str = 'esta acción',
+    def _require_editable(self, accion: str = N_('esta acción'),
                           nivel: str = 'presupuesto') -> bool:
         """Devuelve True si el nivel está editable en el estado actual.
         Si no, muestra mensaje contextual y devuelve False. Niveles:
@@ -2060,27 +2052,24 @@ class ProyectoView(QWidget):
         if flag:
             return True
         from core.config import ESTADOS_PROYECTO_NOMBRE
-        estado_n = ESTADOS_PROYECTO_NOMBRE.get(self._estado, self._estado)
+        estado_n = tr(ESTADOS_PROYECTO_NOMBRE.get(self._estado, self._estado))
+        accion = tr(accion)
         # Listar lo que SÍ se puede editar en el estado actual.
         editables = [n for f, n in (
-            (self._ed_presupuesto, "Presupuesto (partidas, ACU, metrados)"),
-            (self._ed_pie,         "Pie de presupuesto"),
-            (self._ed_specs,       "Especificaciones técnicas"),
-            (self._ed_cronograma,  "Cronograma"),
+            (self._ed_presupuesto, tr("Presupuesto (partidas, ACU, metrados)")),
+            (self._ed_pie,         tr("Pie de presupuesto")),
+            (self._ed_specs,       tr("Especificaciones técnicas")),
+            (self._ed_cronograma,  tr("Cronograma")),
         ) if f]
         if editables:
-            puedes = ("En «" + estado_n + "» todavía puedes editar:\n  • "
-                      + "\n  • ".join(editables))
+            puedes = (tr("En «{estado}» todavía puedes editar:").format(estado=estado_n)
+                      + "\n  • " + "\n  • ".join(editables))
         else:
-            puedes = ("En «" + estado_n + "» el proyecto es de solo lectura "
-                      "(no se puede editar contenido).")
+            puedes = tr("En «{estado}» el proyecto es de solo lectura "
+                        "(no se puede editar contenido).").format(estado=estado_n)
         QMessageBox.information(
-            self, "Operación no permitida",
-            f"Esta acción no se puede realizar mientras el proyecto está "
-            f"«{estado_n}».\n\n"
-            f"{puedes}\n\n"
-            f"Para {accion}, cambia el estado a «En elaboración» desde el "
-            f"chip de estado (arriba a la derecha)."
+            self, tr("Operación no permitida"),
+            tr("Esta acción no se puede realizar mientras el proyecto está «{estado_n}».\n\n{puedes}\n\nPara {accion}, cambia el estado a «En elaboración» desde el chip de estado (arriba a la derecha).").format(estado_n=estado_n, puedes=puedes, accion=accion)
         )
         return False
 
@@ -2217,7 +2206,7 @@ class ProyectoView(QWidget):
         self._btn_sb.setFixedSize(40, 36)
         self._btn_sb.setCursor(Qt.PointingHandCursor)
         from utils.tooltip import set_tooltip as _stt
-        _stt(self._btn_sb, "Mostrar menú lateral")
+        _stt(self._btn_sb, tr("Mostrar menú lateral"))
         self._btn_sb.setStyleSheet(
             "QPushButton { background:transparent; border:none; border-radius:6px; }"
             "QPushButton:hover { background:rgba(255,255,255,0.15); }"
@@ -2253,7 +2242,7 @@ class ProyectoView(QWidget):
         hl.addSpacing(10)
         self._refrescar_pill_estado()
 
-        lbl_tt = QLabel("TOTAL")
+        lbl_tt = QLabel(tr("TOTAL"))
         lbl_tt.setStyleSheet(f"color:{SLATE_100}; font-size:10px; letter-spacing:0.5px; border:none;")
         hl.addWidget(lbl_tt)
 
@@ -2310,10 +2299,10 @@ class ProyectoView(QWidget):
         _tbtn(_tr("Reportes"),    self._abrir_centro_reportes, sep_after=True)
         _tbtn(_tr("Metrados"),    self._ir_metrados)
         _tbtn(f"{_tr('Cronogramas')} ▾", None, menu=self._build_cronograma_menu())
-        _tbtn("Control de Obra ▾", None, menu=self._build_control_obra_menu())
+        _tbtn(f"{_tr('Control de Obra')} ▾", None, menu=self._build_control_obra_menu())
         _tbtn(_tr("Fórmula Polinómica"), self._ir_formula)
-        _tbtn("Pie", self._ir_pie, sep_after=True)
-        _tbtn("IA ▾", None, menu=self._build_ia_menu())
+        _tbtn(_tr("Pie"), self._ir_pie, sep_after=True)
+        _tbtn(f"{_tr('IA')} ▾", None, menu=self._build_ia_menu())
 
         hl.addStretch()
 
@@ -2328,7 +2317,7 @@ class ProyectoView(QWidget):
         )
         hl.addWidget(sep_global)
 
-        _tbtn("Índices", lambda: self.ir_a_indices_inei.emit())
+        _tbtn(_tr("Índices"), lambda: self.ir_a_indices_inei.emit())
         _tbtn("?",       None, menu=self._build_ayuda_menu())
 
         return bar
@@ -2463,7 +2452,7 @@ class ProyectoView(QWidget):
         )
         self._btn_layout.clicked.connect(self._toggle_panel_layout)
         from utils.tooltip import set_tooltip
-        set_tooltip(self._btn_layout, "Mover panel ACU abajo")
+        set_tooltip(self._btn_layout, tr("Mover panel ACU abajo"))
         hl.addWidget(self._btn_layout)
 
         vl.addWidget(hdr)
@@ -2638,7 +2627,7 @@ class ProyectoView(QWidget):
         sep_cd.setFixedHeight(16)
         sep_cd.setStyleSheet(f"color:{SILVER_300};")
         self._tab_bar_sep_cd  = sep_cd
-        lbl_cd_k = QLabel("CD:")
+        lbl_cd_k = QLabel(tr("CD:"))
         lbl_cd_k.setStyleSheet(
             f"color:{SLATE_300}; font-size:10px; font-weight:700; border:none; padding:0 3px;"
         )
@@ -2677,8 +2666,7 @@ class ProyectoView(QWidget):
         bar_hl.setContentsMargins(6, 4, 6, 4)
         bar_hl.setSpacing(4)
 
-        from utils.i18n import tr
-        tab_labels = ["ACU", tr("Insumos"), tr("Metrados"), tr("Especificaciones"), tr("Resumen"), tr("Memoria")]
+        tab_labels = [tr("ACU"), tr("Insumos"), tr("Metrados"), tr("Especificaciones"), tr("Resumen"), tr("Memoria")]
         # Tooltip por pestaña (vacío = sin tooltip). «Metrados» aclara que es
         # la cantidad/medición de obra.
         tab_tips = ["", "", tr("Cantidades"), "", "", ""]
@@ -2717,7 +2705,7 @@ class ProyectoView(QWidget):
         # superior del proyecto ("Asistente") — un solo punto de entrada.
         # Aquí se mantiene una referencia pasiva si otras partes del código
         # leen self.btn_toggle_chat (no se agrega al layout).
-        self.btn_toggle_chat = QPushButton("✨ Asistente")
+        self.btn_toggle_chat = QPushButton(tr("✨ Asistente"))
         self.btn_toggle_chat.setCheckable(True)
         self.btn_toggle_chat.setChecked(False)
 
@@ -2734,7 +2722,7 @@ class ProyectoView(QWidget):
         self.tabs.addTab(self._make_tab_metrados(), "Metrados")
         self.tabs.addTab(self._make_tab_spec(),     "Especificaciones")
         self.tabs.addTab(self._make_tab_resumen(),  "Resumen")
-        self.tabs.addTab(self._make_tab_memoria(),  "Memoria")
+        self.tabs.addTab(self._make_tab_memoria(),  tr("Memoria"))
         self.tabs.currentChanged.connect(self._on_tab_cambiado)
         # Sincronizar botones si se cambia el tab desde código
         self.tabs.currentChanged.connect(
@@ -2821,14 +2809,14 @@ class ProyectoView(QWidget):
         hl.setContentsMargins(10, 0, 8, 0)
         hl.setSpacing(8)
 
-        self.lbl_acu_titulo = _LabelElidido("Seleccione una partida")
+        self.lbl_acu_titulo = _LabelElidido(tr("Seleccione una partida"))
         self.lbl_acu_titulo.setStyleSheet(
             f"color:{SLATE_700}; font-size:11px; font-weight:700;"
             f" border:none; background:transparent;"
         )
         hl.addWidget(self.lbl_acu_titulo, stretch=1)
 
-        btn_add = QPushButton("+ Recurso")
+        btn_add = QPushButton(tr("+ Recurso"))
         # Mismo alto que el disquete, fijado EN el QSS: un `min-height` del
         # estilo pisa a setFixedHeight, y el botón acababa con el alto de su
         # texto — más alto y corrido hacia abajo en la pantalla de Marco, 12 px
@@ -2849,12 +2837,12 @@ class ProyectoView(QWidget):
         # guarda solo, celda a celda: el tooltip dice a qué guarda este
         # botón, porque David Ramos (16 sep 2026) lo tomó por el «Guardar»
         # del ACU.
-        btn_bib = _boton_guardar("Guardar en Biblioteca", self._guardar_en_biblioteca)
+        btn_bib = _boton_guardar(tr("Guardar en Biblioteca"), self._guardar_en_biblioteca)
         self._btn_bib = btn_bib
         hl.addWidget(btn_bib, 0, Qt.AlignVCenter)
         hl.addSpacing(4)
 
-        lbl_r = QLabel("Rend.:")
+        lbl_r = QLabel(tr("Rend.:"))
         lbl_r.setStyleSheet(f"color:{SLATE_300}; font-size:10px; border:none;")
         hl.addWidget(lbl_r)
 
@@ -2862,9 +2850,9 @@ class ProyectoView(QWidget):
         self.inp_rend.setFixedSize(56, 24)
         self.inp_rend.setPlaceholderText("—")
         self.inp_rend.setToolTip(
-            "Producción por día de la partida. Déjalo VACÍO cuando no aplique "
+            tr("Producción por día de la partida. Déjalo VACÍO cuando no aplique "
             "—subcontratos, servicios, partidas globales—: así no sale en el "
-            "reporte ni deriva cantidades.")
+            "reporte ni deriva cantidades."))
         self.inp_rend.setStyleSheet(
             f"background:white; border:1px solid {SILVER_300}; border-radius:4px;"
             f" padding:0 6px; font-size:11px; color:{SLATE_700};"
@@ -3001,7 +2989,7 @@ class ProyectoView(QWidget):
 
         hl.addStretch()
 
-        lbl_cu_k = QLabel("CU:")
+        lbl_cu_k = QLabel(tr("CU:"))
         lbl_cu_k.setStyleSheet(
             f"color:{SLATE_300}; font-size:10px; font-weight:700; border:none; padding:0 3px;"
         )
@@ -3018,7 +3006,6 @@ class ProyectoView(QWidget):
     # ── Tab Insumos ───────────────────────────────────────────────────────────
 
     def _make_tab_insumos(self) -> QWidget:
-        from utils.i18n import tr
         w = QWidget()
         w.setStyleSheet("background:white;")
         vl = QVBoxLayout(w)
@@ -3031,11 +3018,11 @@ class ProyectoView(QWidget):
         bar.setStyleSheet(f"background:{SILVER_100}; border-bottom:1px solid {SILVER_300};")
         hl = QHBoxLayout(bar)
         hl.setContentsMargins(8, 0, 8, 0)
-        self.lbl_ins_titulo = QLabel("INSUMOS TOTALES DEL PROYECTO")
+        self.lbl_ins_titulo = QLabel(tr("INSUMOS TOTALES DEL PROYECTO"))
         self.lbl_ins_titulo.setStyleSheet(f"color:{SLATE_700}; font-size:11px; font-weight:700; border:none;")
         hl.addWidget(self.lbl_ins_titulo)
         # Botón "Ver todos" — solo visible cuando se filtra por partida
-        self.btn_ins_ver_todos = QPushButton("↩ Ver todos")
+        self.btn_ins_ver_todos = QPushButton(tr("↩ Ver todos"))
         self.btn_ins_ver_todos.setFixedHeight(22)
         self.btn_ins_ver_todos.setCursor(Qt.PointingHandCursor)
         self.btn_ins_ver_todos.setStyleSheet(
@@ -3049,7 +3036,7 @@ class ProyectoView(QWidget):
         hl.addStretch()
         # Botón "Unificar precios" — solo visible si hay insumos con precio
         # inconsistente en el proyecto (mismo insumo a distinto precio).
-        self.btn_ins_unificar = QPushButton("⚠ Unificar precios")
+        self.btn_ins_unificar = QPushButton(tr("⚠ Unificar precios"))
         self.btn_ins_unificar.setFixedHeight(22)
         self.btn_ins_unificar.setCursor(Qt.PointingHandCursor)
         self.btn_ins_unificar.setStyleSheet(
@@ -3064,7 +3051,7 @@ class ProyectoView(QWidget):
         # Botón "PU ≠ ACU" — solo visible si hay partidas cuyo PU guardado
         # no coincide con la suma de su análisis (datos importados antiguos
         # o ediciones con versiones viejas del cálculo).
-        self.btn_ins_pu_acu = QPushButton("⚠ PU ≠ ACU")
+        self.btn_ins_pu_acu = QPushButton(tr("⚠ PU ≠ ACU"))
         self.btn_ins_pu_acu.setFixedHeight(22)
         self.btn_ins_pu_acu.setCursor(Qt.PointingHandCursor)
         self.btn_ins_pu_acu.setStyleSheet(
@@ -3149,12 +3136,12 @@ class ProyectoView(QWidget):
         # nadie—; el contador dice si hay algo que traer. Va en el pie, a la
         # izquierda de los subtotales MO/MAT/EQ (Marco, 8 sep 2026: arriba
         # estorbaba entre las alertas).
-        self.btn_ins_catalogo = QPushButton("↻ Precios del catálogo")
+        self.btn_ins_catalogo = QPushButton(tr("↻ Precios del catálogo"))
         self.btn_ins_catalogo.setFixedHeight(22)
         self.btn_ins_catalogo.setCursor(Qt.PointingHandCursor)
         self.btn_ins_catalogo.setToolTip(
-            "Traer al proyecto los precios que cambiaron en el catálogo de "
-            "insumos, eligiendo cuáles.")
+            tr("Traer al proyecto los precios que cambiaron en el catálogo de "
+            "insumos, eligiendo cuáles."))
         self.btn_ins_catalogo.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700}; border:1px solid {SILVER_300};"
             f" border-radius:4px; padding:0 8px; font-size:10px; font-weight:700; }}"
@@ -3201,7 +3188,7 @@ class ProyectoView(QWidget):
         hdr.setStyleSheet(f"background:{SILVER_100}; border-bottom:1px solid {SILVER_300};")
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(10, 0, 8, 0)
-        self.lbl_met_titulo = QLabel("Seleccione una partida")
+        self.lbl_met_titulo = QLabel(tr("Seleccione una partida"))
         self.lbl_met_titulo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.lbl_met_titulo.setStyleSheet(
             f"color:{SLATE_700}; font-size:11px; font-weight:700; border:none;"
@@ -3215,8 +3202,8 @@ class ProyectoView(QWidget):
         _TOGGLE_OFF = (f"background:{SILVER_100}; color:{SLATE_500};"
                        f" border:1px solid {SILVER_300}; border-radius:4px;"
                        f" padding:0 10px; font-size:10px; {_QSS_ALTO_CAB_BORDE}")
-        self.btn_modo_met   = QPushButton("⊞ Metrados")
-        self.btn_modo_acero = QPushButton("⊞ Acero")
+        self.btn_modo_met   = QPushButton(tr("⊞ Metrados"))
+        self.btn_modo_acero = QPushButton(tr("⊞ Acero"))
         self.btn_modo_met.setFixedHeight(24)
         self.btn_modo_acero.setFixedHeight(24)
         self.btn_modo_met.setStyleSheet(_TOGGLE_ON)
@@ -3228,7 +3215,7 @@ class ProyectoView(QWidget):
         hl.addWidget(self.btn_modo_met)
         hl.addWidget(self.btn_modo_acero)
         hl.addSpacing(6)
-        btn_met_add = QPushButton("+ Fila")
+        btn_met_add = QPushButton(tr("+ Fila"))
         btn_met_add.setFixedHeight(24)
         btn_met_add.setStyleSheet(
             f"background:{BLUE_500}; color:white; border:none; border-radius:4px;"
@@ -3236,7 +3223,7 @@ class ProyectoView(QWidget):
         )
         btn_met_add.clicked.connect(self._metrado_fila_btn)
         hl.addWidget(btn_met_add)
-        hl.addWidget(_boton_guardar("Guardar metrados", self._metrado_guardar))
+        hl.addWidget(_boton_guardar(tr("Guardar metrados"), self._metrado_guardar))
         _fijar_alto_cabecera(hdr)
         vl.addWidget(hdr)
 
@@ -3364,7 +3351,7 @@ class ProyectoView(QWidget):
         pie.setStyleSheet(f"background:#EEF1F5; border-top:2px solid {SILVER_300};")
         hl2 = QHBoxLayout(pie)
         hl2.setContentsMargins(10, 0, 10, 0)
-        self.lbl_met_total_key = QLabel("METRADO TOTAL:")
+        self.lbl_met_total_key = QLabel(tr("METRADO TOTAL:"))
         self.lbl_met_total_key.setStyleSheet(
             f"color:{SLATE_300}; font-size:10px; font-weight:700; border:none; padding:0 3px;"
         )
@@ -3397,7 +3384,7 @@ class ProyectoView(QWidget):
         hl.setContentsMargins(10, 0, 8, 0)
         hl.setSpacing(6)
 
-        self.lbl_spec_titulo = QLabel("Especificaciones técnicas")
+        self.lbl_spec_titulo = QLabel(tr("Especificaciones técnicas"))
         self.lbl_spec_titulo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.lbl_spec_titulo.setStyleSheet(
             f"color:{SLATE_700}; font-size:11px; font-weight:700; border:none;"
@@ -3410,7 +3397,7 @@ class ProyectoView(QWidget):
         self.lbl_spec_estado.setStyleSheet("font-size:10px; color:#95A3AB; border:none;")
         hl.addWidget(self.lbl_spec_estado)
 
-        btn_todo = QPushButton("✨  Todo  ▾")
+        btn_todo = QPushButton(tr("✨  Todo  ▾"))
         btn_todo.setFixedHeight(24)
         from utils.i18n import tr as _tr_spec
         btn_todo.setToolTip(_tr_spec("Generar especificaciones para todas las partidas del proyecto"))
@@ -3421,16 +3408,16 @@ class ProyectoView(QWidget):
             "QPushButton::menu-indicator { image:none; width:0; }"
         )
         menu_todo = QMenu(btn_todo)
-        act_faltantes = menu_todo.addAction("✨  Solo las que faltan")
+        act_faltantes = menu_todo.addAction(tr("✨  Solo las que faltan"))
         act_faltantes.setToolTip(
-            "Generar especificaciones únicamente para partidas que aún no tienen una."
+            tr("Generar especificaciones únicamente para partidas que aún no tienen una.")
         )
         act_faltantes.triggered.connect(
             lambda: self._ia_generar_todo(omitir_existentes=True)
         )
-        act_todas = menu_todo.addAction("✨  Todas las partidas (regenerar)")
+        act_todas = menu_todo.addAction(tr("✨  Todas las partidas (regenerar)"))
         act_todas.setToolTip(
-            "Regenerar la especificación de TODAS las partidas, incluso las que ya tienen una."
+            tr("Regenerar la especificación de TODAS las partidas, incluso las que ya tienen una.")
         )
         act_todas.triggered.connect(
             lambda: self._ia_generar_todo(omitir_existentes=False)
@@ -3453,7 +3440,7 @@ class ProyectoView(QWidget):
         self.btn_spec_fichas.clicked.connect(self._spec_fichas_dialog)
         hl.addWidget(self.btn_spec_fichas)
 
-        btn_ia = QPushButton("✨  IA")
+        btn_ia = QPushButton(tr("✨  IA"))
         btn_ia.setFixedHeight(24)
         btn_ia.setToolTip(_tr_spec("Generar especificación con IA para la partida seleccionada"))
         btn_ia.setStyleSheet(
@@ -3464,7 +3451,7 @@ class ProyectoView(QWidget):
         btn_ia.clicked.connect(self._ia_generar_spec)
         hl.addWidget(btn_ia)
 
-        hl.addWidget(_boton_guardar("Guardar especificación", self._guardar_spec))
+        hl.addWidget(_boton_guardar(tr("Guardar especificación"), self._guardar_spec))
         _fijar_alto_cabecera(hdr)
         vl.addWidget(hdr)
 
@@ -3502,11 +3489,11 @@ class ProyectoView(QWidget):
             return s
 
         # Negrita / Cursiva / Subrayado
-        self.btn_bold = _fmt_btn("B", "Negrita (Ctrl+B)", self._spec_bold, True)
+        self.btn_bold = _fmt_btn("B", tr("Negrita (Ctrl+B)"), self._spec_bold, True)
         self.btn_bold.setStyleSheet(_BTN_FMT + "QPushButton { font-weight:900; }")
-        self.btn_italic = _fmt_btn("I", "Cursiva (Ctrl+I)", self._spec_italic, True)
+        self.btn_italic = _fmt_btn("I", tr("Cursiva (Ctrl+I)"), self._spec_italic, True)
         self.btn_italic.setStyleSheet(_BTN_FMT + "QPushButton { font-style:italic; }")
-        self.btn_underline = _fmt_btn("U", "Subrayado (Ctrl+U)", self._spec_underline, True)
+        self.btn_underline = _fmt_btn("U", tr("Subrayado (Ctrl+U)"), self._spec_underline, True)
         self.btn_underline.setStyleSheet(_BTN_FMT + "QPushButton { text-decoration:underline; }")
         ht.addWidget(self.btn_bold)
         ht.addWidget(self.btn_italic)
@@ -3515,10 +3502,10 @@ class ProyectoView(QWidget):
 
         # Alineación
         for icono, tooltip, alin in [
-            ("≡←", "Alinear izquierda",  Qt.AlignLeft),
-            ("≡≡", "Centrar",            Qt.AlignHCenter),
-            ("≡→", "Alinear derecha",    Qt.AlignRight),
-            ("≡≡", "Justificar",         Qt.AlignJustify),
+            ("≡←", tr("Alinear izquierda"),  Qt.AlignLeft),
+            ("≡≡", tr("Centrar"),            Qt.AlignHCenter),
+            ("≡→", tr("Alinear derecha"),    Qt.AlignRight),
+            ("≡≡", tr("Justificar"),         Qt.AlignJustify),
         ]:
             alin_val = alin
             b = _fmt_btn(icono, tooltip, lambda _ch, a=alin_val: self._spec_align(a))
@@ -3526,12 +3513,12 @@ class ProyectoView(QWidget):
         ht.addWidget(_sep())
 
         # Listas
-        ht.addWidget(_fmt_btn("•  Lista", "Viñetas",        self._spec_bullet_list))
-        ht.addWidget(_fmt_btn("1. Lista", "Lista numerada", self._spec_numbered_list))
+        ht.addWidget(_fmt_btn(tr("•  Lista"), tr("Viñetas"),        self._spec_bullet_list))
+        ht.addWidget(_fmt_btn(tr("1. Lista"), tr("Lista numerada"), self._spec_numbered_list))
         ht.addWidget(_sep())
 
         # Imagen
-        ht.addWidget(_fmt_btn("🖼  Imagen", "Insertar imagen", self._spec_insertar_imagen))
+        ht.addWidget(_fmt_btn(tr("🖼  Imagen"), tr("Insertar imagen"), self._spec_insertar_imagen))
         ht.addStretch()
         vl.addWidget(toolbar)
 
@@ -3539,7 +3526,7 @@ class ProyectoView(QWidget):
         self.txt_spec = QTextEdit()
         self.txt_spec.setAcceptRichText(True)
         self.txt_spec.setPlaceholderText(
-            "Seleccione una partida para ver o editar sus especificaciones técnicas…"
+            tr("Seleccione una partida para ver o editar sus especificaciones técnicas…")
         )
         self.txt_spec.setStyleSheet(
             f"QTextEdit {{ border:none; font-size:12px; padding:12px;"
@@ -3570,7 +3557,7 @@ class ProyectoView(QWidget):
         hdr_hl.setContentsMargins(8, 4, 10, 4)
         hdr_hl.setSpacing(6)
 
-        btn_back = QPushButton("← Presupuesto")
+        btn_back = QPushButton(tr("← Presupuesto"))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
             f"QPushButton {{ background:rgba(255,255,255,0.12); color:white;"
@@ -3582,7 +3569,7 @@ class ProyectoView(QWidget):
         hdr_hl.addWidget(btn_back)
         hdr_hl.addSpacing(8)
 
-        lbl_title = QLabel("Pie de Presupuesto")
+        lbl_title = QLabel(tr("Pie de Presupuesto"))
         lbl_title.setStyleSheet(
             "color:white; font-size:12px; font-weight:700;"
             " background:transparent; border:none;")
@@ -3670,7 +3657,6 @@ class ProyectoView(QWidget):
         self._render_pie()
 
     def _render_pie(self):
-        from utils.i18n import tr
         conn = get_db()
         rubros   = conn.execute(
             "SELECT * FROM pie_rubros WHERE proyecto_id=? ORDER BY orden", (self.pid,)
@@ -3714,7 +3700,7 @@ class ProyectoView(QWidget):
 
         if not rubros_det:
             # Sin rubros de detalle — placeholder
-            lbl_empty = QLabel("Sin tablas de detalle activas.\nActiva rubros tipo «Con detalle» en Plantillas.")
+            lbl_empty = QLabel(tr("Sin tablas de detalle activas.\nActiva rubros tipo «Con detalle» en Plantillas."))
             lbl_empty.setAlignment(Qt.AlignCenter)
             lbl_empty.setStyleSheet(f"color:{SLATE_100}; font-size:12px;")
             self._pie_right_vl.addWidget(lbl_empty)
@@ -3779,16 +3765,16 @@ class ProyectoView(QWidget):
         # En mayúsculas como el resto de filas y como lo imprimen PDF, Excel
         # y Word (David Ramos, 16 sep 2026), y en negrita como un subtotal,
         # que es como ya salía en los reportes (issue #15).
-        filas = [("COSTO DIRECTO", _rn(cd, get_decimales_ppto()), SLATE_700, True)]
+        filas = [(tr("COSTO DIRECTO"), _rn(cd, get_decimales_ppto()), SLATE_700, True)]
         for l in lineas or []:
             if l['tipo'] == 'subtotal':
                 filas.append((l['nombre'], l['valor'], SLATE_700, True))
             else:
                 filas.append((l['nombre'], l['valor'], SLATE_500, False))
-        filas.append(("PRESUPUESTO TOTAL", total, BLUE_500, True))
+        filas.append((tr("PRESUPUESTO TOTAL"), total, BLUE_500, True))
         return filas, total
 
-    def _build_resumen_card(self, title="RESUMEN DE COSTOS", all_subs: bool = False):
+    def _build_resumen_card(self, title=N_("RESUMEN DE COSTOS"), all_subs: bool = False):
         """Card de Resumen de Costos basado en pie_rubros activos.
         all_subs=True usa el CD global del proyecto (todos los subpresupuestos)."""
         filas, total = self._filas_resumen(all_subs=all_subs)
@@ -3801,7 +3787,7 @@ class ProyectoView(QWidget):
         vl.setContentsMargins(14, 12, 14, 14)
         vl.setSpacing(6)
 
-        lbl_sec = QLabel(title)
+        lbl_sec = QLabel(tr(title))
         lbl_sec.setStyleSheet(
             f"color:{SLATE_500}; font-size:10px; font-weight:700;"
             f" letter-spacing:0.8px; border:none;"
@@ -3874,7 +3860,7 @@ class ProyectoView(QWidget):
             f" letter-spacing:0.5px; border:none;"
         )
         hdr_hl.addWidget(lbl_h)
-        lbl_pct = QLabel(f"{pct_val:.1f}% CD")
+        lbl_pct = QLabel(tr("{pct_val:.1f}% CD").format(pct_val=pct_val))
         lbl_pct.setStyleSheet(f"color:{SLATE_100}; font-size:10px; border:none;")
         hdr_hl.addWidget(lbl_pct)
 
@@ -3891,17 +3877,17 @@ class ProyectoView(QWidget):
                 )
                 b.clicked.connect(slot)
                 return b
-            hdr_hl.addWidget(_hbtn_left("+ Grupo",   lambda: self._gg_agregar_grupo(cod)))
-            hdr_hl.addWidget(_hbtn_left("+ Ítem",    lambda: self._gg_agregar_item(cod)))
-            btn_pl = _hbtn_left("Cargar plantilla ▾", lambda: None)
+            hdr_hl.addWidget(_hbtn_left("+ " + tr("Grupo"),   lambda: self._gg_agregar_grupo(cod)))
+            hdr_hl.addWidget(_hbtn_left("+ " + tr("Ítem"),    lambda: self._gg_agregar_item(cod)))
+            btn_pl = _hbtn_left(tr("Cargar plantilla") + " ▾", lambda: None)
             btn_pl.setMenu(self._gg_plantilla_menu(cod))
             btn_pl.setStyleSheet(
                 btn_pl.styleSheet()
                 + "QPushButton::menu-indicator{image:none;width:0;}")
             hdr_hl.addWidget(btn_pl)
-            hdr_hl.addWidget(_hbtn_left("Guardar plantilla",
+            hdr_hl.addWidget(_hbtn_left(tr("Guardar plantilla"),
                                         lambda: self._gg_guardar_plantilla_usuario(cod)))
-            hdr_hl.addWidget(_hbtn_left("Exportar",  lambda: self._gg_export_plantilla(cod)))
+            hdr_hl.addWidget(_hbtn_left(tr("Exportar"),  lambda: self._gg_export_plantilla(cod)))
 
         hdr_hl.addStretch()
 
@@ -3923,8 +3909,8 @@ class ProyectoView(QWidget):
                 )
             return b
 
-        btn_det = _toggle_btn("Con detalle", not is_manual)
-        btn_man = _toggle_btn("Monto manual", is_manual)
+        btn_det = _toggle_btn(tr("Con detalle"), not is_manual)
+        btn_man = _toggle_btn(tr("Monto manual"), is_manual)
 
         def _ir_detalle():
             conn = get_db()
@@ -3956,7 +3942,7 @@ class ProyectoView(QWidget):
         # Total del rubro — visible arriba, antes de los toggles, para no tener
         # que bajar al pie a leerlo. En modo manual = el monto ingresado.
         total_hdr = (manual_row['precio'] or 0) if is_manual else detail_total
-        lbl_tot_hdr = QLabel(f"Total: {fmt(total_hdr, self._moneda)}")
+        lbl_tot_hdr = QLabel(tr("Total: {total_hdr}").format(total_hdr=fmt(total_hdr, self._moneda)))
         lbl_tot_hdr.setStyleSheet(
             f"color:{SLATE_700}; font-size:11px; font-weight:700;"
             f" background:transparent; border:none;"
@@ -3977,7 +3963,7 @@ class ProyectoView(QWidget):
             body_vl.setContentsMargins(20, 16, 20, 16)
             body_vl.setSpacing(8)
 
-            lbl_m = QLabel("Monto total del rubro:")
+            lbl_m = QLabel(tr("Monto total del rubro:"))
             lbl_m.setStyleSheet(f"color:{SLATE_500}; font-size:11px; border:none;")
             lbl_m.setAlignment(Qt.AlignCenter)
             body_vl.addWidget(lbl_m)
@@ -4018,8 +4004,8 @@ class ProyectoView(QWidget):
             body_vl.addWidget(inp_row)
 
             lbl_hint = QLabel(
-                "Ingresa el monto total directamente.\n"
-                "Puedes volver a «Con detalle» para usar la tabla de ítems."
+                tr("Ingresa el monto total directamente.\n"
+                "Puedes volver a «Con detalle» para usar la tabla de ítems.")
             )
             lbl_hint.setStyleSheet(f"color:{SLATE_100}; font-size:10px; border:none;")
             lbl_hint.setAlignment(Qt.AlignCenter)
@@ -4029,8 +4015,8 @@ class ProyectoView(QWidget):
 
         else:
             # Modo con detalle — tabla de ítems
-            cols = ["Descripción", "Unidad", "% Participación", "Cantidad",
-                    "Precio", "Total", ""]
+            cols = [tr("Descripción"), tr("Unidad"), tr("% Participación"), tr("Cantidad"),
+                    tr("Precio"), tr("Total"), ""]
             tbl = QTableWidget(0, len(cols))
             tbl.setHorizontalHeaderLabels(cols)
             th = tbl.horizontalHeader()
@@ -4242,7 +4228,6 @@ class ProyectoView(QWidget):
             # Menú contextual clic derecho
             tbl.setContextMenuPolicy(Qt.CustomContextMenu)
             def _ctx_menu(pos, base=tbl):
-                from utils.i18n import tr
                 rows_s = sorted(set(i.row() for i in base.selectedIndexes()))
                 n = len(rows_s)
                 menu = QMenu(base)
@@ -4284,9 +4269,9 @@ class ProyectoView(QWidget):
             f_hl.setSpacing(0)
             f_hl.addStretch()
             for lbl_t, val_t in [
-                ("Total detallado:",          fmt(tot, self._moneda)),
-                ("   % sobre CD:",             f"{pct_real:.2f}%"),
-                (f"   Ref. {pct_val:.1f}% CD:", fmt(ref, self._moneda)),
+                (tr("Total detallado:"),          fmt(tot, self._moneda)),
+                ("   " + tr("% sobre CD:"),             f"{pct_real:.2f}%"),
+                ("   " + tr("Ref. {pct:.1f}% CD:").format(pct=pct_val), fmt(ref, self._moneda)),
             ]:
                 ll = QLabel(lbl_t)
                 ll.setStyleSheet(
@@ -4363,7 +4348,7 @@ class ProyectoView(QWidget):
             self._gg_render_timer.start(600)
 
     def _gg_agregar_grupo(self, cod: str):
-        nombre, ok = QInputDialog.getText(self, "Nuevo grupo", "Nombre del grupo:")
+        nombre, ok = QInputDialog.getText(self, tr("Nuevo grupo"), tr("Nombre del grupo:"))
         if not ok or not nombre.strip():
             return
         conn  = get_db()
@@ -4409,20 +4394,20 @@ class ProyectoView(QWidget):
         conn.close()
         data = {'rubro': cod, 'items': [dict(r) for r in rows]}
         path_f, _ = _QFileDialog.getSaveFileName(
-            self, "Exportar plantilla",
-            f"plantilla_{cod}.json", "JSON (*.json)"
+            self, tr("Exportar plantilla"),
+            f"plantilla_{cod}.json", tr("JSON (*.json)")
         )
         if not path_f:
             return
         with open(path_f, 'w', encoding='utf-8') as f:
             _json.dump(data, f, ensure_ascii=False, indent=2)
-        QMessageBox.information(self, "Exportar",
-                                f"Plantilla «{cod}» exportada correctamente.")
+        QMessageBox.information(self, tr("Exportar"),
+                                tr("Plantilla «{cod}» exportada correctamente.").format(cod=cod))
 
     def _gg_import_plantilla(self, cod: str):
         import json as _json
         path_f, _ = _QFileDialog.getOpenFileName(
-            self, "Importar plantilla", "", "JSON (*.json)"
+            self, tr("Importar plantilla"), "", tr("JSON (*.json)")
         )
         if not path_f:
             return
@@ -4430,7 +4415,7 @@ class ProyectoView(QWidget):
             with open(path_f, 'r', encoding='utf-8') as f:
                 data = _json.load(f)
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"No se pudo leer el archivo: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo leer el archivo: {e}").format(e=e))
             return
         self._gg_aplicar_plantilla_items(cod, data.get('items', []))
 
@@ -4440,11 +4425,11 @@ class ProyectoView(QWidget):
         Compartido por la importación desde archivo y las plantillas
         precargadas (`core/plantillas_pie.py`)."""
         if not items:
-            QMessageBox.warning(self, "Plantilla", "La plantilla no contiene ítems.")
+            QMessageBox.warning(self, tr("Plantilla"), tr("La plantilla no contiene ítems."))
             return
         reply = QMessageBox.question(
-            self, "Cargar plantilla",
-            f"¿Reemplazar los ítems actuales de «{cod}»?\n«No» añade los ítems al final.",
+            self, tr("Cargar plantilla"),
+            tr("¿Reemplazar los ítems actuales de «{cod}»?\n«No» añade los ítems al final.").format(cod=cod),
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
         )
         if reply == QMessageBox.Cancel:
@@ -4492,7 +4477,7 @@ class ProyectoView(QWidget):
 
         # Mis plantillas (guardadas por el usuario en la app)
         guardadas = listar_plantillas_pie_guardadas()
-        hdr = m.addAction("Mis plantillas")
+        hdr = m.addAction(tr("Mis plantillas"))
         hdr.setEnabled(False)
         if guardadas:
             for pid, nombre in guardadas:
@@ -4500,12 +4485,12 @@ class ProyectoView(QWidget):
                 act.triggered.connect(
                     lambda _=False, p=pid, c=cod: self._gg_cargar_plantilla_guardada(c, p))
         else:
-            vacia = m.addAction("   — ninguna guardada —")
+            vacia = m.addAction(tr("   — ninguna guardada —"))
             vacia.setEnabled(False)
         m.addSeparator()
 
         # Borradores precargados (biblioteca de fábrica)
-        prec = m.addAction("Precargadas")
+        prec = m.addAction(tr("Precargadas"))
         prec.setEnabled(False)
         for key, nombre, _items in listar_plantillas_pie():
             act = m.addAction("   " + nombre)
@@ -4514,9 +4499,9 @@ class ProyectoView(QWidget):
         m.addSeparator()
 
         if guardadas:
-            act_del = m.addAction("Eliminar plantilla guardada…")
+            act_del = m.addAction(tr("Eliminar plantilla guardada…"))
             act_del.triggered.connect(lambda _=False: self._gg_eliminar_plantilla_guardada())
-        act_file = m.addAction("Cargar desde archivo…")
+        act_file = m.addAction(tr("Cargar desde archivo…"))
         act_file.triggered.connect(lambda _=False, c=cod: self._gg_import_plantilla(c))
         return m
 
@@ -4537,14 +4522,14 @@ class ProyectoView(QWidget):
         app (no un archivo). Se podrá cargar luego desde «Cargar plantilla ▾»."""
         items = self._gg_recolectar_items(cod)
         if not items:
-            QMessageBox.warning(self, "Guardar plantilla",
-                                "Este rubro no tiene ítems con detalle para guardar.")
+            QMessageBox.warning(self, tr("Guardar plantilla"),
+                                tr("Este rubro no tiene ítems con detalle para guardar."))
             return
         from core.database import (listar_plantillas_pie_guardadas,
                                     guardar_plantilla_pie)
         nombre, ok = QInputDialog.getText(
-            self, "Guardar plantilla",
-            "Nombre de la plantilla:\n(si ya existe, se reemplaza)")
+            self, tr("Guardar plantilla"),
+            tr("Nombre de la plantilla:\n(si ya existe, se reemplaza)"))
         nombre = (nombre or '').strip()
         if not ok or not nombre:
             return
@@ -4552,14 +4537,14 @@ class ProyectoView(QWidget):
                      for _, n in listar_plantillas_pie_guardadas())
         if existe:
             r = QMessageBox.question(
-                self, "Guardar plantilla",
-                f"Ya existe una plantilla «{nombre}». ¿Reemplazarla?",
+                self, tr("Guardar plantilla"),
+                tr("Ya existe una plantilla «{nombre}». ¿Reemplazarla?").format(nombre=nombre),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if r != QMessageBox.Yes:
                 return
         guardar_plantilla_pie(nombre, items)
-        QMessageBox.information(self, "Guardar plantilla",
-                                f"Plantilla «{nombre}» guardada.")
+        QMessageBox.information(self, tr("Guardar plantilla"),
+                                tr("Plantilla «{nombre}» guardada.").format(nombre=nombre))
         QTimer.singleShot(0, self._render_pie)   # refresca el menú
 
     def _gg_cargar_plantilla_guardada(self, cod: str, plantilla_id: int):
@@ -4574,16 +4559,16 @@ class ProyectoView(QWidget):
             return
         nombres = [n for _, n in guardadas]
         nombre, ok = QInputDialog.getItem(
-            self, "Eliminar plantilla guardada",
-            "Selecciona la plantilla a eliminar:", nombres, 0, False)
+            self, tr("Eliminar plantilla guardada"),
+            tr("Selecciona la plantilla a eliminar:"), nombres, 0, False)
         if not ok or not nombre:
             return
         pid = next((p for p, n in guardadas if n == nombre), None)
         if pid is None:
             return
         r = QMessageBox.question(
-            self, "Eliminar plantilla",
-            f"¿Eliminar la plantilla «{nombre}»?",
+            self, tr("Eliminar plantilla"),
+            tr("¿Eliminar la plantilla «{nombre}»?").format(nombre=nombre),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if r != QMessageBox.Yes:
             return
@@ -4599,13 +4584,12 @@ class ProyectoView(QWidget):
 
     def _build_plantillas_inline(self, rubros) -> QFrame:
         """Plantillas con drag-and-drop para reordenar — panel izquierdo del Pie."""
-        from utils.i18n import tr
         TIPO_BADGE = {
-            'rubro':    'Con detalle',
-            'pct_cd':   '% CD',
-            'pct_sub':  '% SubTot.',
-            'pct_util': '% Utilidad',
-            'subtotal': 'Separador',
+            'rubro':    tr('Con detalle'),
+            'pct_cd':   tr('% CD'),
+            'pct_sub':  tr('% SubTot.'),
+            'pct_util': tr('% Utilidad'),
+            'subtotal': tr('Separador'),
         }
 
         card = QFrame()
@@ -4627,14 +4611,14 @@ class ProyectoView(QWidget):
         )
         hdr_hl = QHBoxLayout(hdr)
         hdr_hl.setContentsMargins(14, 0, 14, 0)
-        lbl_h = QLabel("PLANTILLAS")
+        lbl_h = QLabel(tr("PLANTILLAS"))
         lbl_h.setStyleSheet(
             f"color:{SLATE_500}; font-size:10px; font-weight:700;"
             f" letter-spacing:0.8px; border:none;"
         )
         hdr_hl.addWidget(lbl_h)
         hdr_hl.addStretch()
-        lbl_hint = QLabel("Arrastra ⠿ para reordenar")
+        lbl_hint = QLabel(tr("Arrastra ⠿ para reordenar"))
         lbl_hint.setStyleSheet(f"color:{SLATE_100}; font-size:9px; border:none;")
         hdr_hl.addWidget(lbl_hint)
         vl.addWidget(hdr)
@@ -4697,7 +4681,6 @@ class ProyectoView(QWidget):
         list_w.delete_requested.connect(_del_by_row)
 
         def _ctx_menu(pos):
-            from utils.i18n import tr
             row = list_w.currentRow()
             if row < 0:
                 return
@@ -4872,7 +4855,7 @@ class ProyectoView(QWidget):
         f_vl = QVBoxLayout(footer)
         f_vl.setContentsMargins(10, 6, 10, 8)
         f_vl.setSpacing(4)
-        lbl_add = QLabel("Agregar línea:")
+        lbl_add = QLabel(tr("Agregar línea:"))
         lbl_add.setStyleSheet(f"color:{SLATE_300}; font-size:10px; border:none;")
         f_vl.addWidget(lbl_add)
 
@@ -4895,11 +4878,11 @@ class ProyectoView(QWidget):
             _save_all()
 
         for lbl_t, tipo in [
-            ("Con detalle", "rubro"),
-            ("% CD",        "pct_cd"),
-            ("% Sub Tot.",  "pct_sub"),
-            ("% Utilidad",  "pct_util"),
-            ("Separador",   "subtotal"),
+            (tr("Con detalle"), "rubro"),
+            (tr("% CD"),        "pct_cd"),
+            (tr("% Sub Tot."),  "pct_sub"),
+            (tr("% Utilidad"),  "pct_util"),
+            (tr("Separador"),   "subtotal"),
         ]:
             b = QPushButton(lbl_t)
             b.setCursor(Qt.PointingHandCursor)
@@ -4963,7 +4946,7 @@ class ProyectoView(QWidget):
         self.lbl_memoria_estado.setStyleSheet("font-size:10px; color:#95A3AB; border:none;")
         hl.addWidget(self.lbl_memoria_estado)
 
-        btn_ia = QPushButton("✨  IA")
+        btn_ia = QPushButton(tr("✨  IA"))
         btn_ia.setFixedHeight(24)
         btn_ia.setToolTip(_tr_m("Generar la memoria descriptiva con IA "
                                 "(usa ubicación, presupuesto, plazo, modalidad y notas)"))
@@ -5008,26 +4991,26 @@ class ProyectoView(QWidget):
             s.setStyleSheet(f"color:{SILVER_300};")
             return s
 
-        self.btn_mem_bold = _mfmt("B", "Negrita (Ctrl+B)", self._mem_bold, True,
+        self.btn_mem_bold = _mfmt("B", tr("Negrita (Ctrl+B)"), self._mem_bold, True,
                                   "QPushButton { font-weight:900; }")
-        self.btn_mem_italic = _mfmt("I", "Cursiva (Ctrl+I)", self._mem_italic, True,
+        self.btn_mem_italic = _mfmt("I", tr("Cursiva (Ctrl+I)"), self._mem_italic, True,
                                     "QPushButton { font-style:italic; }")
-        self.btn_mem_underline = _mfmt("U", "Subrayado (Ctrl+U)", self._mem_underline, True,
+        self.btn_mem_underline = _mfmt("U", tr("Subrayado (Ctrl+U)"), self._mem_underline, True,
                                        "QPushButton { text-decoration:underline; }")
         htb.addWidget(self.btn_mem_bold)
         htb.addWidget(self.btn_mem_italic)
         htb.addWidget(self.btn_mem_underline)
         htb.addWidget(_msep())
-        for icono, tip, alin in [("≡←", "Alinear izquierda", Qt.AlignLeft),
-                                 ("≡≡", "Centrar", Qt.AlignHCenter),
-                                 ("≡→", "Alinear derecha", Qt.AlignRight),
-                                 ("≣", "Justificar", Qt.AlignJustify)]:
+        for icono, tip, alin in [("≡←", tr("Alinear izquierda"), Qt.AlignLeft),
+                                 ("≡≡", tr("Centrar"), Qt.AlignHCenter),
+                                 ("≡→", tr("Alinear derecha"), Qt.AlignRight),
+                                 ("≣", tr("Justificar"), Qt.AlignJustify)]:
             htb.addWidget(_mfmt(icono, tip, lambda _c, a=alin: self._mem_align(a)))
         htb.addWidget(_msep())
-        htb.addWidget(_mfmt("•  Lista", "Viñetas", self._mem_bullet_list))
-        htb.addWidget(_mfmt("1. Lista", "Lista numerada", self._mem_numbered_list))
+        htb.addWidget(_mfmt(tr("•  Lista"), tr("Viñetas"), self._mem_bullet_list))
+        htb.addWidget(_mfmt(tr("1. Lista"), tr("Lista numerada"), self._mem_numbered_list))
         htb.addWidget(_msep())
-        htb.addWidget(_mfmt("🖼  Imagen", "Insertar imagen (se incrusta en el documento)",
+        htb.addWidget(_mfmt(tr("🖼  Imagen"), tr("Insertar imagen (se incrusta en el documento)"),
                             self._mem_insertar_imagen))
         htb.addStretch()
         vl.addWidget(toolbar)
@@ -5122,11 +5105,11 @@ class ProyectoView(QWidget):
     def _mem_insertar_imagen(self):
         """Inserta una imagen incrustada (base64) en la memoria, para que
         viaje dentro del documento/`.db` sin archivos externos."""
-        if not self._require_editable('editar la memoria descriptiva', 'specs'):
+        if not self._require_editable(N_('editar la memoria descriptiva'), 'specs'):
             return
         path, _ = _QFileDialog.getOpenFileName(
-            self, "Seleccionar imagen", "",
-            "Imágenes (*.png *.jpg *.jpeg *.bmp *.gif)")
+            self, tr("Seleccionar imagen"), "",
+            tr("Imágenes (*.png *.jpg *.jpeg *.bmp *.gif)"))
         if not path:
             return
         img = QImage(path)
@@ -5161,11 +5144,11 @@ class ProyectoView(QWidget):
 
     def _on_memoria_editada(self):
         if getattr(self, 'lbl_memoria_estado', None):
-            self.lbl_memoria_estado.setText("● Sin guardar")
+            self.lbl_memoria_estado.setText(tr("● Sin guardar"))
             self.lbl_memoria_estado.setStyleSheet("font-size:10px; color:#C0621A; border:none;")
 
     def _guardar_memoria(self):
-        if not self._require_editable('editar la memoria descriptiva', 'specs'):
+        if not self._require_editable(N_('editar la memoria descriptiva'), 'specs'):
             return
         # Guardar como HTML para conservar el formato (negrita/cursiva/listas).
         valor = self.txt_memoria.toHtml() if self.txt_memoria.toPlainText().strip() else ''
@@ -5176,11 +5159,11 @@ class ProyectoView(QWidget):
         conn.close()
         self._proy['memoria_descriptiva'] = valor
         if getattr(self, 'lbl_memoria_estado', None):
-            self.lbl_memoria_estado.setText("✓ Guardado")
+            self.lbl_memoria_estado.setText(tr("✓ Guardado"))
             self.lbl_memoria_estado.setStyleSheet("font-size:10px; color:#68B723; border:none;")
 
     def _ia_generar_memoria(self):
-        if not self._require_editable('generar la memoria descriptiva', 'specs'):
+        if not self._require_editable(N_('generar la memoria descriptiva'), 'specs'):
             return
         dlg = _DialogIAMemoria(self, self.pid, self._proy.get('nombre', ''),
                                notas=self._proy.get('notas', '') or '')
@@ -5197,7 +5180,7 @@ class ProyectoView(QWidget):
                 conn.close()
                 self._proy['memoria_descriptiva'] = html
                 if getattr(self, 'lbl_memoria_estado', None):
-                    self.lbl_memoria_estado.setText("✓ Generado")
+                    self.lbl_memoria_estado.setText(tr("✓ Generado"))
                     self.lbl_memoria_estado.setStyleSheet(
                         "font-size:10px; color:#68B723; border:none;")
 
@@ -5218,21 +5201,19 @@ class ProyectoView(QWidget):
         return contenido, ini, fin, lineas
 
     def _ampliar_seccion_memoria(self):
-        if not self._require_editable('ampliar la memoria descriptiva', 'specs'):
+        if not self._require_editable(N_('ampliar la memoria descriptiva'), 'specs'):
             return
         texto = self.txt_memoria.toPlainText()
         if not texto.strip():
-            QMessageBox.information(self, "Ampliar sección",
-                "Primero genera o escribe la memoria descriptiva.")
+            QMessageBox.information(self, tr("Ampliar sección"),
+                tr("Primero genera o escribe la memoria descriptiva."))
             return
         numero = self.cmb_memoria_seccion.currentData()
         nombre = _SECCIONES_MEMORIA[numero - 1]
         bloque = self._extraer_seccion_memoria(texto, numero)
         if bloque is None:
-            QMessageBox.information(self, "Ampliar sección",
-                f"No se encontró la sección «{numero}. {nombre.title()}» en la "
-                "memoria.\nGenérala con IA primero o revisa que el encabezado "
-                f"empiece con «{numero}.».")
+            QMessageBox.information(self, tr("Ampliar sección"),
+                tr("No se encontró la sección «{numero}. {nombre}» en la memoria.\nGenérala con IA primero o revisa que el encabezado empiece con «{numero}.».").format(numero=numero, nombre=nombre.title()))
             return
         contenido, ini, fin, lineas = bloque
         dlg = _DialogAmpliarSeccion(self, self.pid, numero, nombre, contenido)
@@ -5252,7 +5233,7 @@ class ProyectoView(QWidget):
         conn.close()
         self._proy['memoria_descriptiva'] = html
         if getattr(self, 'lbl_memoria_estado', None):
-            self.lbl_memoria_estado.setText("✓ Sección ampliada")
+            self.lbl_memoria_estado.setText(tr("✓ Sección ampliada"))
             self.lbl_memoria_estado.setStyleSheet(
                 "font-size:10px; color:#68B723; border:none;")
 
@@ -5297,11 +5278,11 @@ class ProyectoView(QWidget):
         lay = QHBoxLayout(fr)
         lay.setContentsMargins(12, 8, 12, 8)
         lay.setSpacing(10)
-        lbl = QLabel("Este proyecto aún no tiene partidas. ¿Quieres que la IA o "
+        lbl = QLabel(tr("Este proyecto aún no tiene partidas. ¿Quieres que la IA o "
                      "una plantilla te sugieran la estructura? (también puedes "
-                     "agregarlas a mano con clic derecho en la lista).")
+                     "agregarlas a mano con clic derecho en la lista)."))
         lbl.setWordWrap(True)
-        btn = QPushButton("✨  Sugerir partidas")
+        btn = QPushButton(tr("✨  Sugerir partidas"))
         btn.setObjectName("emptyStateBtn")
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet(
@@ -5330,7 +5311,6 @@ class ProyectoView(QWidget):
             self._empty_state.setVisible(vacio)
 
     def recargar_partidas(self):
-        from utils.i18n import tr
         # El árbol se reconstruye → los items resaltados quedan obsoletos.
         self._ins_resaltados = []
         self._decimales_pintados = self._huella_decimales()
@@ -5552,7 +5532,6 @@ class ProyectoView(QWidget):
         return f"{float(cuadrilla or 0):.3f}"
 
     def _menu_copiar_resumen(self, widget, pos):
-        from utils.i18n import tr
         menu = QMenu(self)
         act = menu.addAction(tr("Copiar como imagen"))
         act.triggered.connect(lambda: self._copiar_resumen_imagen(widget))
@@ -5560,7 +5539,6 @@ class ProyectoView(QWidget):
 
     def _copiar_resumen_imagen(self, widget):
         from utils.captura import imagen_nitida
-        from utils.i18n import tr
         QApplication.clipboard().setImage(imagen_nitida(widget))
         win = self.window()
         if hasattr(win, 'statusBar') and win.statusBar():
@@ -5625,7 +5603,6 @@ class ProyectoView(QWidget):
 
     def _acu_en_blanco(self):
         """Panel ACU como al abrir el presupuesto: sin partida."""
-        from utils.i18n import tr
         self._partida_actual_id = None
         self.tbl_acu.setRowCount(0)
         self.lbl_acu_titulo.setText(tr("Seleccione una partida"))
@@ -5633,7 +5610,6 @@ class ProyectoView(QWidget):
         self.lbl_rend_unidad.setText("")
 
     def cargar_acu(self, part_id: int):
-        from utils.i18n import tr
         self._partida_actual_id = part_id
         conn = get_db()
         partida = conn.execute("SELECT * FROM partidas WHERE id=?", (part_id,)).fetchone()
@@ -5657,10 +5633,10 @@ class ProyectoView(QWidget):
         # Unidad del rendimiento = unidad de la partida por día (ej. m²/día)
         und_part = (partida['unidad'] or '').strip()
         self.lbl_rend_unidad.setText(
-            f"{und_part}/día" if (und_part and rend > 0) else "")
+            tr("{und_part}/día").format(und_part=und_part) if (und_part and rend > 0) else "")
 
         jornada = self._proy.get('jornada_laboral') or 8
-        self.lbl_jornada.setText(f"Jornada: {jornada} h/día")
+        self.lbl_jornada.setText(tr("Jornada: {jornada} h/día").format(jornada=jornada))
 
         self.txt_spec.blockSignals(True)
         contenido = partida['especificaciones'] or ""
@@ -5701,7 +5677,7 @@ class ProyectoView(QWidget):
                 self.tbl_acu.insertRow(r)
                 self.tbl_acu.setRowHeight(r, 24)
                 self._acu_row_ids.append(-1)
-                hdr = QTableWidgetItem(sec_label)
+                hdr = QTableWidgetItem(tr(sec_label))
                 hdr.setBackground(QColor(sec_bg))
                 hdr.setForeground(QColor(sec_fg))
                 hdr.setFont(QFont("", 9, QFont.Bold))
@@ -5800,7 +5776,6 @@ class ProyectoView(QWidget):
         estado=int        → insumos de una partida
         estado=list[int]  → insumos agrupados de un título/subtítulo
         """
-        from utils.i18n import tr
         self._ins_estado = estado
         from utils.formatting import norm_busqueda
         buscar = norm_busqueda(self.inp_buscar_ins.text().strip()) if hasattr(self, 'inp_buscar_ins') else ""
@@ -5811,7 +5786,7 @@ class ProyectoView(QWidget):
             # Usar `get_insumos_para_partidas` (que incluye overhead `%MO`/`%MAT`
             # con parcial correctamente calculado via get_acu_items).
             rows  = get_insumos_para_partidas(conn, estado) if estado else []
-            label = getattr(self, '_ins_titulo_label', 'INSUMOS — GRUPO')
+            label = getattr(self, '_ins_titulo_label', tr('INSUMOS — GRUPO'))
 
         elif isinstance(estado, int):
             # ── Partida individual ────────────────────────────────────────────
@@ -5820,12 +5795,12 @@ class ProyectoView(QWidget):
             ).fetchone()
             desc_p = (desc_row['descripcion'] or '') if desc_row else ''
             rows   = get_insumos_para_partidas(conn, [estado])
-            label  = f"INSUMOS  ·  {desc_p[:50]}"
+            label  = tr("INSUMOS  ·  {partida}").format(partida=desc_p[:50])
 
         else:
             # ── Proyecto total ────────────────────────────────────────────────
             rows  = get_insumos_proyecto(conn, self.pid)
-            label = "INSUMOS TOTALES DEL PROYECTO"
+            label = tr("INSUMOS TOTALES DEL PROYECTO")
 
         # Insumos con precio inconsistente (mismo recurso a distinto precio en
         # el proyecto). Se calcula project-wide sin importar la vista activa.
@@ -5938,19 +5913,19 @@ class ProyectoView(QWidget):
             n_incon = len(getattr(self, '_ins_incon', {}))
             self.btn_ins_unificar.setVisible(n_incon > 0 and self._ed_presupuesto)
             if n_incon > 0:
-                self.btn_ins_unificar.setText(f"⚠ Unificar precios ({n_incon})")
+                self.btn_ins_unificar.setText(tr("⚠ Unificar precios ({n_incon})").format(n_incon=n_incon))
 
         if hasattr(self, 'btn_ins_pu_acu'):
             n_pu = len(getattr(self, '_pu_incon', []))
             self.btn_ins_pu_acu.setVisible(n_pu > 0 and self._ed_presupuesto)
             if n_pu > 0:
-                self.btn_ins_pu_acu.setText(f"⚠ PU ≠ ACU ({n_pu})")
+                self.btn_ins_pu_acu.setText(tr("⚠ PU ≠ ACU ({n_pu})").format(n_pu=n_pu))
 
         if hasattr(self, 'btn_ins_catalogo'):
             n_cat = int(getattr(self, '_ins_catalogo', 0) or 0)
             self.btn_ins_catalogo.setVisible(bool(self._ed_presupuesto))
             self.btn_ins_catalogo.setText(
-                f"↻ Precios del catálogo ({n_cat})" if n_cat else "↻ Precios del catálogo")
+                tr("↻ Precios del catálogo ({n_cat})").format(n_cat=n_cat) if n_cat else tr("↻ Precios del catálogo"))
 
         if hasattr(self, '_ins_tipo_labels'):
             for tipo, lv in self._ins_tipo_labels.items():
@@ -6004,7 +5979,7 @@ class ProyectoView(QWidget):
         """Abre un QLineEdit overlay sobre la celda Precio U. de la fila ri."""
         # El precio de insumo se propaga al proyecto y cambia el monto del
         # presupuesto → bloquear si el estado no permite editar el presupuesto.
-        if not self._require_editable('cambiar el precio de un insumo', 'presupuesto'):
+        if not self._require_editable(N_('cambiar el precio de un insumo'), 'presupuesto'):
             return
         tbl = self.tbl_ins
         if not (0 <= ri < tbl.rowCount()):
@@ -6126,7 +6101,7 @@ class ProyectoView(QWidget):
     def _unificar_precio_insumo(self, recurso_id: int, precio: float,
                                  desc: str = ""):
         """Unifica el precio de un insumo en todo el proyecto al valor dado."""
-        if not self._require_editable('unificar el precio'):
+        if not self._require_editable(N_('unificar el precio')):
             return
         try:
             conn = get_db()
@@ -6147,9 +6122,8 @@ class ProyectoView(QWidget):
         """Unifica de una vez el precio de todos los insumos con precio
         inconsistente en el proyecto, usando el precio sugerido (más usado;
         empate → catálogo). Pide confirmación mostrando el detalle."""
-        if not self._require_editable('unificar precios'):
+        if not self._require_editable(N_('unificar precios')):
             return
-        from utils.i18n import tr
         conn = get_db()
         try:
             incon = precios_inconsistentes(conn, self.pid)
@@ -6210,7 +6184,7 @@ class ProyectoView(QWidget):
     def _actualizar_precios_catalogo(self):
         """Abre la vista previa de precios que cambiaron en el catálogo y, si
         el usuario aplica, recarga lo que depende de los PU."""
-        if not self._require_editable('actualizar precios desde el catálogo'):
+        if not self._require_editable(N_('actualizar precios desde el catálogo')):
             return
         from views.actualizar_precios_dialog import ActualizarPreciosDialog
         dlg = ActualizarPreciosDialog(self.pid, self._moneda, self)
@@ -6227,9 +6201,8 @@ class ProyectoView(QWidget):
         ACU y deja elegir: recalcular el PU desde el análisis (presupuestos
         hechos en la app) o quitar el análisis manteniendo el PU (importaciones
         antiguas con ACU incompleto, p.ej. sub-análisis «---» a precio 0)."""
-        if not self._require_editable('verificar PU vs ACU'):
+        if not self._require_editable(N_('verificar PU vs ACU')):
             return
-        from utils.i18n import tr
         conn = get_db()
         try:
             incon = partidas_pu_inconsistente(conn, self.pid)
@@ -6341,7 +6314,6 @@ class ProyectoView(QWidget):
         precio     = float(_completo) if _completo is not None else _parse_precio(precio_txt)
 
         from PySide6.QtWidgets import QMenu
-        from utils.i18n import tr
         menu = QMenu(self)
         incon = getattr(self, '_ins_incon', {}).get(recurso_id)
         if incon and self._ed_presupuesto:
@@ -6385,7 +6357,6 @@ class ProyectoView(QWidget):
     def _resaltar_partidas_con_insumo(self, recurso_id: int, desc: str):
         """Resalta en verde, en el árbol del presupuesto, las partidas cuyo ACU
         usa este insumo. Útil para trazar dónde se consume un recurso."""
-        from utils.i18n import tr
         self._limpiar_resaltado_insumo()
         conn = get_db()
         ids = [r[0] for r in conn.execute(
@@ -6426,10 +6397,10 @@ class ProyectoView(QWidget):
         if hasattr(win, 'statusBar') and win.statusBar():
             n = len(resaltados)
             extra = len(ids) - n
-            msg = (f"{n} partida(s) usan «{desc[:40]}» — resaltadas en verde "
-                   "(clic derecho en Insumos → Quitar resaltado).")
+            msg = tr("{n} partida(s) usan «{desc}» — resaltadas en verde "
+                     "(clic derecho en Insumos → Quitar resaltado).").format(n=n, desc=desc[:40])
             if extra > 0:
-                msg += f"  (+{extra} en otro subpresupuesto)"
+                msg += "  " + tr("(+{extra} en otro subpresupuesto)").format(extra=extra)
             win.statusBar().showMessage(msg, 6000)
 
     def _ins_reemplazar_recurso(self, recurso_id_viejo: int,
@@ -6441,7 +6412,7 @@ class ProyectoView(QWidget):
         Mantiene `acu_items.precio` (override) si existe — el usuario
         puede ajustarlo después. Recalcula PU de las partidas afectadas.
         """
-        if not self._require_editable('ACU'):
+        if not self._require_editable(N_('ACU')):
             return
         dlg = _SeleccionarRecursoDialog(self.pid, recurso_id_viejo,
                                          desc_viejo, parent=self)
@@ -6463,8 +6434,8 @@ class ProyectoView(QWidget):
             if not part_ids:
                 conn.close()
                 QMessageBox.information(
-                    self, "Sin cambios",
-                    "Este recurso no aparece en ningún ACU del proyecto."
+                    self, tr("Sin cambios"),
+                    tr("Este recurso no aparece en ningún ACU del proyecto.")
                 )
                 return
             # Verificar si la fusión crearía colisión: el nuevo recurso ya
@@ -6516,18 +6487,16 @@ class ProyectoView(QWidget):
         self.cargar_insumos()
         self.recargar_partidas()
         QMessageBox.information(
-            self, "Reemplazo aplicado",
-            f"Reemplazado en {n_simples + n_fusionadas} partida(s).\n"
-            f"  • {n_simples} simples (solo cambió el recurso)\n"
-            f"  • {n_fusionadas} fusionadas (se sumaron cuad/cant al existente)"
+            self, tr("Reemplazo aplicado"),
+            tr("Reemplazado en {total} partida(s).\n  • {n_simples} simples (solo cambió el recurso)\n  • {n_fusionadas} fusionadas (se sumaron cuad/cant al existente)").format(total=n_simples + n_fusionadas, n_simples=n_simples, n_fusionadas=n_fusionadas)
         )
 
     def _actualizar_precio_catalogo(self, recurso_id: int, precio: float, desc: str):
-        if not self._require_editable('actualizar el precio en el catálogo', 'presupuesto'):
+        if not self._require_editable(N_('actualizar el precio en el catálogo'), 'presupuesto'):
             return
         res = QMessageBox.question(
-            self, "Actualizar catálogo",
-            f"¿Actualizar el precio de\n«{desc}»\nen el catálogo global a {precio:.4f}?",
+            self, tr("Actualizar catálogo"),
+            tr("¿Actualizar el precio de\n«{desc}»\nen el catálogo global a {precio:.4f}?").format(desc=desc, precio=precio),
             QMessageBox.Yes | QMessageBox.No
         )
         if res == QMessageBox.Yes:
@@ -6657,7 +6626,6 @@ class ProyectoView(QWidget):
         self.cargar_resumen()
 
     def cargar_resumen(self):
-        from utils.i18n import tr
 
         # Limpiar layout
         while self._resumen_layout.count():
@@ -6673,8 +6641,8 @@ class ProyectoView(QWidget):
         cond_sub, par_sub = self._filtro_sub_resumen() if solo_sub else ("", ())
 
         if hay_subs:
-            chk = QCheckBox(tr("Solo el sub-presupuesto a la vista") +
-                            f": «{self._nombre_sub_actual()}»")
+            chk = QCheckBox(tr("Solo el sub-presupuesto a la vista: «{nombre}»").format(
+                nombre=self._nombre_sub_actual()))
             chk.setObjectName("chkResumenSoloSub")
             chk.setChecked(solo_sub)
             chk.setCursor(Qt.PointingHandCursor)
@@ -6724,7 +6692,7 @@ class ProyectoView(QWidget):
             # tanto ancho que aplastaba la del donut (David Ramos, 16 sep 2026).
             _n, _tot = self._posicion_sub_actual()
             card, _ = self._build_resumen_card(
-                title=f"RESUMEN DE COSTOS — {tr('SUB-PRESUPUESTO')} {_n}/{_tot}",
+                title=tr("RESUMEN DE COSTOS — {sub} {n}/{tot}").format(sub=tr('SUB-PRESUPUESTO'), n=_n, tot=_tot),
                 all_subs=False)
         else:
             card, _ = self._build_resumen_card(all_subs=True)
@@ -6740,7 +6708,7 @@ class ProyectoView(QWidget):
             vl_c.setContentsMargins(10, 12, 10, 12)
             vl_c.setSpacing(6)
 
-            lbl_ch = QLabel("DISTRIBUCIÓN CD")
+            lbl_ch = QLabel(tr("DISTRIBUCIÓN CD"))
             lbl_ch.setAlignment(Qt.AlignCenter)
             lbl_ch.setStyleSheet(
                 f"color:{SLATE_500}; font-size:10px; font-weight:700; letter-spacing:0.8px; border:none;"
@@ -6748,12 +6716,12 @@ class ProyectoView(QWidget):
             vl_c.addWidget(lbl_ch)
 
             slices = [
-                ("Mano de Obra",   mo_val,  "#F39C12"),
-                ("Materiales",     mat_val, "#27AE60"),
-                ("Equipo",         eq_val,  "#607D8B"),
+                (tr("Mano de Obra"),   mo_val,  "#F39C12"),
+                (tr("Materiales"),     mat_val, "#27AE60"),
+                (tr("Equipo"),         eq_val,  "#607D8B"),
             ]
             if sc_val > 0:
-                slices.append(("Sub-contratos", sc_val, "#7A36B1"))
+                slices.append((tr("Sub-contratos"), sc_val, "#7A36B1"))
             self._donut = _DonutChart(slices, moneda=self._moneda)
             vl_c.addWidget(self._donut, stretch=1)
             hl_top.addWidget(card_chart, stretch=2)
@@ -6769,7 +6737,7 @@ class ProyectoView(QWidget):
             vl2 = QVBoxLayout(card2)
             vl2.setContentsMargins(14, 12, 14, 12)
             vl2.setSpacing(6)
-            lbl_t = QLabel("TOP 5 PARTIDAS MÁS COSTOSAS")
+            lbl_t = QLabel(tr("TOP 5 PARTIDAS MÁS COSTOSAS"))
             lbl_t.setStyleSheet(
                 f"color:{SLATE_500}; font-size:10px; font-weight:700; letter-spacing:0.8px; border:none;"
             )
@@ -6802,7 +6770,6 @@ class ProyectoView(QWidget):
     def _armar_menu_niveles(self):
         """Todos · Nivel 1 … Nivel N, con N = los niveles de título que
         tiene el árbol a la vista. Marca el activo."""
-        from utils.i18n import tr
         m = self._menu_niveles
         m.clear()
         n_max = profundidad_titulos(self.tree.invisibleRootItem())
@@ -6873,7 +6840,7 @@ class ProyectoView(QWidget):
         from PySide6.QtGui import QPalette, QColor as _QColor
 
         dlg = QDialog()
-        dlg.setWindowTitle("Atajos de teclado")
+        dlg.setWindowTitle(tr("Atajos de teclado"))
         dlg.resize(920, 540)
         dlg.setAttribute(Qt.WA_StyledBackground, True)
         dlg.setWindowModality(Qt.ApplicationModal)
@@ -6903,59 +6870,59 @@ class ProyectoView(QWidget):
         columnas = [
             # Columna 1
             [
-                ('Generales', [
-                    ('F1',                 'Mostrar este diálogo'),
-                    ('F5',                 'Recalcular precios y totales'),
-                    ('Esc',                'Deseleccionar partida'),
-                    ('Ctrl+F',             'Enfocar buscador del topbar'),
-                    ('Ctrl+N',             'Nuevo proyecto'),
-                    ('Ctrl+O',             'Abrir otro proyecto'),
-                    ('Ctrl+P',             'Imprimir reporte'),
+                (tr('Generales'), [
+                    ('F1',                 tr('Mostrar este diálogo')),
+                    ('F5',                 tr('Recalcular precios y totales')),
+                    ('Esc',                tr('Deseleccionar partida')),
+                    ('Ctrl+F',             tr('Enfocar buscador del topbar')),
+                    ('Ctrl+N',             tr('Nuevo proyecto')),
+                    ('Ctrl+O',             tr('Abrir otro proyecto')),
+                    ('Ctrl+P',             tr('Imprimir reporte')),
                 ]),
-                ('Cronograma — Gantt', [
-                    ('Ctrl + rueda',       'Zoom horizontal (acercar/alejar)'),
-                    ('Rueda',              'Scroll vertical sincronizado'),
-                    ('Arrastrar barra',    'Mover tarea (snap a día)'),
-                    ('Arrastrar borde',    'Cambiar duración'),
-                    ('Clic derecho',       'Menú: dividir, hito, etc.'),
+                (tr('Cronograma — Gantt'), [
+                    (tr('Ctrl + rueda'),       tr('Zoom horizontal (acercar/alejar)')),
+                    (tr('Rueda'),              tr('Scroll vertical sincronizado')),
+                    (tr('Arrastrar barra'),    tr('Mover tarea (snap a día)')),
+                    (tr('Arrastrar borde'),    tr('Cambiar duración')),
+                    (tr('Clic derecho'),       tr('Menú: dividir, hito, etc.')),
                 ]),
             ],
             # Columna 2 — la más larga
             [
-                ('Árbol de partidas', [
-                    ('Insert',             'Insertar partida hermana'),
-                    ('Ctrl+Insert',        'Insertar título / rama'),
-                    ('F2',                 'Editar partida seleccionada'),
-                    ('Ctrl+D',             'Duplicar partida'),
-                    ('Supr / Delete',      'Eliminar partida(s)'),
-                    ('Ctrl+C / Ctrl+V',    'Copiar / Pegar + subárbol'),
-                    ('Ctrl+X',             'Cortar (copia y elimina)'),
-                    ('Alt+↑ / Alt+↓',      'Mover arriba / abajo'),
-                    ('Alt+← / Alt+→',      'Subir / bajar nivel'),
-                    ('Ctrl+Inicio',        'Ir a la primera partida'),
-                    ('Ctrl+Fin',           'Ir a la última partida'),
-                    ('Doble clic',         'Editar metrado inline'),
-                    ('Clic derecho',       'Menú de partida'),
+                (tr('Árbol de partidas'), [
+                    ('Insert',             tr('Insertar partida hermana')),
+                    ('Ctrl+Insert',        tr('Insertar título / rama')),
+                    ('F2',                 tr('Editar partida seleccionada')),
+                    ('Ctrl+D',             tr('Duplicar partida')),
+                    (tr('Supr / Delete'),      tr('Eliminar partida(s)')),
+                    ('Ctrl+C / Ctrl+V',    tr('Copiar / Pegar + subárbol')),
+                    ('Ctrl+X',             tr('Cortar (copia y elimina)')),
+                    ('Alt+↑ / Alt+↓',      tr('Mover arriba / abajo')),
+                    ('Alt+← / Alt+→',      tr('Subir / bajar nivel')),
+                    (tr('Ctrl+Inicio'),        tr('Ir a la primera partida')),
+                    (tr('Ctrl+Fin'),           tr('Ir a la última partida')),
+                    (tr('Doble clic'),         tr('Editar metrado inline')),
+                    (tr('Clic derecho'),       tr('Menú de partida')),
                 ]),
             ],
             # Columna 3
             [
-                ('Tablas (ACU · Insumos · Metrados · Acero)', [
-                    ('Ctrl+C',             'Copiar celdas seleccionadas'),
-                    ('Ctrl+V',             'Pegar al rango seleccionado'),
-                    ('Supr / Backspace',   'Limpiar / eliminar fila'),
-                    ('Doble clic',         'Editar valor de la celda'),
-                    ('Tab / Shift+Tab',    'Navegar entre celdas'),
-                    ('Alt+↑ / Alt+↓',      'Subir / bajar insumo del ACU'),
+                (tr('Tablas (ACU · Insumos · Metrados · Acero)'), [
+                    ('Ctrl+C',             tr('Copiar celdas seleccionadas')),
+                    ('Ctrl+V',             tr('Pegar al rango seleccionado')),
+                    (tr('Supr / Backspace'),   tr('Limpiar / eliminar fila')),
+                    (tr('Doble clic'),         tr('Editar valor de la celda')),
+                    ('Tab / Shift+Tab',    tr('Navegar entre celdas')),
+                    ('Alt+↑ / Alt+↓',      tr('Subir / bajar insumo del ACU')),
                 ]),
-                ('Predecesoras (columna "Pred.")', [
-                    ('5',                  'FS: inicia cuando 5 termina'),
-                    ('5+3',                'FS con 3 días de lag'),
-                    ('5SS  /  5SS+2',      'Start-to-Start (± lag)'),
-                    ('5FF  /  5FF-1',      'Finish-to-Finish (± lag)'),
-                    ('5SF',                'Start-to-Finish (raro)'),
-                    ('5+50%',              'Arranca cuando 5 lleva 50%'),
-                    ('3, 4SS',             'Múltiples preds. con coma'),
+                (tr('Predecesoras (columna "Pred.")'), [
+                    ('5',                  tr('FS: inicia cuando 5 termina')),
+                    ('5+3',                tr('FS con 3 días de lag')),
+                    ('5SS  /  5SS+2',      tr('Start-to-Start (± lag)')),
+                    ('5FF  /  5FF-1',      tr('Finish-to-Finish (± lag)')),
+                    ('5SF',                tr('Start-to-Finish (raro)')),
+                    ('5+50%',              tr('Arranca cuando 5 lleva 50%')),
+                    ('3, 4SS',             tr('Múltiples preds. con coma')),
                 ]),
             ],
         ]
@@ -6994,7 +6961,7 @@ class ProyectoView(QWidget):
         vl.addLayout(cols_hbox, 1)
 
         bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.button(QDialogButtonBox.Close).setText("Cerrar")
+        bb.button(QDialogButtonBox.Close).setText(tr("Cerrar"))
         bb.rejected.connect(dlg.reject)
         bb.accepted.connect(dlg.accept)
         bb.button(QDialogButtonBox.Close).clicked.connect(dlg.accept)
@@ -7031,7 +6998,7 @@ class ProyectoView(QWidget):
             if es_tt:
                 ids = self._partidas_bajo_titulo(current)
                 desc = current.text(1)
-                self._ins_titulo_label = f"INSUMOS  ·  {desc[:50]}"
+                self._ins_titulo_label = tr("INSUMOS  ·  {partida}").format(partida=desc[:50])
                 self.cargar_insumos(ids)
             else:
                 self.cargar_insumos(pid)
@@ -7082,7 +7049,7 @@ class ProyectoView(QWidget):
                 es_tt = current.data(0, Qt.UserRole + 1)
                 if pid and es_tt:
                     ids = self._partidas_bajo_titulo(current)
-                    self._ins_titulo_label = f"INSUMOS  ·  {current.text(1)[:50]}"
+                    self._ins_titulo_label = tr("INSUMOS  ·  {partida}").format(partida=current.text(1)[:50])
                     self.cargar_insumos(ids)
                 elif pid:
                     self.cargar_insumos(pid)
@@ -7121,10 +7088,10 @@ class ProyectoView(QWidget):
                 conn.close()
                 if n_met == 0 and n_acero == 0 and self._ed_presupuesto:
                     self._tuxia.show_tip(
-                        "No hay planilla cargada para esta partida. Cárgala "
+                        tr("No hay planilla cargada para esta partida. Cárgala "
                         "fila por fila (largo × ancho × alto), o usa el chat "
-                        "para que la IA te sugiera la fórmula geométrica.",
-                        titulo="tuxia · planilla vacía",
+                        "para que la IA te sugiera la fórmula geométrica."),
+                        titulo=tr("tuxia · planilla vacía"),
                         key=f"tip_metrados_vacios:{part_id}",
                         fade_ms=8000,
                     )
@@ -7138,12 +7105,12 @@ class ProyectoView(QWidget):
                 spec_vacio = not (p and (p['especificaciones'] or '').strip())
                 if spec_vacio and self._ed_specs:
                     self._tuxia.show_tip(
-                        "Esta partida no tiene especificaciones técnicas. "
+                        tr("Esta partida no tiene especificaciones técnicas. "
                         "Puedo redactártelas con IA en base a la descripción "
-                        "y el ACU.",
+                        "y el ACU."),
                         accion_id=f'generar_specs:{part_id}',
-                        accion_label="Generar con IA",
-                        titulo="tuxia · sin specs",
+                        accion_label=tr("Generar con IA"),
+                        titulo=tr("tuxia · sin specs"),
                         key=f"tip_specs_vacio:{part_id}",
                         fade_ms=10000,
                     )
@@ -7182,7 +7149,6 @@ class ProyectoView(QWidget):
         seleccionados = self.tree.selectedItems()
         n_sel = len([it for it in seleccionados if it.data(0, Qt.UserRole)])
 
-        from utils.i18n import tr
         menu.addAction(tr("Agregar partida"),  self._nueva_partida)
         menu.addAction(tr("Agregar título"),   self._nuevo_titulo)
         menu.addAction(tr("Seleccionar todo") + "\tCtrl+A", self.tree.selectAll)
@@ -7190,7 +7156,7 @@ class ProyectoView(QWidget):
         if _pclip.hay_clipboard():
             menu.addSeparator()
             menu.addAction(
-                f"Pegar partidas — {_pclip.descripcion_clipboard()}\tCtrl+V",
+                tr("Pegar partidas — {desc}\tCtrl+V").format(desc=_pclip.descripcion_clipboard()),
                 lambda: self._pegar_partidas_clipboard()
             )
         if item:
@@ -7212,11 +7178,11 @@ class ProyectoView(QWidget):
                 ids = [(it.data(0, Qt.UserRole), it.text(1))
                        for it in seleccionados if it.data(0, Qt.UserRole)]
                 menu.addAction(
-                    f"Copiar {n_sel} partidas\tCtrl+C",
+                    tr("Copiar {n_sel} partidas\tCtrl+C").format(n_sel=n_sel),
                     lambda: self._copiar_partidas_seleccionadas()
                 )
                 menu.addAction(
-                    f"Eliminar {n_sel} partidas seleccionadas",
+                    tr("Eliminar {n_sel} partidas seleccionadas").format(n_sel=n_sel),
                     lambda: self._eliminar_partidas_multiple(ids)
                 )
         # Imprimir la selección — vale con una o con varias. Un título
@@ -7270,8 +7236,8 @@ class ProyectoView(QWidget):
         ids = [it.data(0, Qt.UserRole) for it in seleccionados
                if it.data(0, Qt.UserRole)]
         if not ids:
-            QMessageBox.information(self, "Copiar partidas",
-                                    "Selecciona al menos una partida en el árbol.")
+            QMessageBox.information(self, tr("Copiar partidas"),
+                                    tr("Selecciona al menos una partida en el árbol."))
             return
         conn = get_db()
         # Filtrar redundancias: si un ítem está bajo otro ya seleccionado,
@@ -7303,7 +7269,7 @@ class ProyectoView(QWidget):
         win = self.window()
         if hasattr(win, 'statusBar') and win.statusBar():
             win.statusBar().showMessage(
-                f"Copiadas {n} partida(s) — Ctrl+V para pegar aquí o en Excel", 4000
+                tr("Copiadas {n} partida(s) — Ctrl+V para pegar aquí o en Excel").format(n=n), 4000
             )
 
     def _texto_seleccion_tsv(self) -> str:
@@ -7335,11 +7301,11 @@ class ProyectoView(QWidget):
         - Partida seleccionada → pega como hermanas al mismo nivel
         - Sin selección → pega como raíces al final
         """
-        if not self._require_editable("pegar partidas"):
+        if not self._require_editable(N_("pegar partidas")):
             return
         if not _pclip.hay_clipboard():
-            QMessageBox.information(self, "Pegar partidas",
-                                    "El portapapeles de partidas está vacío.")
+            QMessageBox.information(self, tr("Pegar partidas"),
+                                    tr("El portapapeles de partidas está vacío."))
             return
         ctx_item, ctx_es_titulo = self._contexto_seleccion()
         ancla = self._nueva_ancla_insercion()
@@ -7352,8 +7318,8 @@ class ProyectoView(QWidget):
         except Exception as e:
             conn.rollback()
             conn.close()
-            QMessageBox.critical(self, "Pegar partidas",
-                                 f"Error al pegar:\n{e}")
+            QMessageBox.critical(self, tr("Pegar partidas"),
+                                 tr("Error al pegar:\n{e}").format(e=e))
             return
         conn.close()
         self.recargar_partidas()
@@ -7365,22 +7331,22 @@ class ProyectoView(QWidget):
         win = self.window()
         if hasattr(win, 'statusBar') and win.statusBar():
             if ctx_item and ctx_es_titulo:
-                donde = f"dentro de {ctx_item}"
+                donde = tr("dentro de {item}").format(item=ctx_item)
             elif ctx_item:
-                donde = f"junto a {ctx_item}"
+                donde = tr("junto a {item}").format(item=ctx_item)
             else:
-                donde = "al final del presupuesto"
+                donde = tr("al final del presupuesto")
             win.statusBar().showMessage(
-                f"Pegadas {len(nuevos)} raíz(es) {donde}.", 4000
+                tr("Pegadas {n_nuevos} raíz(es) {donde}.").format(n_nuevos=len(nuevos), donde=donde), 4000
             )
 
     def _mover_arriba(self):
-        if not self._require_editable("mover partidas"):
+        if not self._require_editable(N_("mover partidas")):
             return
         self._mover_item(-1)
 
     def _mover_abajo(self):
-        if not self._require_editable("mover partidas"):
+        if not self._require_editable(N_("mover partidas")):
             return
         self._mover_item(1)
 
@@ -7420,7 +7386,7 @@ class ProyectoView(QWidget):
     def _subir_nivel(self):
         """← Saca la selección del padre: cada ítem pasa a hermano de su padre
         (un nivel arriba). Con varias partidas, todas suben manteniendo orden."""
-        if not self._require_editable("reorganizar partidas"):
+        if not self._require_editable(N_("reorganizar partidas")):
             return
         items = [it for it in self._seleccion_nivel() if it.parent() is not None]
         if not items:
@@ -7440,7 +7406,7 @@ class ProyectoView(QWidget):
         """→ Anida la selección dentro del hermano anterior del PRIMER ítem
         seleccionado. Con varias partidas, TODAS quedan al mismo nivel como
         hijas de ese hermano, en su orden original."""
-        if not self._require_editable("reorganizar partidas"):
+        if not self._require_editable(N_("reorganizar partidas")):
             return
         items = self._seleccion_nivel()
         if not items:
@@ -7480,7 +7446,7 @@ class ProyectoView(QWidget):
             self.actualizar_total()
 
     def _cambiar_caso(self, part_id: int, fn):
-        if not self._require_editable("cambiar el texto"):
+        if not self._require_editable(N_("cambiar el texto")):
             return
         conn = get_db()
         row = conn.execute("SELECT descripcion FROM partidas WHERE id=?", (part_id,)).fetchone()
@@ -7509,7 +7475,7 @@ class ProyectoView(QWidget):
         return None, False
 
     def _nueva_partida(self):
-        if not self._require_editable("agregar partidas"):
+        if not self._require_editable(N_("agregar partidas")):
             return
         from views.agregar_partida_dialog import AgregarPartidaDialog
         ctx_item, ctx_es_titulo = self._contexto_seleccion()
@@ -7527,7 +7493,7 @@ class ProyectoView(QWidget):
         self._ancla_insercion = None
 
     def _nuevo_titulo(self):
-        if not self._require_editable("agregar títulos"):
+        if not self._require_editable(N_("agregar títulos")):
             return
         from views.agregar_titulo_dialog import AgregarTituloDialog
         ctx_item, ctx_es_titulo = self._contexto_seleccion()
@@ -7639,7 +7605,7 @@ class ProyectoView(QWidget):
             self._editar_partida(pid)
 
     def _editar_partida(self, part_id: int):
-        if not self._require_editable("editar partidas"):
+        if not self._require_editable(N_("editar partidas")):
             return
         from views.partida_form_dialog import PartidaFormDialog
         dlg = PartidaFormDialog(self.pid, part_id, self.usuario, parent=self)
@@ -7649,7 +7615,7 @@ class ProyectoView(QWidget):
                 self.cargar_acu(part_id)
 
     def _duplicar_partida(self, part_id: int):
-        if not self._require_editable("duplicar partidas"):
+        if not self._require_editable(N_("duplicar partidas")):
             return
         conn = get_db()
         orig = conn.execute("SELECT * FROM partidas WHERE id=?", (part_id,)).fetchone()
@@ -7718,7 +7684,6 @@ class ProyectoView(QWidget):
     def _descartar_duplicado(self, new_id: int, orig_id: int):
         """Borra la copia recién insertada (sus `acu_items` caen en cascada),
         cierra el hueco en la numeración y vuelve a la partida original."""
-        from utils.i18n import tr
         conn = get_db()
         conn.execute("DELETE FROM partidas WHERE id=?", (new_id,))
         conn.commit()
@@ -7944,19 +7909,17 @@ class ProyectoView(QWidget):
 
     def _eliminar_partidas_multiple(self, ids: list[tuple[int, str]]):
         """Elimina varias partidas a la vez tras confirmar."""
-        from utils.i18n import tr
-        if not self._require_editable("eliminar partidas"):
+        if not self._require_editable(N_("eliminar partidas")):
             return
         n = len(ids)
         msg = QMessageBox(self)
-        msg.setWindowTitle("Eliminar partidas")
+        msg.setWindowTitle(tr("Eliminar partidas"))
         msg.setText(
-            f"¿Eliminar las {n} partidas seleccionadas?\n"
-            "Esta acción no se puede deshacer."
+            tr("¿Eliminar las {n} partidas seleccionadas?\nEsta acción no se puede deshacer.").format(n=n)
         )
         msg.setIcon(QMessageBox.Icon.Warning)
-        b_si = msg.addButton(f"Eliminar {n} partidas", QMessageBox.ButtonRole.AcceptRole)
-        msg.addButton("Cancelar", QMessageBox.ButtonRole.RejectRole)
+        b_si = msg.addButton(tr("Eliminar {n} partidas").format(n=n), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(tr("Cancelar"), QMessageBox.ButtonRole.RejectRole)
         msg.exec()
         if msg.clickedButton() != b_si:
             return
@@ -7975,15 +7938,14 @@ class ProyectoView(QWidget):
         self.cargar_insumos()
 
     def _eliminar_partida(self, part_id: int, desc: str):
-        from utils.i18n import tr
-        if not self._require_editable("eliminar partidas"):
+        if not self._require_editable(N_("eliminar partidas")):
             return
         msg = QMessageBox(self)
-        msg.setWindowTitle("Eliminar partida")
-        msg.setText(f"¿Eliminar «{desc}»?\nEsta acción no se puede deshacer.")
+        msg.setWindowTitle(tr("Eliminar partida"))
+        msg.setText(tr("¿Eliminar «{desc}»?\nEsta acción no se puede deshacer.").format(desc=desc))
         msg.setIcon(QMessageBox.Icon.Warning)
-        b_si = msg.addButton("Eliminar", QMessageBox.ButtonRole.AcceptRole)
-        msg.addButton("Cancelar",        QMessageBox.ButtonRole.RejectRole)
+        b_si = msg.addButton(tr("Eliminar"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(tr("Cancelar"),        QMessageBox.ButtonRole.RejectRole)
         msg.exec()
         if msg.clickedButton() != b_si:
             return
@@ -8200,7 +8162,6 @@ class ProyectoView(QWidget):
         row = self.tbl_acu.rowAt(pos.y())
         tiene_item = (0 <= row < len(self._acu_row_ids) and
                       self._acu_row_ids[row] != -1)
-        from utils.i18n import tr
         if tiene_item:
             acu_id = self._acu_row_ids[row]
             menu.addAction(tr("Editar"), lambda: self._editar_recurso_de_acu(acu_id))
@@ -8230,7 +8191,7 @@ class ProyectoView(QWidget):
     def _mover_insumo_acu(self, paso: int):
         """↑/↓ del insumo seleccionado dentro de su grupo MO/MAT/EQ/SC. El
         orden se guarda y lo siguen los reportes de ACU (issue #12)."""
-        if not self._partida_actual_id or not self._require_editable('reordenar insumos'):
+        if not self._partida_actual_id or not self._require_editable(N_('reordenar insumos')):
             return
         row = self.tbl_acu.currentRow()
         if not (0 <= row < len(self._acu_row_ids)) or self._acu_row_ids[row] == -1:
@@ -8251,11 +8212,11 @@ class ProyectoView(QWidget):
 
     def _eliminar_acu_item(self, acu_id: int):
         msg = QMessageBox(self)
-        msg.setWindowTitle("Eliminar recurso")
-        msg.setText("¿Eliminar este recurso del análisis de costos?")
+        msg.setWindowTitle(tr("Eliminar recurso"))
+        msg.setText(tr("¿Eliminar este recurso del análisis de costos?"))
         msg.setIcon(QMessageBox.Icon.Warning)
-        b_si = msg.addButton("Eliminar", QMessageBox.ButtonRole.AcceptRole)
-        msg.addButton("Cancelar",        QMessageBox.ButtonRole.RejectRole)
+        b_si = msg.addButton(tr("Eliminar"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(tr("Cancelar"),        QMessageBox.ButtonRole.RejectRole)
         msg.exec()
         if msg.clickedButton() != b_si:
             return
@@ -8275,7 +8236,7 @@ class ProyectoView(QWidget):
 
     def _editar_recurso_de_acu(self, acu_id: int):
         """Abre el diálogo de edición del recurso asociado a un ítem ACU."""
-        if not self._require_editable("editar insumos"):
+        if not self._require_editable(N_("editar insumos")):
             return
         conn = get_db()
         row = conn.execute(
@@ -8353,7 +8314,7 @@ class ProyectoView(QWidget):
         if not self._acu_clipboard:
             return
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "Pegar", "Seleccione una partida primero.")
+            QMessageBox.information(self, tr("Pegar"), tr("Seleccione una partida primero."))
             return
         conn = get_db()
         partida = conn.execute(
@@ -8409,12 +8370,12 @@ class ProyectoView(QWidget):
         if n == 0 or not hasattr(win, 'statusBar'):
             return
         win.statusBar().showMessage(
-            f"{n} insumo{'s' if n > 1 else ''} copiado{'s' if n > 1 else ''}"
-            " — usa Ctrl+V para pegar", 4000)
+            tr("{n} insumo{s} copiado{s} — usa Ctrl+V para pegar").format(
+                n=n, s='s' if n > 1 else ''), 4000)
 
     def _toggle_chat_acu(self, visible: bool):
         if visible:
-            self.btn_toggle_chat.setText("✨ Asistente ▾")
+            self.btn_toggle_chat.setText(tr("✨ Asistente ▾"))
             sizes = self._chat_splitter.sizes()
             total = sum(sizes) or 1
             if sizes[1] < 100:
@@ -8431,7 +8392,7 @@ class ProyectoView(QWidget):
             if hasattr(self, '_tuxia') and self._tuxia is not None:
                 self._tuxia.setVisible(False)
         else:
-            self.btn_toggle_chat.setText("✨ Asistente ▸")
+            self.btn_toggle_chat.setText(tr("✨ Asistente ▸"))
             self._chat_splitter.setSizes([sum(self._chat_splitter.sizes()), 0])
             # Chat cerrado → re-mostrar el floating tuxia
             if hasattr(self, '_tuxia') and self._tuxia is not None:
@@ -8468,7 +8429,7 @@ class ProyectoView(QWidget):
         # 1. Bienvenida — primera vez en cronograma de cualquier proyecto
         if tareas_con_dur == 0:
             self._tuxia.show_tip(
-                "<b>¡Bienvenido al Diagrama de Gantt!</b><br><br>"
+                tr("<b>¡Bienvenido al Diagrama de Gantt!</b><br><br>"
                 "Aquí planificas <b>cuándo</b> se ejecuta cada partida. Cada "
                 "barra horizontal representa una tarea en el tiempo.<br><br>"
                 "<b>Para empezar:</b><br>"
@@ -8476,8 +8437,8 @@ class ProyectoView(QWidget):
                 "2️⃣ Click en <b>Auto-programar ▾ → Por fases</b> — agrupa "
                 "automáticamente (preliminares → estructuras → acabados)<br>"
                 "3️⃣ Ajusta arrastrando las barras o editando las celdas<br><br>"
-                "Si necesitas ayuda, ¡pregúntame por chat!",
-                titulo="tuxia · cómo empezar tu cronograma",
+                "Si necesitas ayuda, ¡pregúntame por chat!"),
+                titulo=tr("tuxia · cómo empezar tu cronograma"),
                 key="cronograma_bienvenida",
                 once_per_session=True, fade_ms=600,
             )
@@ -8486,7 +8447,7 @@ class ProyectoView(QWidget):
         # 2. Tiene duraciones pero NO predecesoras → enseñar conexiones
         if tareas_con_pred == 0 and tareas_con_dur > 0:
             self._tuxia.show_tip(
-                "Veo que tus tareas ya tienen duración pero <b>todas arrancan "
+                tr("Veo que tus tareas ya tienen duración pero <b>todas arrancan "
                 "el día 1</b>. En la realidad, unas necesitan terminar antes "
                 "que otras (no puedes pintar antes de tarrajear).<br><br>"
                 "<b>Cómo conectar tareas:</b><br>"
@@ -8495,8 +8456,8 @@ class ProyectoView(QWidget):
                 "• O usa <b>Auto-programar ▾ → Con IA</b> y la IA detecta el "
                 "orden constructivo correcto<br><br>"
                 "Las tareas que no se pueden retrasar sin atrasar el proyecto "
-                "se pintan en <b style='color:#C6262E'>rojo</b> (ruta crítica).",
-                titulo="tuxia · conecta tus tareas",
+                "se pintan en <b style='color:#C6262E'>rojo</b> (ruta crítica)."),
+                titulo=tr("tuxia · conecta tus tareas"),
                 key="cronograma_predecesoras_intro",
                 once_per_session=True, fade_ms=600,
             )
@@ -8504,7 +8465,7 @@ class ProyectoView(QWidget):
 
         # 3. Ya tiene un cronograma básico → tipos avanzados FS/SS/FF/SF
         self._tuxia.show_tip(
-            "Tu cronograma ya está armado. Si quieres mayor control, las "
+            tr("Tu cronograma ya está armado. Si quieres mayor control, las "
             "<b>predecesoras soportan los 4 tipos de MS Project</b>:<br><br>"
             "• <b>5</b> → FS (default): empieza cuando 5 termina<br>"
             "• <b>5+3</b> → FS con 3 días de lag (esperar 3 días)<br>"
@@ -8512,8 +8473,8 @@ class ProyectoView(QWidget):
             "• <b>5FF-1</b> → FF: misma fecha de fin (lead negativo)<br>"
             "• <b>5SF</b> → SF: raro, termina cuando 5 inicia<br><br>"
             "Tip: usa <b>Ctrl+rueda</b> para zoom horizontal y <b>F1</b> "
-            "para ver todos los atajos.",
-            titulo="tuxia · dependencias avanzadas (FS/SS/FF/SF)",
+            "para ver todos los atajos."),
+            titulo=tr("tuxia · dependencias avanzadas (FS/SS/FF/SF)"),
             key="cronograma_dependencias_avanzadas",
             once_per_session=True, fade_ms=600,
         )
@@ -8537,10 +8498,10 @@ class ProyectoView(QWidget):
         s.setValue(f"chat_ratio_{self.pid}", round(ratio, 3))
 
     def _agregar_recurso(self):
-        if not self._require_editable("agregar insumos al ACU"):
+        if not self._require_editable(N_("agregar insumos al ACU")):
             return
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "ACU", "Seleccione una partida primero.")
+            QMessageBox.information(self, "ACU", tr("Seleccione una partida primero."))
             return
         from views.recurso_selector_dialog import RecursoSelectorDialog
         dlg = RecursoSelectorDialog(self._partida_actual_id, self._proy, parent=self)
@@ -8551,14 +8512,14 @@ class ProyectoView(QWidget):
 
     def _guardar_en_biblioteca(self):
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "Biblioteca", "Seleccione una partida primero.")
+            QMessageBox.information(self, tr("Biblioteca"), tr("Seleccione una partida primero."))
             return
         conn = get_db()
         p = conn.execute("SELECT * FROM partidas WHERE id=?",
                          (self._partida_actual_id,)).fetchone()
         if not p or p['es_titulo']:
             conn.close()
-            QMessageBox.warning(self, "Biblioteca", "Los títulos no se guardan en la biblioteca.")
+            QMessageBox.warning(self, tr("Biblioteca"), tr("Los títulos no se guardan en la biblioteca."))
             return
 
         conn.close()
@@ -8579,7 +8540,8 @@ class ProyectoView(QWidget):
             )
             grupo = conn.execute("SELECT grupo FROM biblioteca_cu WHERE id=?",
                                  (cu_id,)).fetchone()[0]
-            msg = f'"{p["descripcion"]}" actualizado en la Biblioteca (grupo {grupo or "sin grupo"}).'
+            msg = tr('"{desc}" actualizado en la Biblioteca (grupo {grupo}).').format(
+                desc=p["descripcion"], grupo=grupo or tr("sin grupo"))
         else:
             cur = conn.execute(
                 "INSERT INTO biblioteca_cu "
@@ -8588,7 +8550,8 @@ class ProyectoView(QWidget):
                  p['precio_unitario'], dlg.grupo)
             )
             cu_id = cur.lastrowid
-            msg = f'"{p["descripcion"]}" guardado en la Biblioteca, grupo {dlg.grupo}.'
+            msg = tr('"{desc}" guardado en la Biblioteca, grupo {grupo}.').format(
+                desc=p["descripcion"], grupo=dlg.grupo)
 
         # Reemplazar ACU items en biblioteca (con precio efectivo del proyecto)
         conn.execute("DELETE FROM biblioteca_acu_items WHERE cu_id=?", (cu_id,))
@@ -8612,13 +8575,13 @@ class ProyectoView(QWidget):
             # Confirmación breve sobre el mismo botón: verde oscuro con el
             # tooltip «Guardado», y a los 2,5 s vuelve a ser el de siempre.
             btn.setStyleSheet(_QSS_BTN_GUARDADO)
-            btn.setToolTip("Guardado en la Biblioteca")
+            btn.setToolTip(tr("Guardado en la Biblioteca"))
             QTimer.singleShot(2500, lambda: (
                 btn.setStyleSheet(_QSS_BTN_GUARDAR),
-                btn.setToolTip("Guardar en Biblioteca"),
+                btn.setToolTip(tr("Guardar en Biblioteca")),
             ))
 
-        QMessageBox.information(self, "Biblioteca", msg)
+        QMessageBox.information(self, tr("Biblioteca"), msg)
 
     # ══════════════════════════════════════════════════════════════════════════
     # Rendimiento
@@ -8689,7 +8652,6 @@ class ProyectoView(QWidget):
         self.btn_modo_acero.setStyleSheet(
             self._met_toggle_on if modo == 'acero' else self._met_toggle_off)
         self._met_stack.setCurrentIndex(0 if modo == 'met' else 1)
-        from utils.i18n import tr
         self.lbl_met_total_key.setText(tr("METRADO TOTAL:") if modo == 'met' else tr("TOTAL ACERO:"))
         if self._partida_actual_id:
             if modo == 'acero':
@@ -8843,7 +8805,7 @@ class ProyectoView(QWidget):
             _ACERO_CLIPBOARD[:] = datos
             from PySide6.QtWidgets import QToolTip
             from PySide6.QtGui import QCursor
-            QToolTip.showText(QCursor.pos(), f"{len(datos)} fila(s) copiada(s)", self.tbl_acero)
+            QToolTip.showText(QCursor.pos(), tr("{n} fila(s) copiada(s)").format(n=len(datos)), self.tbl_acero)
 
     def _acero_cortar(self):
         rows  = sorted({idx.row() for idx in self.tbl_acero.selectedIndexes()}, reverse=True)
@@ -8882,7 +8844,6 @@ class ProyectoView(QWidget):
 
     def _acero_menu_contextual(self, pos):
         from PySide6.QtWidgets import QMenu
-        from utils.i18n import tr
         rows = {idx.row() for idx in self.tbl_acero.selectedIndexes()}
         n    = len(rows)
         menu = QMenu(self)
@@ -9043,7 +9004,7 @@ class ProyectoView(QWidget):
         ).fetchone()
         conn.close()
         if partida and hasattr(self, 'lbl_met_titulo'):
-            self.lbl_met_titulo.setText(f"ACERO  ·  {(partida['descripcion'] or '')[:60]}")
+            self.lbl_met_titulo.setText(tr("ACERO  ·  {partida}").format(partida=(partida['descripcion'] or '')[:60]))
         # Reaplicar bloqueo de flags si el estado lo requiere
         if not getattr(self, '_ed_presupuesto', True):
             self._strip_table_editable_flags(self.tbl_acero)
@@ -9234,7 +9195,7 @@ class ProyectoView(QWidget):
             from PySide6.QtWidgets import QToolTip
             from PySide6.QtGui import QCursor
             QToolTip.showText(QCursor.pos(),
-                              f"{len(datos)} fila(s) copiada(s)", self.tbl_met)
+                              tr("{n} fila(s) copiada(s)").format(n=len(datos)), self.tbl_met)
 
     def _met_cortar(self):
         if not self._ed_presupuesto:
@@ -9304,7 +9265,6 @@ class ProyectoView(QWidget):
 
     def _met_menu_contextual(self, pos):
         from PySide6.QtWidgets import QMenu
-        from utils.i18n import tr
         rows = {idx.row() for idx in self.tbl_met.selectedIndexes()}
         n    = len(rows)
         target = self.tbl_met.rowAt(pos.y())
@@ -9363,7 +9323,7 @@ class ProyectoView(QWidget):
     def _metrado_fila_btn(self):
         """Botón '+ Fila': agrega una fila al final y empieza a editarla."""
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "Metrados", "Seleccione una partida primero.")
+            QMessageBox.information(self, "Metrados", tr("Seleccione una partida primero."))
             return
         if not self._ed_presupuesto:
             return
@@ -9635,7 +9595,7 @@ class ProyectoView(QWidget):
         if self._partida_actual_id is None:
             return
         self._spec_modificada = True
-        self.lbl_spec_estado.setText("● Sin guardar")
+        self.lbl_spec_estado.setText(tr("● Sin guardar"))
         self.lbl_spec_estado.setStyleSheet("font-size:10px; color:#F37329; border:none;")
 
     def _spec_actualizar_toolbar(self):
@@ -9680,8 +9640,8 @@ class ProyectoView(QWidget):
 
     def _spec_insertar_imagen(self):
         path, _ = _QFileDialog.getOpenFileName(
-            self, "Seleccionar imagen", "",
-            "Imágenes (*.png *.jpg *.jpeg *.bmp *.gif)"
+            self, tr("Seleccionar imagen"), "",
+            tr("Imágenes (*.png *.jpg *.jpeg *.bmp *.gif)")
         )
         if not path:
             return
@@ -9749,7 +9709,7 @@ class ProyectoView(QWidget):
         conn.commit()
         conn.close()
         self._spec_modificada = False
-        self.lbl_spec_estado.setText("✓ Guardado")
+        self.lbl_spec_estado.setText(tr("✓ Guardado"))
         self.lbl_spec_estado.setStyleSheet("font-size:10px; color:#68B723; border:none;")
         self._actualizar_indicador_spec(self._partida_actual_id,
                                         bool(self.txt_spec.toPlainText().strip()))
@@ -9766,8 +9726,8 @@ class ProyectoView(QWidget):
 
     def _spec_fichas_dialog(self):
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "Fichas técnicas",
-                                    "Seleccione una partida primero.")
+            QMessageBox.information(self, tr("Fichas técnicas"),
+                                    tr("Seleccione una partida primero."))
             return
         from widgets.fichas_dialog import FichasDialog
         from core import adjuntos as ADJ
@@ -9776,7 +9736,7 @@ class ProyectoView(QWidget):
             listar=lambda: ADJ.spec_adjuntos(pid),
             agregar=lambda ruta: ADJ.spec_agregar(pid, ruta),
             quitar=lambda nombre: ADJ.spec_quitar(pid, nombre),
-            intro=("Adjunta fichas técnicas en PDF del producto de esta "
+            intro=tr("Adjunta fichas técnicas en PDF del producto de esta "
                    "partida. Al generar la especificación con IA, sus datos "
                    "reales (norma, tipo, resistencia…) entran al texto; el "
                    "reporte de Especificaciones en PDF las lleva como anexos "
@@ -9797,7 +9757,7 @@ class ProyectoView(QWidget):
 
     def _ia_generar_spec(self):
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "Generar spec", "Seleccione una partida primero.")
+            QMessageBox.information(self, tr("Generar spec"), tr("Seleccione una partida primero."))
             return
         conn = get_db()
         p = conn.execute("SELECT item, descripcion FROM partidas WHERE id=?",
@@ -9821,7 +9781,7 @@ class ProyectoView(QWidget):
                 conn.commit()
                 conn.close()
                 self._spec_modificada = False
-                self.lbl_spec_estado.setText("✓ Guardado")
+                self.lbl_spec_estado.setText(tr("✓ Guardado"))
                 self.lbl_spec_estado.setStyleSheet("font-size:10px; color:#68B723; border:none;")
                 self._actualizar_indicador_spec(self._partida_actual_id, True)
 
@@ -9866,7 +9826,6 @@ class ProyectoView(QWidget):
         activo (imprimir, exportar PDF, cerrar)."""
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction, QKeySequence
-        from utils.i18n import tr
         menu = QMenu(self)
 
         a_new = QAction(tr("Nuevo Proyecto"), self)
@@ -9901,15 +9860,15 @@ class ProyectoView(QWidget):
         menu.addAction(a_imp)
 
         # Plantillas de estructura (guardar el presupuesto / insertar en otro).
-        plant_menu = QMenu("Plantillas", self)
-        a_pl_save = QAction("Guardar presupuesto como plantilla…", self)
+        plant_menu = QMenu(tr("Plantillas"), self)
+        a_pl_save = QAction(tr("Guardar presupuesto como plantilla…"), self)
         a_pl_save.triggered.connect(self._guardar_como_plantilla)
         plant_menu.addAction(a_pl_save)
-        a_pl_ins = QAction("Insertar desde plantilla…", self)
+        a_pl_ins = QAction(tr("Insertar desde plantilla…"), self)
         a_pl_ins.triggered.connect(self._insertar_desde_plantilla)
         plant_menu.addAction(a_pl_ins)
         plant_menu.addSeparator()
-        a_pl_imp = QAction("Importar plantilla (.db)…", self)
+        a_pl_imp = QAction(tr("Importar plantilla (.db)…"), self)
         a_pl_imp.triggered.connect(self._importar_plantilla_db)
         plant_menu.addAction(a_pl_imp)
         menu.addMenu(plant_menu)
@@ -9924,7 +9883,7 @@ class ProyectoView(QWidget):
         a_close.triggered.connect(lambda: self.cerrar_proyecto.emit(self.pid))
         menu.addAction(a_close)
 
-        a_restart = QAction("Reiniciar", self)
+        a_restart = QAction(tr("Reiniciar"), self)
         a_restart.triggered.connect(self._archivo_reiniciar)
         menu.addAction(a_restart)
 
@@ -9949,30 +9908,30 @@ class ProyectoView(QWidget):
             "ORDER BY orden, id", (self.pid,)).fetchall()
         conn.close()
 
-        dlg = QDialog(self); dlg.setWindowTitle("Guardar como plantilla")
+        dlg = QDialog(self); dlg.setWindowTitle(tr("Guardar como plantilla"))
         dlg.setMinimumWidth(420)
         v = QVBoxLayout(dlg); v.setContentsMargins(16, 14, 16, 14); v.setSpacing(8)
-        v.addWidget(QLabel("Guarda la ESTRUCTURA del presupuesto (ítems, ACU y "
+        v.addWidget(QLabel(tr("Guarda la ESTRUCTURA del presupuesto (ítems, ACU y "
                            "especificaciones) para reutilizarla en otros "
-                           "proyectos."))
+                           "proyectos.")))
         form = QFormLayout()
         ed_nombre = QLineEdit()
         ed_nombre.setText((self._proy.get('nombre') or '')[:60])
-        ed_tipo = QLineEdit(); ed_tipo.setPlaceholderText("Ej. Canales, Saneamiento… (opcional)")
-        ed_notas = QLineEdit(); ed_notas.setPlaceholderText("Notas (opcional)")
+        ed_tipo = QLineEdit(); ed_tipo.setPlaceholderText(tr("Ej. Canales, Saneamiento… (opcional)"))
+        ed_notas = QLineEdit(); ed_notas.setPlaceholderText(tr("Notas (opcional)"))
         cmb_scope = QComboBox()
-        cmb_scope.addItem("Todo el proyecto", '__all__')
+        cmb_scope.addItem(tr("Todo el proyecto"), '__all__')
         for s in subs:
-            cmb_scope.addItem(f"Sub-presupuesto: {s['nombre']}", s['id'])
-        chk_metr = QCheckBox("Incluir metrados (cantidades del proyecto)")
-        form.addRow("Nombre:", ed_nombre)
-        form.addRow("Tipo/sector:", ed_tipo)
-        form.addRow("Notas:", ed_notas)
-        form.addRow("Alcance:", cmb_scope)
+            cmb_scope.addItem(tr("Sub-presupuesto: {nombre}").format(nombre=s['nombre']), s['id'])
+        chk_metr = QCheckBox(tr("Incluir metrados (cantidades del proyecto)"))
+        form.addRow(tr("Nombre:"), ed_nombre)
+        form.addRow(tr("Tipo/sector:"), ed_tipo)
+        form.addRow(tr("Notas:"), ed_notas)
+        form.addRow(tr("Alcance:"), cmb_scope)
         v.addLayout(form)
         v.addWidget(chk_metr)
         bar = QHBoxLayout(); bar.addStretch()
-        b_ca = QPushButton("Cancelar"); b_ok = QPushButton("Guardar plantilla")
+        b_ca = QPushButton(tr("Cancelar")); b_ok = QPushButton(tr("Guardar plantilla"))
         b_ok.setStyleSheet(_BTN_PRIMARY_SS_FALLBACK)
         b_ca.clicked.connect(dlg.reject); b_ok.clicked.connect(dlg.accept)
         bar.addWidget(b_ca); bar.addWidget(b_ok); v.addLayout(bar)
@@ -9981,7 +9940,7 @@ class ProyectoView(QWidget):
             return
         nombre = ed_nombre.text().strip()
         if not nombre:
-            QMessageBox.information(self, "Plantilla", "Ponle un nombre a la plantilla.")
+            QMessageBox.information(self, tr("Plantilla"), tr("Ponle un nombre a la plantilla."))
             return
         try:
             pid_pl = PL.guardar_plantilla(
@@ -9990,17 +9949,16 @@ class ProyectoView(QWidget):
                 incluir_metrados=chk_metr.isChecked())
         except Exception as e:  # noqa: BLE001
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Plantilla", f"No se pudo guardar:\n{e}")
+            QMessageBox.critical(self, tr("Plantilla"), tr("No se pudo guardar:\n{e}").format(e=e))
             return
         if pid_pl:
-            QMessageBox.information(self, "Plantilla",
-                f"Plantilla «{nombre}» guardada.\nDisponible en Archivo → "
-                "Plantillas → Insertar desde plantilla, en cualquier proyecto.")
+            QMessageBox.information(self, tr("Plantilla"),
+                tr("Plantilla «{nombre}» guardada.\nDisponible en Archivo → Plantillas → Insertar desde plantilla, en cualquier proyecto.").format(nombre=nombre))
 
     def _insertar_desde_plantilla(self):
         """Inserta la estructura de una plantilla guardada en el proyecto actual
         (reutiliza el pegado del clipboard: respeta la selección/subpresupuesto)."""
-        if not self._require_editable("insertar plantilla"):
+        if not self._require_editable(N_("insertar plantilla")):
             return
         from PySide6.QtWidgets import (QDialog, QVBoxLayout, QListWidget,
             QListWidgetItem, QHBoxLayout, QPushButton, QLabel, QLineEdit,
@@ -10008,17 +9966,17 @@ class ProyectoView(QWidget):
         from core import plantillas_estructura as PL
         plantillas = PL.listar_plantillas()
         if not plantillas:
-            QMessageBox.information(self, "Plantillas",
-                "Aún no tienes plantillas. Créalas desde Archivo → Plantillas → "
-                "«Guardar presupuesto como plantilla».")
+            QMessageBox.information(self, tr("Plantillas"),
+                tr("Aún no tienes plantillas. Créalas desde Archivo → Plantillas → "
+                "«Guardar presupuesto como plantilla»."))
             return
 
-        dlg = QDialog(self); dlg.setWindowTitle("Insertar desde plantilla")
+        dlg = QDialog(self); dlg.setWindowTitle(tr("Insertar desde plantilla"))
         dlg.setMinimumSize(460, 420)
         v = QVBoxLayout(dlg); v.setContentsMargins(16, 14, 16, 14); v.setSpacing(8)
-        v.addWidget(QLabel("Elige una plantilla para insertar su estructura en "
-                           "este proyecto (según tu selección en el árbol)."))
-        buscador = QLineEdit(); buscador.setPlaceholderText("Buscar…")
+        v.addWidget(QLabel(tr("Elige una plantilla para insertar su estructura en "
+                           "este proyecto (según tu selección en el árbol).")))
+        buscador = QLineEdit(); buscador.setPlaceholderText(tr("Buscar…"))
         v.addWidget(buscador)
         lst = QListWidget(); v.addWidget(lst, 1)
 
@@ -10041,12 +9999,12 @@ class ProyectoView(QWidget):
         buscador.textChanged.connect(_llenar)
 
         bar = QHBoxLayout()
-        b_del = QPushButton("Eliminar")
-        b_del.setToolTip("Borra la plantilla seleccionada (no afecta a ningún proyecto).")
-        b_exp = QPushButton("Exportar (.db)…")
-        b_exp.setToolTip("Guarda la plantilla como archivo .db para compartirla.")
+        b_del = QPushButton(tr("Eliminar"))
+        b_del.setToolTip(tr("Borra la plantilla seleccionada (no afecta a ningún proyecto)."))
+        b_exp = QPushButton(tr("Exportar (.db)…"))
+        b_exp.setToolTip(tr("Guarda la plantilla como archivo .db para compartirla."))
         bar.addWidget(b_del); bar.addWidget(b_exp); bar.addStretch()
-        b_ca = QPushButton("Cancelar"); b_ok = QPushButton("Insertar")
+        b_ca = QPushButton(tr("Cancelar")); b_ok = QPushButton(tr("Insertar"))
         b_ok.setStyleSheet(_BTN_PRIMARY_SS_FALLBACK)
         bar.addWidget(b_ca); bar.addWidget(b_ok); v.addLayout(bar)
         b_ca.clicked.connect(dlg.reject)
@@ -10065,28 +10023,26 @@ class ProyectoView(QWidget):
                                      os.path.expanduser("~/Downloads"))
                          if os.path.isdir(d)), os.path.expanduser("~"))
             ruta, _f = QFileDialog.getSaveFileName(
-                dlg, "Exportar plantilla", os.path.join(base, f"{sug}.db"),
-                "Plantilla (*.db)")
+                dlg, tr("Exportar plantilla"), os.path.join(base, f"{sug}.db"),
+                tr("Plantilla (*.db)"))
             if not ruta:
                 return
             if not ruta.lower().endswith('.db'):
                 ruta += '.db'
             try:
                 PL.exportar_plantilla_db(it.data(Qt.UserRole), ruta)
-                QMessageBox.information(dlg, "Exportar",
-                    f"Plantilla guardada en:\n{ruta}\n\nComparte este archivo; el "
-                    "otro usuario lo abre con Archivo → Plantillas → «Importar "
-                    "plantilla (.db)».")
+                QMessageBox.information(dlg, tr("Exportar"),
+                    tr("Plantilla guardada en:\n{ruta}\n\nComparte este archivo; el otro usuario lo abre con Archivo → Plantillas → «Importar plantilla (.db)».").format(ruta=ruta))
             except Exception as e:  # noqa: BLE001
-                QMessageBox.critical(dlg, "Exportar", f"No se pudo exportar:\n{e}")
+                QMessageBox.critical(dlg, tr("Exportar"), tr("No se pudo exportar:\n{e}").format(e=e))
         b_exp.clicked.connect(_exportar)
 
         def _eliminar():
             it = lst.currentItem()
             if not it:
                 return
-            if QMessageBox.question(dlg, "Eliminar plantilla",
-                    f"¿Eliminar la plantilla «{it.text().split('   ·')[0]}»?"
+            if QMessageBox.question(dlg, tr("Eliminar plantilla"),
+                    tr("¿Eliminar la plantilla «{nombre}»?").format(nombre=it.text().split('   ·')[0])
                     ) != QMessageBox.Yes:
                 return
             PL.eliminar_plantilla(it.data(Qt.UserRole))
@@ -10102,7 +10058,7 @@ class ProyectoView(QWidget):
             return
         subarboles = PL.subarboles_de_plantilla(it.data(Qt.UserRole))
         if not subarboles:
-            QMessageBox.information(self, "Plantilla", "La plantilla está vacía.")
+            QMessageBox.information(self, tr("Plantilla"), tr("La plantilla está vacía."))
             return
         ctx_item, ctx_es_titulo = self._contexto_seleccion()
         conn = get_db()
@@ -10115,37 +10071,35 @@ class ProyectoView(QWidget):
         except Exception as e:  # noqa: BLE001
             conn.rollback(); conn.close()
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Insertar plantilla", f"Error al insertar:\n{e}")
+            QMessageBox.critical(self, tr("Insertar plantilla"), tr("Error al insertar:\n{e}").format(e=e))
             return
         conn.close()
         self.recargar_partidas()
         self.tree._renumerar()
         self.actualizar_total()
-        QMessageBox.information(self, "Plantilla",
-            f"Insertadas {len(nuevos)} raíz(es) de la plantilla en el proyecto.")
+        QMessageBox.information(self, tr("Plantilla"),
+            tr("Insertadas {n_nuevos} raíz(es) de la plantilla en el proyecto.").format(n_nuevos=len(nuevos)))
 
     def _importar_plantilla_db(self):
         """Importa una plantilla compartida por otro usuario (archivo .db)."""
         from PySide6.QtWidgets import QFileDialog, QMessageBox
         from core import plantillas_estructura as PL
         ruta, _f = QFileDialog.getOpenFileName(
-            self, "Importar plantilla (.db)", "", "Plantilla (*.db)")
+            self, tr("Importar plantilla (.db)"), "", tr("Plantilla (*.db)"))
         if not ruta:
             return
         try:
             n = PL.importar_plantillas_db(ruta)
         except Exception as e:  # noqa: BLE001
-            QMessageBox.critical(self, "Importar plantilla",
-                                 f"No se pudo importar:\n{e}")
+            QMessageBox.critical(self, tr("Importar plantilla"),
+                                 tr("No se pudo importar:\n{e}").format(e=e))
             return
         if n:
-            QMessageBox.information(self, "Importar plantilla",
-                f"Importada{'s' if n != 1 else ''} {n} plantilla"
-                f"{'s' if n != 1 else ''}. Úsala desde Archivo → Plantillas → "
-                "«Insertar desde plantilla».")
+            QMessageBox.information(self, tr("Importar plantilla"),
+                tr("Importada{s} {n} plantilla{s}. Úsala desde Archivo → Plantillas → «Insertar desde plantilla».").format(s='s' if n != 1 else '', n=n))
         else:
-            QMessageBox.information(self, "Importar plantilla",
-                "No se importó nada nuevo (ya la tenías).")
+            QMessageBox.information(self, tr("Importar plantilla"),
+                tr("No se importó nada nuevo (ya la tenías)."))
 
     def _archivo_abrir_db(self):
         """Abre un proyecto desde un archivo .db de ingePresupuestos: lo importa
@@ -10155,28 +10109,28 @@ class ProyectoView(QWidget):
         from core.ingepresupuestos_db_importer import (
             listar_proyectos_db, importar_proyecto_db_directo)
         ruta, _f = QFileDialog.getOpenFileName(
-            self, "Abrir proyecto desde archivo (.db)", "",
-            "Bases ingePresupuestos (*.db *.sqlite)"
+            self, tr("Abrir proyecto desde archivo (.db)"), "",
+            tr("Bases ingePresupuestos (*.db *.sqlite)")
         )
         if not ruta:
             return
         try:
             proyectos = listar_proyectos_db(ruta)
         except Exception as e:
-            QMessageBox.warning(self, "Abrir desde .db",
-                                f"No se pudo leer el archivo:\n{e}")
+            QMessageBox.warning(self, tr("Abrir desde .db"),
+                                tr("No se pudo leer el archivo:\n{e}").format(e=e))
             return
         if not proyectos:
-            QMessageBox.information(self, "Abrir desde .db",
-                                    "El archivo no contiene proyectos.")
+            QMessageBox.information(self, tr("Abrir desde .db"),
+                                    tr("El archivo no contiene proyectos."))
             return
         if len(proyectos) == 1:
             elegido = proyectos[0]
         else:
             etiquetas = [f"{p['nombre']}  (#{p['id_ppto']})" for p in proyectos]
             etq, ok = QInputDialog.getItem(
-                self, "Abrir desde .db",
-                "El archivo contiene varios proyectos. Elige uno:",
+                self, tr("Abrir desde .db"),
+                tr("El archivo contiene varios proyectos. Elige uno:"),
                 etiquetas, 0, False
             )
             if not ok:
@@ -10188,8 +10142,8 @@ class ProyectoView(QWidget):
             pid = importar_proyecto_db_directo(ruta, elegido['id_ppto'])
         except Exception as e:
             QApplication.restoreOverrideCursor()
-            QMessageBox.warning(self, "Abrir desde .db",
-                                f"No se pudo abrir el proyecto:\n{e}")
+            QMessageBox.warning(self, tr("Abrir desde .db"),
+                                tr("No se pudo abrir el proyecto:\n{e}").format(e=e))
             return
         QApplication.restoreOverrideCursor()
         # Importar crea una copia nueva en el programa; abrirla en su pestaña.
@@ -10208,8 +10162,8 @@ class ProyectoView(QWidget):
         safe = _re.sub(r'[\\/:*?"<>|]', '_', nombre).strip() or f"proyecto_{self.pid}"
         sugerido = f"{safe}.db"
         ruta, _f = QFileDialog.getSaveFileName(
-            self, "Exportar proyecto a SQLite (.db)", sugerido,
-            "Base de datos SQLite (*.db)"
+            self, tr("Exportar proyecto a SQLite (.db)"), sugerido,
+            tr("Base de datos SQLite (*.db)")
         )
         if not ruta:
             return
@@ -10222,17 +10176,15 @@ class ProyectoView(QWidget):
         except Exception as e:
             QApplication.restoreOverrideCursor()
             QMessageBox.warning(
-                self, "Exportar proyecto",
-                f"No se pudo exportar el proyecto:\n{e}"
+                self, tr("Exportar proyecto"),
+                tr("No se pudo exportar el proyecto:\n{e}").format(e=e)
             )
             return
         QApplication.restoreOverrideCursor()
 
         res = QMessageBox.information(
-            self, "Exportar proyecto",
-            f"Proyecto exportado correctamente:\n\n{ruta}\n\n"
-            f"Puedes importarlo en otra instalación desde el menu "
-            f"Importar → ingePresupuestos (.db).",
+            self, tr("Exportar proyecto"),
+            tr("Proyecto exportado correctamente:\n\n{ruta}\n\nPuedes importarlo en otra instalación desde el menu Importar → ingePresupuestos (.db).").format(ruta=ruta),
             QMessageBox.StandardButton.Open | QMessageBox.StandardButton.Ok,
             QMessageBox.StandardButton.Ok,
         )
@@ -10252,10 +10204,10 @@ class ProyectoView(QWidget):
         from PySide6.QtWidgets import QApplication, QMessageBox
 
         res = QMessageBox.question(
-            self, "Reiniciar aplicación",
-            "¿Reiniciar ingePresupuestos ahora?\n\n"
+            self, tr("Reiniciar aplicación"),
+            tr("¿Reiniciar ingePresupuestos ahora?\n\n"
             "Se cerrará la ventana actual y se abrirá una nueva. Los "
-            "cambios del proyecto ya están guardados automáticamente.",
+            "cambios del proyecto ya están guardados automáticamente."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -10344,25 +10296,25 @@ class ProyectoView(QWidget):
 
         opciones = self.opciones_impresion()
         if not opciones:
-            QMessageBox.information(self, "Imprimir",
-                                    "No hay nada que imprimir en esta pantalla.")
+            QMessageBox.information(self, tr("Imprimir"),
+                                    tr("No hay nada que imprimir en esta pantalla."))
             return
         if len(opciones) == 1:
             clave, nombre, generador = opciones[0]
         else:
             dlg = QDialog(self)
-            dlg.setWindowTitle("Imprimir")
+            dlg.setWindowTitle(tr("Imprimir"))
             dlg.setMinimumWidth(420)
             v = QVBoxLayout(dlg)
             v.setContentsMargins(20, 18, 20, 16)
             v.setSpacing(12)
-            lbl = QLabel("¿Qué quieres imprimir?")
+            lbl = QLabel(tr("¿Qué quieres imprimir?"))
             lbl.setWordWrap(True)
             lbl.setStyleSheet("background:transparent; border:none;")
             v.addWidget(lbl)
             lw = QListWidget()
             for clave, nombre, _g in opciones:
-                it = QListWidgetItem(nombre)
+                it = QListWidgetItem(tr(nombre))
                 it.setData(Qt.UserRole, clave)
                 lw.addItem(it)
             lw.setCurrentRow(0)
@@ -10370,10 +10322,10 @@ class ProyectoView(QWidget):
             v.addWidget(lw, stretch=1)
             hl = QHBoxLayout()
             hl.addStretch()
-            btn_cancel = QPushButton("Cancelar")
+            btn_cancel = QPushButton(tr("Cancelar"))
             btn_cancel.clicked.connect(dlg.reject)
             hl.addWidget(btn_cancel)
-            btn_ok = QPushButton("Vista previa  →")
+            btn_ok = QPushButton(tr("Vista previa  →"))
             btn_ok.setDefault(True)
             btn_ok.clicked.connect(dlg.accept)
             hl.addWidget(btn_ok)
@@ -10384,8 +10336,8 @@ class ProyectoView(QWidget):
 
         # Ventanita de progreso: se genera en este hilo y el Completo o un
         # cronograma tardan; sin esto parecía colgado.
-        prog = QProgressDialog(f"Generando {nombre}…", "", 0, 0, self)
-        prog.setWindowTitle("Imprimir")
+        prog = QProgressDialog(tr("Generando {nombre}…").format(nombre=tr(nombre)), "", 0, 0, self)
+        prog.setWindowTitle(tr("Imprimir"))
         prog.setCancelButton(None)
         prog.setWindowModality(Qt.WindowModal)
         prog.setMinimumDuration(0)
@@ -10410,7 +10362,7 @@ class ProyectoView(QWidget):
             import traceback; traceback.print_exc()
             QApplication.restoreOverrideCursor()
             prog.close()
-            QMessageBox.warning(self, "Imprimir", f"No se pudo generar el PDF:\n{e}")
+            QMessageBox.warning(self, tr("Imprimir"), tr("No se pudo generar el PDF:\n{e}").format(e=e))
             return
         QApplication.restoreOverrideCursor()
         prog.close()
@@ -10477,7 +10429,7 @@ class ProyectoView(QWidget):
                 except RuntimeError:
                     pass  # ventana ya destruida
             dlg = _ChatTuxiaDialog(self.pid, modo=modo,
-                                    titulo=f"Tuxia · {modo}", parent=self)
+                                    titulo=tr("Tuxia · {modo}").format(modo=modo), parent=self)
             self._chat_floating = dlg
             dlg.show()
             return
@@ -10509,11 +10461,10 @@ class ProyectoView(QWidget):
         # 1) Estado solo lectura
         if not self._editable:
             from core.config import ESTADOS_PROYECTO_NOMBRE
-            est = ESTADOS_PROYECTO_NOMBRE.get(self._estado, self._estado)
+            est = tr(ESTADOS_PROYECTO_NOMBRE.get(self._estado, self._estado))
             self._tuxia.show_tip(
-                f"Este proyecto está «{est}». La mayoría de cambios "
-                "están bloqueados (puedes ver pero no editar).",
-                titulo="tuxia · solo lectura",
+                tr("Este proyecto está «{est}». La mayoría de cambios están bloqueados (puedes ver pero no editar).").format(est=est),
+                titulo=tr("tuxia · solo lectura"),
                 key=f"solo_lectura:{self.pid}",
             )
             return
@@ -10530,14 +10481,14 @@ class ProyectoView(QWidget):
             if n_part == 0:
                 conn_s.close()
                 self._tuxia.show_tip(
-                    "<b>¡Bienvenido a tu nuevo proyecto!</b><br><br>"
+                    tr("<b>¡Bienvenido a tu nuevo proyecto!</b><br><br>"
                     "Aún no tienes partidas. ¿Quieres que te <b>sugiera "
                     "partidas típicas</b> usando IA o una plantilla local "
                     "(vivienda, agua, vías…)?<br><br>"
-                    "Después podrás revisar y elegir cuáles importar.",
-                    titulo="tuxia · proyecto vacío",
+                    "Después podrás revisar y elegir cuáles importar."),
+                    titulo=tr("tuxia · proyecto vacío"),
                     accion_id='sugerir_partidas',
-                    accion_label="Sugerirme partidas",
+                    accion_label=tr("Sugerirme partidas"),
                     key=f"sugerir_partidas:{self.pid}",
                     fade_ms=20000,
                 )
@@ -10554,7 +10505,7 @@ class ProyectoView(QWidget):
             top_txt = ""
             if top:
                 desc = (top['descripcion'] or '')[:38]
-                top_txt = f"<br>Top costo: <b>{top['item']}</b> · {desc}"
+                top_txt = "<br>" + tr("Top costo: <b>{item}</b> · {desc}").format(item=top['item'], desc=desc)
 
             # Saludo personalizado con el nombre del usuario
             from utils.auth import usuario_actual as _ua
@@ -10562,7 +10513,7 @@ class ProyectoView(QWidget):
             primer_nombre = ''
             if usr is not None:
                 primer_nombre = (usr.nombre or usr.username or '').strip().split(' ')[0]
-            hola = f"¡Hola {primer_nombre}!" if primer_nombre else "¡Hola!"
+            hola = tr("¡Hola {nombre}!").format(nombre=primer_nombre) if primer_nombre else tr("¡Hola!")
 
             # Memoria de sesión: ¿última partida que editó en este proyecto?
             mem = self._tuxia._qs   # QSettings("ingePresupuestos","tuxia")
@@ -10578,16 +10529,17 @@ class ProyectoView(QWidget):
                     conn_m.close()
                     if row:
                         d = (row['descripcion'] or '')[:38]
-                        recordatorio = (f"<br>📌 Te quedaste en: "
-                                         f"<b>{row['item']}</b> · {d}")
+                        recordatorio = "<br>" + tr("📌 Te quedaste en: "
+                                         "<b>{item}</b> · {desc}").format(item=row['item'], desc=d)
                 except Exception:
                     pass
 
-            saludo = (f"{hola} este proyecto tiene <b>{n_part}</b> partida(s) "
-                      f"y CD <b>{cd_fmt}</b>.{top_txt}{recordatorio}<br><br>"
-                      "Click en mí para abrir el chat.")
+            saludo = (tr("{hola} este proyecto tiene <b>{n_part}</b> partida(s) "
+                         "y CD <b>{cd}</b>.").format(hola=hola, n_part=n_part, cd=cd_fmt)
+                      + f"{top_txt}{recordatorio}<br><br>"
+                      + tr("Click en mí para abrir el chat."))
             self._tuxia.show_tip(
-                saludo, titulo="tuxia · resumen",
+                saludo, titulo=tr("tuxia · resumen"),
                 key=f"saludo_inicial:{self.pid}",
                 fade_ms=14000,
             )
@@ -10628,11 +10580,10 @@ class ProyectoView(QWidget):
                 sk = float(sum_k)
                 if sk > 0 and abs(sk - 1.0) > 0.001:
                     self._tuxia.show_tip(
-                        f"Tu fórmula polinómica suma ΣK = {sk:.4f}, "
-                        "debería ser exactamente 1.000.",
+                        tr("Tu fórmula polinómica suma ΣK = {sk:.4f}, debería ser exactamente 1.000.").format(sk=sk),
                         accion_id='ir_formula',
-                        accion_label='Ir a Fórmula',
-                        titulo="tuxia · fórmula polinómica",
+                        accion_label=tr('Ir a Fórmula'),
+                        titulo=tr("tuxia · fórmula polinómica"),
                         key=f"formula_k:{self.pid}",
                     )
                     return
@@ -10640,20 +10591,19 @@ class ProyectoView(QWidget):
                 pass
         if n_sin_metr > 0:
             self._tuxia.show_tip(
-                f"Detecté {n_sin_metr} partida(s) sin metrado. "
-                "Puedo darte la lista completa.",
+                tr("Detecté {n_sin_metr} partida(s) sin metrado. Puedo darte la lista completa.").format(n_sin_metr=n_sin_metr),
                 accion_id='ver_pendientes',
-                accion_label='Ver lista',
-                titulo="tuxia · pendientes",
+                accion_label=tr('Ver lista'),
+                titulo=tr("tuxia · pendientes"),
                 key=f"sin_metr_proy:{self.pid}",
             )
             return
         if n_sin_acu > 0:
             self._tuxia.show_tip(
-                f"Tienes {n_sin_acu} partida(s) sin ACU cargado.",
+                tr("Tienes {n_sin_acu} partida(s) sin ACU cargado.").format(n_sin_acu=n_sin_acu),
                 accion_id='ver_pendientes',
-                accion_label='Ver lista',
-                titulo="tuxia · pendientes",
+                accion_label=tr('Ver lista'),
+                titulo=tr("tuxia · pendientes"),
                 key=f"sin_acu_proy:{self.pid}",
             )
             return
@@ -10682,10 +10632,8 @@ class ProyectoView(QWidget):
         if duplicados:
             desc = (duplicados['descripcion'] or '')[:40]
             self._tuxia.show_tip(
-                f"«{desc}» aparece en este proyecto con "
-                f"precios distintos: {fmt(duplicados['p_min'], self._moneda)} ↔ "
-                f"{fmt(duplicados['p_max'], self._moneda)}. ¿Quizá deba unificarse?",
-                titulo="tuxia · precios duplicados",
+                tr("«{desc}» aparece en este proyecto con precios distintos: {p_min} ↔ {p_max}. ¿Quizá deba unificarse?").format(desc=desc, p_min=fmt(duplicados['p_min'], self._moneda), p_max=fmt(duplicados['p_max'], self._moneda)),
+                titulo=tr("tuxia · precios duplicados"),
                 key=f"precios_dup:{self.pid}:{duplicados['descripcion']}",
                 fade_ms=10000,
             )
@@ -10693,12 +10641,12 @@ class ProyectoView(QWidget):
         # 7) Fórmula polinómica faltante (solo Contrata, no admin. directa)
         if not es_admin_directa and (sum_k is None or float(sum_k or 0) == 0):
             self._tuxia.show_tip(
-                "Este proyecto es por <b>Contrata</b> pero no tiene "
+                tr("Este proyecto es por <b>Contrata</b> pero no tiene "
                 "<b>fórmula polinómica</b> configurada. La RNE la exige "
-                "para reajustes de precios.",
+                "para reajustes de precios."),
                 accion_id='ir_formula',
-                accion_label='Ir a Fórmula',
-                titulo="tuxia · falta fórmula polinómica",
+                accion_label=tr('Ir a Fórmula'),
+                titulo=tr("tuxia · falta fórmula polinómica"),
                 key=f"formula_missing:{self.pid}",
                 fade_ms=12000,
             )
@@ -10732,10 +10680,8 @@ class ProyectoView(QWidget):
                 emojis = {10:'🌱', 50:'⚡', 100:'🚀', 250:'💪',
                           500:'🏆', 1000:'🎯', 2500:'⭐', 5000:'👑', 10000:'🐉'}
                 self._tuxia.show_tip(
-                    f"<b>{emojis.get(siguiente,'✨')} ¡{siguiente} partidas!</b><br><br>"
-                    f"Llevas <b>{total_xp}</b> partidas creadas en total. "
-                    "Sigues cogiendo el ritmo de un experto.",
-                    titulo=f"tuxia · hito {siguiente} partidas",
+                    tr("<b>{emoji} ¡{siguiente} partidas!</b><br><br>Llevas <b>{total_xp}</b> partidas creadas en total. Sigues cogiendo el ritmo de un experto.").format(emoji=emojis.get(siguiente,'✨'), siguiente=siguiente, total_xp=total_xp),
+                    titulo=tr("tuxia · hito {siguiente} partidas").format(siguiente=siguiente),
                     key=f"xp_milestone:{siguiente}",
                     fade_ms=10000,
                 )
@@ -10773,9 +10719,9 @@ class ProyectoView(QWidget):
         # 1) Sin ACU
         if n_acu == 0:
             self._tuxia.show_tip(
-                "Esta partida aún no tiene insumos cargados en el ACU. "
-                "Agrega recursos para que el precio unitario se calcule.",
-                titulo="tuxia · ACU vacío",
+                tr("Esta partida aún no tiene insumos cargados en el ACU. "
+                "Agrega recursos para que el precio unitario se calcule."),
+                titulo=tr("tuxia · ACU vacío"),
                 key=f"acu_vacio:{part_id}",
                 fade_ms=8000,
             )
@@ -10783,10 +10729,10 @@ class ProyectoView(QWidget):
         # 2) Sin metrado
         if not (p['metrado'] or 0):
             self._tuxia.show_tip(
-                "Esta partida no tiene metrado. El parcial será 0 hasta "
+                tr("Esta partida no tiene metrado. El parcial será 0 hasta "
                 "que lo cargues (escribe en la columna metrado del árbol "
-                "o usa la planilla detallada).",
-                titulo="tuxia · sin metrado",
+                "o usa la planilla detallada)."),
+                titulo=tr("tuxia · sin metrado"),
                 key=f"sin_metrado:{part_id}",
                 fade_ms=8000,
             )
@@ -10813,12 +10759,10 @@ class ProyectoView(QWidget):
                         inconsistentes += 1
             if inconsistentes > 0:
                 self._tuxia.show_tip(
-                    f"Detecté {inconsistentes} insumo(s) con cantidad MO que "
-                    f"no coincide con la fórmula cuadrilla × jornada / "
-                    f"rendimiento. Puedo recalcular ahora.",
+                    tr("Detecté {inconsistentes} insumo(s) con cantidad MO que no coincide con la fórmula cuadrilla × jornada / rendimiento. Puedo recalcular ahora.").format(inconsistentes=inconsistentes),
                     accion_id=f'recalc_mo:{part_id}',
-                    accion_label="Recalcular",
-                    titulo="tuxia · cantidades MO",
+                    accion_label=tr("Recalcular"),
+                    titulo=tr("tuxia · cantidades MO"),
                     key=f"mo_inconsistente:{part_id}",
                     fade_ms=10000,
                 )
@@ -10844,9 +10788,9 @@ class ProyectoView(QWidget):
             if horas < 24:
                 return  # backup reciente, no molestar
             self._tuxia.show_tip(
-                "Llevas un buen rato editando. Te recomiendo hacer un "
-                "<b>backup completo</b> de la BD desde <b>Exportar → Backup</b>.",
-                titulo="tuxia · ¿hace cuánto no haces backup?",
+                tr("Llevas un buen rato editando. Te recomiendo hacer un "
+                "<b>backup completo</b> de la BD desde <b>Exportar → Backup</b>."),
+                titulo=tr("tuxia · ¿hace cuánto no haces backup?"),
                 key=f"backup_recordatorio:{self.pid}",
                 fade_ms=10000,
             )
@@ -10903,8 +10847,8 @@ class ProyectoView(QWidget):
         """Recalcula las cantidades MO de una partida según la fórmula
         canónica: cant = cuadrilla / rendimiento × jornada."""
         if not self._ed_presupuesto:
-            QMessageBox.information(self, "Tuxia",
-                "El proyecto no está en estado editable.")
+            QMessageBox.information(self, tr("Tuxia"),
+                tr("El proyecto no está en estado editable."))
             return
         conn = get_db()
         try:
@@ -10916,8 +10860,8 @@ class ProyectoView(QWidget):
             rend = (p['rendimiento'] if p else None) or 0
             jornada = self._proy.get('jornada_laboral') or 8
             if rend <= 0:
-                QMessageBox.warning(self, "Tuxia",
-                    "Esta partida no tiene rendimiento definido.")
+                QMessageBox.warning(self, tr("Tuxia"),
+                    tr("Esta partida no tiene rendimiento definido."))
                 return
             items = conn.execute(
                 "SELECT ai.id, ai.cuadrilla, r.tipo, r.unidad "
@@ -10949,8 +10893,8 @@ class ProyectoView(QWidget):
         # Confirmación discreta
         if hasattr(self, '_tuxia'):
             self._tuxia.show_tip(
-                f"Listo, recalculé {n} cantidad(es) MO en esta partida.",
-                titulo="tuxia · hecho", fade_ms=4000,
+                tr("Listo, recalculé {n} cantidad(es) MO en esta partida.").format(n=n),
+                titulo=tr("tuxia · hecho"), fade_ms=4000,
                 key=f"recalc_done:{part_id}",
                 once_per_session=False,
             )
@@ -11054,7 +10998,7 @@ class ProyectoView(QWidget):
             f"QPushButton:hover {{ background:rgba(255,255,255,0.15); color:white; }}"
         )
         from utils.tooltip import set_tooltip
-        set_tooltip(btn, "Abrir otro proyecto")
+        set_tooltip(btn, tr("Abrir otro proyecto"))
         btn.clicked.connect(self.ir_a_proyectos.emit)
         self._tabs_proy_hl.addWidget(btn)
 
@@ -11101,7 +11045,7 @@ class ProyectoView(QWidget):
         if pill is None:
             return
         from core.config import ESTADOS_PROYECTO_NOMBRE
-        est_nombre = ESTADOS_PROYECTO_NOMBRE.get(self._estado, self._estado)
+        est_nombre = tr(ESTADOS_PROYECTO_NOMBRE.get(self._estado, self._estado))
         bg, fg = self._ESTADO_PILL_COLOR.get(self._estado, ('#E2E8F0', '#273445'))
         rol = getattr(self.usuario, 'rol', 'usuario') if self.usuario else 'usuario'
         puede = (rol != 'invitado')
@@ -11110,14 +11054,15 @@ class ProyectoView(QWidget):
         pill.setText(f"{icono}{est_nombre}{flecha}")
         pill.setEnabled(puede)
         pill.setCursor(Qt.PointingHandCursor if puede else Qt.ArrowCursor)
-        editables = [n for n, f in (("presupuesto", self._ed_presupuesto),
-                                    ("pie", self._ed_pie), ("specs", self._ed_specs),
-                                    ("cronograma", self._ed_cronograma)) if f]
-        sub = ("Editable: " + ", ".join(editables)) if editables else "Solo lectura"
+        editables = [n for n, f in ((tr("presupuesto"), self._ed_presupuesto),
+                                    (tr("pie"), self._ed_pie), (tr("specs"), self._ed_specs),
+                                    (tr("cronograma"), self._ed_cronograma)) if f]
+        sub = (tr("Editable: {niveles}").format(niveles=", ".join(editables))
+               if editables else tr("Solo lectura"))
         pill.setToolTip(
-            f"Estado: {est_nombre}\n{sub}\n\n"
-            + ("Clic para cambiar el estado del proyecto." if puede else
-               "Los invitados no pueden cambiar el estado.")
+            tr("Estado: {est_nombre}\n{sub}\n\n").format(est_nombre=est_nombre, sub=sub)
+            + (tr("Clic para cambiar el estado del proyecto.") if puede else
+               tr("Los invitados no pueden cambiar el estado."))
         )
         pill.setStyleSheet(
             f"QPushButton {{ background:{bg}; color:{fg}; border:none;"
@@ -11137,7 +11082,7 @@ class ProyectoView(QWidget):
         _emoji = {'elaboracion': '🔓', 'revision': '🔍',
                   'aprobado': '✅', 'ejecutado': '🏗'}
         for est in ESTADOS_PROYECTO:
-            nombre = ESTADOS_PROYECTO_NOMBRE.get(est, est)
+            nombre = tr(ESTADOS_PROYECTO_NOMBRE.get(est, est))
             marca = '  ✓' if est == self._estado else ''
             act = menu.addAction(f"{_emoji.get(est, '')}  {nombre}{marca}")
             act.setData(est)
@@ -11316,14 +11261,13 @@ class ProyectoView(QWidget):
         cada sub-pestaña de la vista Cronograma."""
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction
-        from utils.i18n import tr
         menu = QMenu(self)
 
         opciones = [
-            (tr("Cronograma") + " Gantt",   0),
-            (tr("Cronograma") + " Valorizado", 1),
-            (tr("Insumos") + " - Adquisición", 2),
-            ("Curva S",                     3),
+            (tr("Cronograma Gantt"),   0),
+            (tr("Cronograma Valorizado"), 1),
+            (tr("Insumos - Adquisición"), 2),
+            (tr("Curva S"),                     3),
         ]
         for label, idx in opciones:
             a = QAction(label, self)
@@ -11338,11 +11282,11 @@ class ProyectoView(QWidget):
         from PySide6.QtGui import QAction
         menu = QMenu(self)
         opciones = [
-            ("Requerimientos",   0),
-            ("Almacén",          1),
-            ("Cuaderno de obra", 2),
-            ("Valorizaciones",   3),
-            ("Curva S real",     4),
+            (tr("Requerimientos"),   0),
+            (tr("Almacén"),          1),
+            (tr("Cuaderno de obra"), 2),
+            (tr("Valorizaciones"),   3),
+            (tr("Curva S real"),     4),
         ]
         for label, idx in opciones:
             a = QAction(label, self)
@@ -11355,7 +11299,6 @@ class ProyectoView(QWidget):
         la pantalla de Configuración de proveedores/API keys."""
         from PySide6.QtWidgets import QMenu
         from PySide6.QtGui import QAction
-        from utils.i18n import tr
         menu = QMenu(self)
 
         a_val = QAction(tr("Revisar proyecto con IA") + "…", self)
@@ -11381,41 +11324,41 @@ class ProyectoView(QWidget):
         from PySide6.QtCore import QUrl
         menu = QMenu(self)
 
-        a_manual = QAction("Manual de usuario…", self)
+        a_manual = QAction(tr("Manual de usuario…"), self)
         a_manual.triggered.connect(self._ayuda_manual)
         menu.addAction(a_manual)
 
-        a_atajos = QAction("Atajos de teclado…", self)
+        a_atajos = QAction(tr("Atajos de teclado…"), self)
         a_atajos.setShortcut(QKeySequence("F1"))
         a_atajos.triggered.connect(self._mostrar_atajos)
         menu.addAction(a_atajos)
 
         menu.addSeparator()
 
-        a_web = QAction("Sitio web", self)
+        a_web = QAction(tr("Sitio web"), self)
         a_web.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl("https://ingepresupuestos.com"))
         )
         menu.addAction(a_web)
 
-        a_upd = QAction("Comprobar actualizaciones…", self)
+        a_upd = QAction(tr("Comprobar actualizaciones…"), self)
         a_upd.triggered.connect(self._ayuda_buscar_actualizaciones)
         menu.addAction(a_upd)
 
         menu.addSeparator()
 
-        a_about = QAction("Acerca de…", self)
+        a_about = QAction(tr("Acerca de…"), self)
         a_about.triggered.connect(self.ir_a_acerca.emit)
         menu.addAction(a_about)
         return menu
 
     def _ayuda_manual(self):
         QMessageBox.information(
-            self, "Manual de usuario",
-            "El manual de usuario en línea estará disponible próximamente "
+            self, tr("Manual de usuario"),
+            tr("El manual de usuario en línea estará disponible próximamente "
             "en ingepresupuestos.com/manual.\n\n"
             "Mientras tanto: F1 muestra los atajos de teclado, y Tuxia "
-            "(asistente IA) responde dudas sobre cualquier pantalla."
+            "(asistente IA) responde dudas sobre cualquier pantalla.")
         )
 
     def _ayuda_buscar_actualizaciones(self):
@@ -11428,7 +11371,7 @@ class ProyectoView(QWidget):
         from core.formula_polinomica import aplica_formula
         ok, motivo = aplica_formula(self.pid)
         if not ok:
-            QMessageBox.information(self, "Fórmula polinómica", motivo)
+            QMessageBox.information(self, tr("Fórmula polinómica"), motivo)
             return
         if not hasattr(self, '_formula_view') or self._formula_view is None:
             from views.formula_view import FormulaView
@@ -11453,7 +11396,6 @@ class ProyectoView(QWidget):
 
     def _cargar_sub_pptos(self):
         """Reconstruye la barra de pestañas de sub-presupuestos."""
-        from utils.i18n import tr
         conn = get_db()
         subs = conn.execute(
             "SELECT id, nombre FROM sub_presupuestos WHERE proyecto_id=? ORDER BY orden, id",
@@ -11560,7 +11502,6 @@ class ProyectoView(QWidget):
         self.lbl_cd.show()
 
     def _on_sub_ppto_cambiado(self, sub_id):
-        from utils.i18n import tr
         self._sub_ppto_id = sub_id
         self._acu_en_blanco()
         self._cargar_sub_pptos()   # redibuja tabs con nuevo activo
@@ -11575,11 +11516,11 @@ class ProyectoView(QWidget):
             self.cargar_resumen()
 
     def _nuevo_sub_ppto(self):
-        if not self._require_editable("crear sub-presupuestos"):
+        if not self._require_editable(N_("crear sub-presupuestos")):
             return
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout
         dlg = QDialog(self)
-        dlg.setWindowTitle("Nuevo sub-presupuesto")
+        dlg.setWindowTitle(tr("Nuevo sub-presupuesto"))
         dlg.setFixedSize(340, 120)
         dlg.setStyleSheet(
             "QDialog { background:white; }"
@@ -11596,15 +11537,15 @@ class ProyectoView(QWidget):
         vl.setContentsMargins(16, 16, 16, 14)
         vl.setSpacing(8)
         inp = QLineEdit()
-        inp.setPlaceholderText("Ej. Cerco Perimétrico, Piscina, Módulo A…")
+        inp.setPlaceholderText(tr("Ej. Cerco Perimétrico, Piscina, Módulo A…"))
         inp.setMinimumHeight(32)
         inp.returnPressed.connect(dlg.accept)
-        vl.addWidget(QLabel("Nombre del sub-presupuesto:"))
+        vl.addWidget(QLabel(tr("Nombre del sub-presupuesto:")))
         vl.addWidget(inp)
         hl = QHBoxLayout()
         hl.addStretch()
-        b_can = QPushButton("Cancelar"); b_can.clicked.connect(dlg.reject)
-        b_ok  = QPushButton("Crear")
+        b_can = QPushButton(tr("Cancelar")); b_can.clicked.connect(dlg.reject)
+        b_ok  = QPushButton(tr("Crear"))
         b_ok.setStyleSheet(
             f"background:{BLUE_500}; color:white; border:none;"
             f" border-radius:6px; padding:4px 16px;"
@@ -11695,7 +11636,7 @@ class ProyectoView(QWidget):
         conn.close()
         return nuevo_pid, n_part
 
-    _NOTA_COPIA = ("Se copian los ACU, metrados, acero, especificaciones y el "
+    _NOTA_COPIA = N_("Se copian los ACU, metrados, acero, especificaciones y el "
                    "pie de presupuesto. El cronograma NO se copia: sus "
                    "duraciones y predecesoras dependen de las partidas "
                    "originales.")
@@ -11704,7 +11645,6 @@ class ProyectoView(QWidget):
         """Convierte el sub-presupuesto en un proyecto nuevo DENTRO del
         programa (aparece en el tablero; no genera ningún archivo)."""
         from PySide6.QtWidgets import QInputDialog
-        from utils.i18n import tr
         sugerido = nombre or 'Sub-presupuesto'
         nuevo_nombre, ok = QInputDialog.getText(
             self, tr("Convertir en proyecto nuevo"),
@@ -11717,12 +11657,11 @@ class ProyectoView(QWidget):
                 tid, nombre, nuevo_nombre)
         except Exception as e:
             QMessageBox.critical(self, tr("Convertir en proyecto nuevo"),
-                                 f"No se pudo crear el proyecto:\n{e}")
+                                 tr("No se pudo crear el proyecto:\n{e}").format(e=e))
             return
         resp = QMessageBox.question(
             self, tr("Convertir en proyecto nuevo"),
-            f"«{nuevo_nombre}» se creó con {n_part} partidas y ya está en tu "
-            f"lista de proyectos.\n\n{self._NOTA_COPIA}\n\n¿Abrirlo ahora?",
+            tr("«{nuevo_nombre}» se creó con {n_part} partidas y ya está en tu lista de proyectos.\n\n{nota}\n\n¿Abrirlo ahora?").format(nuevo_nombre=nuevo_nombre, n_part=n_part, nota=tr(self._NOTA_COPIA)),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if resp == QMessageBox.Yes:
             self.cambiar_a_proyecto.emit(nuevo_pid)
@@ -11738,14 +11677,13 @@ class ProyectoView(QWidget):
         from PySide6.QtWidgets import QFileDialog, QApplication
         from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
-        from utils.i18n import tr
         from core.exporter import exportar_proyecto_db
 
         base = nombre or 'Sub-presupuesto'
         safe = _re.sub(r'[\\/:*?"<>|]', '_', base).strip()[:80] or 'subpresupuesto'
         ruta, _f = QFileDialog.getSaveFileName(
             self, tr("Exportar sub-presupuesto a SQLite (.db)"),
-            f"{safe}.db", "Base de datos SQLite (*.db)")
+            f"{safe}.db", tr("Base de datos SQLite (*.db)"))
         if not ruta:
             return
         if not ruta.lower().endswith('.db'):
@@ -11760,7 +11698,7 @@ class ProyectoView(QWidget):
         except Exception as e:
             QApplication.restoreOverrideCursor()
             QMessageBox.critical(self, tr("Exportar a archivo .db"),
-                                 f"No se pudo exportar:\n{e}")
+                                 tr("No se pudo exportar:\n{e}").format(e=e))
             n_part = 0
         else:
             QApplication.restoreOverrideCursor()
@@ -11777,10 +11715,7 @@ class ProyectoView(QWidget):
             return
         resp = QMessageBox.question(
             self, tr("Exportar a archivo .db"),
-            f"Guardado en:\n{ruta}\n\n{n_part} partidas.\n\n"
-            f"{self._NOTA_COPIA}\n\n"
-            "Se abre con «Importar → ingePresupuestos (.db)».\n\n"
-            "¿Abrir la carpeta?",
+            tr("Guardado en:\n{ruta}\n\n{n_part} partidas.\n\n{nota}\n\nSe abre con «Importar → ingePresupuestos (.db)».\n\n¿Abrir la carpeta?").format(ruta=ruta, n_part=n_part, nota=tr(self._NOTA_COPIA)),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if resp == QMessageBox.Yes:
             import os as _os
@@ -11796,13 +11731,12 @@ class ProyectoView(QWidget):
         win = self.window()
         if hasattr(win, 'statusBar') and win.statusBar():
             win.statusBar().showMessage(
-                f"Sub-presupuesto «{nombre}» copiado ({n} partidas). "
-                "Clic derecho en una pestaña → Pegar sub-presupuesto.", 6000)
+                tr("Sub-presupuesto «{nombre}» copiado ({n} partidas). Clic derecho en una pestaña → Pegar sub-presupuesto.").format(nombre=nombre, n=n), 6000)
 
     def _pegar_subppto(self):
         """Crea un sub-presupuesto nuevo en este proyecto con el contenido del
         clipboard de sub-presupuestos (evita colisión de nombre con « (n)»)."""
-        if not self._require_editable("pegar sub-presupuesto"):
+        if not self._require_editable(N_("pegar sub-presupuesto")):
             return
         if not _pclip.hay_subppto_clipboard():
             return
@@ -11831,16 +11765,16 @@ class ProyectoView(QWidget):
         except Exception as e:
             conn.rollback()
             conn.close()
-            QMessageBox.critical(self, "Pegar sub-presupuesto", f"Error:\n{e}")
+            QMessageBox.critical(self, tr("Pegar sub-presupuesto"), tr("Error:\n{e}").format(e=e))
             return
         conn.close()
         self._on_sub_ppto_cambiado(nuevo_id)
         win = self.window()
         if hasattr(win, 'statusBar') and win.statusBar():
-            win.statusBar().showMessage(f"Sub-presupuesto «{final}» pegado.", 4000)
+            win.statusBar().showMessage(tr("Sub-presupuesto «{final}» pegado.").format(final=final), 4000)
 
     def _renombrar_principal(self, nuevo_nombre: str):
-        if not self._require_editable("renombrar"):
+        if not self._require_editable(N_("renombrar")):
             return
         conn = get_db()
         conn.execute("UPDATE proyectos SET sub_presupuesto=? WHERE id=?",
@@ -11851,7 +11785,7 @@ class ProyectoView(QWidget):
         self._cargar_sub_pptos()
 
     def _renombrar_sub_ppto(self, sub_id: int, nuevo_nombre: str):
-        if not self._require_editable("renombrar sub-presupuestos"):
+        if not self._require_editable(N_("renombrar sub-presupuestos")):
             return
         conn = get_db()
         conn.execute("UPDATE sub_presupuestos SET nombre=? WHERE id=?",
@@ -11863,7 +11797,7 @@ class ProyectoView(QWidget):
     def _eliminar_sub_ppto(self, sub_id: int, nombre: str):
         """Elimina un sub-presupuesto. Sus partidas se mueven al destino
         elegido (Principal u otro sub-presupuesto del mismo proyecto)."""
-        if not self._require_editable("eliminar sub-presupuestos"):
+        if not self._require_editable(N_("eliminar sub-presupuestos")):
             return
         conn = get_db()
         n_part = conn.execute(
@@ -11885,8 +11819,8 @@ class ProyectoView(QWidget):
         borrar_partidas = False
         if n_part == 0:
             resp = QMessageBox.question(
-                self, "Eliminar sub-presupuesto",
-                f"¿Eliminar el sub-presupuesto «{nombre}»?",
+                self, tr("Eliminar sub-presupuesto"),
+                tr("¿Eliminar el sub-presupuesto «{nombre}»?").format(nombre=nombre),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No
             )
             if resp != QMessageBox.Yes:
@@ -11896,7 +11830,7 @@ class ProyectoView(QWidget):
                                             QLabel, QComboBox, QPushButton,
                                             QRadioButton, QButtonGroup)
             dlg = QDialog(self)
-            dlg.setWindowTitle("Eliminar sub-presupuesto")
+            dlg.setWindowTitle(tr("Eliminar sub-presupuesto"))
             dlg.setMinimumWidth(420)
             dlg.setStyleSheet(
                 "QDialog { background:white; }"
@@ -11915,21 +11849,20 @@ class ProyectoView(QWidget):
             vl.setContentsMargins(18, 16, 18, 14)
             vl.setSpacing(10)
             lbl = QLabel(
-                f"¿Eliminar el sub-presupuesto «{nombre}»?\n"
-                f"Tiene {n_part} partida(s). Elige qué hacer con ellas:"
+                tr("¿Eliminar el sub-presupuesto «{nombre}»?\nTiene {n_part} partida(s). Elige qué hacer con ellas:").format(nombre=nombre, n_part=n_part)
             )
             lbl.setWordWrap(True)
             vl.addWidget(lbl)
 
             grp = QButtonGroup(dlg)
-            rb_mover = QRadioButton("Mover las partidas a:")
+            rb_mover = QRadioButton(tr("Mover las partidas a:"))
             rb_mover.setChecked(True)
             grp.addButton(rb_mover)
             vl.addWidget(rb_mover)
 
             cmb = QComboBox()
             cmb.setMinimumHeight(28)
-            cmb.addItem(f"{nombre_principal} (Principal)", None)
+            cmb.addItem(tr("{nombre} (Principal)").format(nombre=nombre_principal), None)
             for o in otros:
                 cmb.addItem(o['nombre'], o['id'])
             _hl_cmb = QHBoxLayout()
@@ -11938,7 +11871,7 @@ class ProyectoView(QWidget):
             vl.addLayout(_hl_cmb)
 
             rb_borrar = QRadioButton(
-                f"Eliminar también las {n_part} partidas (no recuperable)"
+                tr("Eliminar también las {n_part} partidas (no recuperable)").format(n_part=n_part)
             )
             rb_borrar.setStyleSheet(f"color:{_C.error};")
             grp.addButton(rb_borrar)
@@ -11950,8 +11883,8 @@ class ProyectoView(QWidget):
 
             hl = QHBoxLayout()
             hl.addStretch()
-            b_can = QPushButton("Cancelar"); b_can.clicked.connect(dlg.reject)
-            b_ok  = QPushButton("Eliminar")
+            b_can = QPushButton(tr("Cancelar")); b_can.clicked.connect(dlg.reject)
+            b_ok  = QPushButton(tr("Eliminar"))
             b_ok.setStyleSheet(
                 f"background:{BLUE_500}; color:white; border:none;"
                 f" border-radius:6px; padding:5px 18px; font-weight:700;"
@@ -12027,10 +11960,10 @@ class ProyectoView(QWidget):
         self._aplicar_ratio_splitter()
         if orientacion == Qt.Vertical:
             self._btn_layout.setText("↔")
-            set_tooltip(self._btn_layout, "Mover panel ACU a la derecha")
+            set_tooltip(self._btn_layout, tr("Mover panel ACU a la derecha"))
         else:
             self._btn_layout.setText("↕")
-            set_tooltip(self._btn_layout, "Mover panel ACU abajo")
+            set_tooltip(self._btn_layout, tr("Mover panel ACU abajo"))
 
     def _screen_es_horizontal(self) -> bool:
         """True si la pantalla actual es apaisada (ancho > alto)."""
@@ -12171,7 +12104,7 @@ class _DonutChart(QWidget):
         w_tot = 0
         if self._moneda is not None:
             f_tot = QFont(f_ley); f_tot.setBold(True)
-            w_tot = QFontMetrics(f_tot).horizontalAdvance("Total") + 8
+            w_tot = QFontMetrics(f_tot).horizontalAdvance(tr("Total")) + 8
         return max(160, 28 + w_tot + w_cols + 10)
 
     def _alto_necesario(self, W: int) -> int:
@@ -12345,7 +12278,7 @@ class _DonutChart(QWidget):
             painter.setFont(f_tot)
             painter.setPen(QColor("#485A6C"))
             painter.drawText(QRect(28, y_ley + 2, W - 38, 18),
-                             Qt.AlignLeft | Qt.AlignVCenter, "Total")
+                             Qt.AlignLeft | Qt.AlignVCenter, tr("Total"))
             painter.setPen(QColor("#273445"))
             painter.drawText(r_amt.translated(0, y_ley + 2),
                              Qt.AlignRight | Qt.AlignVCenter,
@@ -12505,7 +12438,7 @@ class _DialogIASpec(QDialog):
         self.descripcion      = descripcion
         self._worker          = None
         self._texto_resultado = ''
-        self.setWindowTitle("Generar especificación con IA")
+        self.setWindowTitle(tr("Generar especificación con IA"))
         self.setMinimumWidth(500)
         self.setModal(True)
         self._build()
@@ -12515,7 +12448,7 @@ class _DialogIASpec(QDialog):
         vl.setSpacing(12)
         vl.setContentsMargins(18, 18, 18, 18)
 
-        lbl_partida = QLabel(f"Partida: <b>{self.descripcion[:80]}</b>")
+        lbl_partida = QLabel(tr("Partida: <b>{partida}</b>").format(partida=self.descripcion[:80]))
         lbl_partida.setWordWrap(True)
         lbl_partida.setStyleSheet("font-size:12px;")
         vl.addWidget(lbl_partida)
@@ -12525,14 +12458,14 @@ class _DialogIASpec(QDialog):
         sep.setStyleSheet("color:#E8EAED;")
         vl.addWidget(sep)
 
-        lbl2 = QLabel("Instrucciones adicionales (opcional):")
+        lbl2 = QLabel(tr("Instrucciones adicionales (opcional):"))
         lbl2.setStyleSheet("font-size:11px; color:#485A6C;")
         vl.addWidget(lbl2)
 
         self.txt_extra = QTextEdit()
         self.txt_extra.setFixedHeight(72)
         self.txt_extra.setPlaceholderText(
-            "Ej: Detallar tolerancias según ACI 318, incluir ensayos de laboratorio…"
+            tr("Ej: Detallar tolerancias según ACI 318, incluir ensayos de laboratorio…")
         )
         self.txt_extra.setStyleSheet(
             "QTextEdit { border:1px solid #D4D4D4; border-radius:6px;"
@@ -12555,13 +12488,13 @@ class _DialogIASpec(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        self.btn_cancelar = QPushButton("Cancelar")
+        self.btn_cancelar = QPushButton(tr("Cancelar"))
         self.btn_cancelar.setFixedHeight(32)
         self.btn_cancelar.setStyleSheet(_DLG_BTN_CANCEL)
         self.btn_cancelar.clicked.connect(self.reject)
         hl.addWidget(self.btn_cancelar)
 
-        self.btn_generar = QPushButton("✨  Generar")
+        self.btn_generar = QPushButton(tr("✨  Generar"))
         self.btn_generar.setFixedHeight(32)
         self.btn_generar.setStyleSheet(_DLG_BTN_IA)
         self.btn_generar.clicked.connect(self._generar)
@@ -12571,9 +12504,9 @@ class _DialogIASpec(QDialog):
     def _generar(self):
         self.btn_generar.setEnabled(False)
         self.txt_extra.setEnabled(False)
-        self.btn_cancelar.setText("Cerrar")
+        self.btn_cancelar.setText(tr("Cerrar"))
         self.pb.show()
-        self.lbl_estado.setText("Consultando IA… esto puede tardar unos segundos.")
+        self.lbl_estado.setText(tr("Consultando IA… esto puede tardar unos segundos."))
         self.lbl_estado.setStyleSheet("font-size:10px; color:#667885;")
         self.lbl_estado.show()
 
@@ -12588,7 +12521,7 @@ class _DialogIASpec(QDialog):
             self.lbl_estado.setStyleSheet("font-size:10px; color:#C6262E;")
             self.lbl_estado.setText(error)
             self.btn_generar.setEnabled(True)
-            self.btn_generar.setText("✨  Reintentar")
+            self.btn_generar.setText(tr("✨  Reintentar"))
             self.txt_extra.setEnabled(True)
             return
         self._texto_resultado = texto
@@ -12608,22 +12541,22 @@ class _DialogIAMemoria(QDialog):
         self._notas           = notas or ''
         self._worker          = None
         self._texto_resultado = ''
-        self.setWindowTitle("Generar memoria descriptiva con IA")
+        self.setWindowTitle(tr("Generar memoria descriptiva con IA"))
         self.setMinimumWidth(520)
         self.setModal(True)
         vl = QVBoxLayout(self)
         vl.setSpacing(12)
         vl.setContentsMargins(18, 18, 18, 18)
 
-        lbl = QLabel(f"Proyecto: <b>{(proyecto_nombre or '')[:90]}</b>")
+        lbl = QLabel(tr("Proyecto: <b>{proyecto}</b>").format(proyecto=(proyecto_nombre or '')[:90]))
         lbl.setWordWrap(True)
         lbl.setStyleSheet("font-size:12px;")
         vl.addWidget(lbl)
 
         info = QLabel(
-            "La IA usará la ubicación, el presupuesto, el plazo, la modalidad y "
+            tr("La IA usará la ubicación, el presupuesto, el plazo, la modalidad y "
             "las notas. Completa los siguientes datos para que NO salgan como "
-            "«(por confirmar)»:"
+            "«(por confirmar)»:")
         )
         info.setWordWrap(True)
         info.setStyleSheet("font-size:11px; color:#667885;")
@@ -12640,26 +12573,26 @@ class _DialogIAMemoria(QDialog):
                                 "Mantenimiento", "Ficha de emergencia"])
         self.cmb_tipo.setStyleSheet(_ss_in)
         self.inp_cui = QLineEdit()
-        self.inp_cui.setPlaceholderText("Ej: 2654321 — mantenimiento/emergencia no llevan CUI")
+        self.inp_cui.setPlaceholderText(tr("Ej: 2654321 — mantenimiento/emergencia no llevan CUI"))
         self.inp_cui.setStyleSheet(_ss_in)
         self.inp_benef = QLineEdit()
-        self.inp_benef.setPlaceholderText("Ej: 120 familias / 480 habitantes")
+        self.inp_benef.setPlaceholderText(tr("Ej: 120 familias / 480 habitantes"))
         self.inp_benef.setStyleSheet(_ss_in)
-        form.addRow("Tipo de intervención:", self.cmb_tipo)
-        form.addRow("CUI (si aplica):", self.inp_cui)
-        form.addRow("N° de beneficiarios:", self.inp_benef)
+        form.addRow(tr("Tipo de intervención:"), self.cmb_tipo)
+        form.addRow(tr("CUI (si aplica):"), self.inp_cui)
+        form.addRow(tr("N° de beneficiarios:"), self.inp_benef)
         vl.addLayout(form)
 
-        lbl2 = QLabel("Antecedentes y condiciones (se trae de las Notas del "
-                      "proyecto — puedes editarlo):")
+        lbl2 = QLabel(tr("Antecedentes y condiciones (se trae de las Notas del "
+                      "proyecto — puedes editarlo):"))
         lbl2.setWordWrap(True)
         lbl2.setStyleSheet("font-size:11px; color:#485A6C;")
         vl.addWidget(lbl2)
         self.txt_extra = QTextEdit()
         self.txt_extra.setFixedHeight(90)
         self.txt_extra.setPlaceholderText(
-            "Antigüedad de la infraestructura, problema actual, contexto de la "
-            "obra (altitud, clima, acceso, suelo)…"
+            tr("Antigüedad de la infraestructura, problema actual, contexto de la "
+            "obra (altitud, clima, acceso, suelo)…")
         )
         self.txt_extra.setStyleSheet(
             "QTextEdit { border:1px solid #D4D4D4; border-radius:6px;"
@@ -12684,12 +12617,12 @@ class _DialogIAMemoria(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        self.btn_cancelar = QPushButton("Cancelar")
+        self.btn_cancelar = QPushButton(tr("Cancelar"))
         self.btn_cancelar.setFixedHeight(32)
         self.btn_cancelar.setStyleSheet(_DLG_BTN_CANCEL)
         self.btn_cancelar.clicked.connect(self.reject)
         hl.addWidget(self.btn_cancelar)
-        self.btn_generar = QPushButton("✨  Generar")
+        self.btn_generar = QPushButton(tr("✨  Generar"))
         self.btn_generar.setFixedHeight(32)
         self.btn_generar.setStyleSheet(_DLG_BTN_IA)
         self.btn_generar.clicked.connect(self._generar)
@@ -12699,10 +12632,10 @@ class _DialogIAMemoria(QDialog):
     def _generar(self):
         self.btn_generar.setEnabled(False)
         self.txt_extra.setEnabled(False)
-        self.btn_cancelar.setText("Cerrar")
+        self.btn_cancelar.setText(tr("Cerrar"))
         self.pb.show()
-        self.lbl_estado.setText("Consultando IA… la memoria es larga, puede "
-                                "tardar bastante.")
+        self.lbl_estado.setText(tr("Consultando IA… la memoria es larga, puede "
+                                "tardar bastante."))
         self.lbl_estado.setStyleSheet("font-size:10px; color:#667885;")
         self.lbl_estado.show()
         datos = {
@@ -12721,7 +12654,7 @@ class _DialogIAMemoria(QDialog):
             self.lbl_estado.setStyleSheet("font-size:10px; color:#C6262E;")
             self.lbl_estado.setText(error)
             self.btn_generar.setEnabled(True)
-            self.btn_generar.setText("✨  Reintentar")
+            self.btn_generar.setText(tr("✨  Reintentar"))
             self.txt_extra.setEnabled(True)
             return
         self._texto_resultado = texto
@@ -12742,29 +12675,29 @@ class _DialogAmpliarSeccion(QDialog):
         self.contenido = contenido
         self._worker = None
         self._texto_resultado = ''
-        self.setWindowTitle("Ampliar sección con IA")
+        self.setWindowTitle(tr("Ampliar sección con IA"))
         self.setMinimumWidth(520)
         self.setModal(True)
         vl = QVBoxLayout(self)
         vl.setSpacing(12)
         vl.setContentsMargins(18, 18, 18, 18)
 
-        lbl = QLabel(f"Sección: <b>{numero}. {nombre.title()}</b>")
+        lbl = QLabel(tr("Sección: <b>{numero}. {nombre}</b>").format(numero=numero, nombre=nombre.title()))
         lbl.setStyleSheet("font-size:12px;")
         vl.addWidget(lbl)
-        info = QLabel("La IA reescribirá esta sección más extensa y detallada, "
-                      "y reemplazará su contenido en la memoria.")
+        info = QLabel(tr("La IA reescribirá esta sección más extensa y detallada, "
+                      "y reemplazará su contenido en la memoria."))
         info.setWordWrap(True)
         info.setStyleSheet("font-size:11px; color:#667885;")
         vl.addWidget(info)
 
-        lbl2 = QLabel("Instrucciones adicionales (opcional):")
+        lbl2 = QLabel(tr("Instrucciones adicionales (opcional):"))
         lbl2.setStyleSheet("font-size:11px; color:#485A6C;")
         vl.addWidget(lbl2)
         self.txt_extra = QTextEdit()
         self.txt_extra.setFixedHeight(60)
         self.txt_extra.setPlaceholderText(
-            "Ej: enfatiza el impacto social y agrega indicadores cuantitativos.")
+            tr("Ej: enfatiza el impacto social y agrega indicadores cuantitativos."))
         self.txt_extra.setStyleSheet(
             "QTextEdit { border:1px solid #D4D4D4; border-radius:6px;"
             " font-size:11px; padding:6px; }")
@@ -12784,12 +12717,12 @@ class _DialogAmpliarSeccion(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        self.btn_cancelar = QPushButton("Cancelar")
+        self.btn_cancelar = QPushButton(tr("Cancelar"))
         self.btn_cancelar.setFixedHeight(32)
         self.btn_cancelar.setStyleSheet(_DLG_BTN_CANCEL)
         self.btn_cancelar.clicked.connect(self.reject)
         hl.addWidget(self.btn_cancelar)
-        self.btn_generar = QPushButton("✨  Ampliar")
+        self.btn_generar = QPushButton(tr("✨  Ampliar"))
         self.btn_generar.setFixedHeight(32)
         self.btn_generar.setStyleSheet(_DLG_BTN_IA)
         self.btn_generar.clicked.connect(self._generar)
@@ -12799,9 +12732,9 @@ class _DialogAmpliarSeccion(QDialog):
     def _generar(self):
         self.btn_generar.setEnabled(False)
         self.txt_extra.setEnabled(False)
-        self.btn_cancelar.setText("Cerrar")
+        self.btn_cancelar.setText(tr("Cerrar"))
         self.pb.show()
-        self.lbl_estado.setText("Consultando IA…")
+        self.lbl_estado.setText(tr("Consultando IA…"))
         self.lbl_estado.setStyleSheet("font-size:10px; color:#667885;")
         self.lbl_estado.show()
         self._worker = _WorkerAmpliarSeccion(
@@ -12816,7 +12749,7 @@ class _DialogAmpliarSeccion(QDialog):
             self.lbl_estado.setStyleSheet("font-size:10px; color:#C6262E;")
             self.lbl_estado.setText(error)
             self.btn_generar.setEnabled(True)
-            self.btn_generar.setText("✨  Reintentar")
+            self.btn_generar.setText(tr("✨  Reintentar"))
             self.txt_extra.setEnabled(True)
             return
         self._texto_resultado = texto
@@ -12843,7 +12776,7 @@ class _WorkerSugerirPartidas(QThread):
             ps, err = sugerir_partidas_ia(self.proyecto_id)
             self.terminado.emit(ps, err or '')
         except Exception as e:
-            self.terminado.emit(None, f"Error inesperado: {e}")
+            self.terminado.emit(None, tr("Error inesperado: {e}").format(e=e))
 
 
 class _DialogSugerirPartidas(QDialog):
@@ -12859,7 +12792,7 @@ class _DialogSugerirPartidas(QDialog):
         self.proyecto_id = proyecto_id
         self._sugerencias: list[dict] = []
         self._worker_sug = None
-        self.setWindowTitle("Sugerir partidas para el proyecto")
+        self.setWindowTitle(tr("Sugerir partidas para el proyecto"))
         self.setWindowModality(Qt.ApplicationModal)
         self.setMinimumSize(720, 560)
         self.setStyleSheet(
@@ -12898,13 +12831,11 @@ class _DialogSugerirPartidas(QDialog):
         vl.setContentsMargins(16, 14, 16, 14)
         vl.setSpacing(8)
 
-        title = QLabel("Sugerir partidas para tu nuevo proyecto")
+        title = QLabel(tr("Sugerir partidas para tu nuevo proyecto"))
         title.setObjectName("title")
         vl.addWidget(title)
         sub = QLabel(
-            f"<i>{proyecto_nombre}</i><br>"
-            "Elige una opción y revisa la lista; marca solo las partidas que "
-            "quieras importar. Después podrás agregar metrados, ACUs y más."
+            tr("<i>{proyecto_nombre}</i><br>Elige una opción y revisa la lista; marca solo las partidas que quieras importar. Después podrás agregar metrados, ACUs y más.").format(proyecto_nombre=proyecto_nombre)
         )
         sub.setWordWrap(True)
         vl.addWidget(sub)
@@ -12912,14 +12843,14 @@ class _DialogSugerirPartidas(QDialog):
         # ── Botones de origen: IA o plantilla local ──
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
-        self.btn_ia = QPushButton("🌐  Sugerir con IA")
+        self.btn_ia = QPushButton(tr("🌐  Sugerir con IA"))
         self.btn_ia.setObjectName("primary")
         self.btn_ia.clicked.connect(self._cargar_ia)
         btn_row.addWidget(self.btn_ia)
 
         from core.ai_specs import listar_plantillas
         self.cmb_plantilla = QComboBox()
-        self.cmb_plantilla.addItem("— Plantilla local —", '')
+        self.cmb_plantilla.addItem(tr("— Plantilla local —"), '')
         for k, t in listar_plantillas():
             self.cmb_plantilla.addItem(t, k)
         self.cmb_plantilla.currentIndexChanged.connect(self._cargar_plantilla)
@@ -12930,7 +12861,7 @@ class _DialogSugerirPartidas(QDialog):
         # ── Tree con sugerencias ──
         from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Importar", "Ítem", "Descripción", "Und"])
+        self.tree.setHeaderLabels([tr("Importar"), tr("Ítem"), tr("Descripción"), tr("Und")])
         self.tree.setColumnWidth(0, 70)
         self.tree.setColumnWidth(1, 80)
         self.tree.setColumnWidth(3, 60)
@@ -12941,22 +12872,22 @@ class _DialogSugerirPartidas(QDialog):
         # ── Acciones de selección ──
         sel_row = QHBoxLayout()
         sel_row.setSpacing(6)
-        b_all = QPushButton("Marcar todas")
+        b_all = QPushButton(tr("Marcar todas"))
         b_all.clicked.connect(lambda: self._marcar_todas(True))
-        b_none = QPushButton("Desmarcar todas")
+        b_none = QPushButton(tr("Desmarcar todas"))
         b_none.clicked.connect(lambda: self._marcar_todas(False))
         sel_row.addWidget(b_all)
         sel_row.addWidget(b_none)
         sel_row.addStretch()
-        self.lbl_count = QLabel("0 partidas")
+        self.lbl_count = QLabel(tr("0 partidas"))
         sel_row.addWidget(self.lbl_count)
         vl.addLayout(sel_row)
 
         # ── Toggle: usar biblioteca para traer ACUs ──
         from PySide6.QtWidgets import QCheckBox
         self.chk_biblio = QCheckBox(
-            "Usar mi biblioteca de CUs cuando coincida — copia ACU completo"
-            " (recursos, cantidades, rendimientos)"
+            tr("Usar mi biblioteca de CUs cuando coincida — copia ACU completo"
+            " (recursos, cantidades, rendimientos)")
         )
         self.chk_biblio.setChecked(True)
         self.chk_biblio.setStyleSheet(
@@ -12967,9 +12898,9 @@ class _DialogSugerirPartidas(QDialog):
         # ── Botones inferiores ──
         bot_row = QHBoxLayout()
         bot_row.addStretch()
-        b_cancel = QPushButton("Cancelar")
+        b_cancel = QPushButton(tr("Cancelar"))
         b_cancel.clicked.connect(self.reject)
-        self.b_imp = QPushButton("Importar")
+        self.b_imp = QPushButton(tr("Importar"))
         self.b_imp.setObjectName("primary")
         self.b_imp.clicked.connect(self._importar)
         bot_row.addWidget(b_cancel)
@@ -12981,7 +12912,7 @@ class _DialogSugerirPartidas(QDialog):
         if self._worker_sug and self._worker_sug.isRunning():
             return
         self.btn_ia.setEnabled(False)
-        self.btn_ia.setText("⏳  Consultando IA…")
+        self.btn_ia.setText(tr("⏳  Consultando IA…"))
         self._worker_sug = _WorkerSugerirPartidas(self.proyecto_id)
         self._worker_sug.terminado.connect(self._on_ia_terminado)
         self._worker_sug.start()
@@ -12989,19 +12920,16 @@ class _DialogSugerirPartidas(QDialog):
     def _on_ia_terminado(self, ps, err):
         from PySide6.QtWidgets import QMessageBox
         self.btn_ia.setEnabled(True)
-        self.btn_ia.setText("🌐  Sugerir con IA")
+        self.btn_ia.setText(tr("🌐  Sugerir con IA"))
         if err:
-            QMessageBox.warning(self, "Sugerir con IA",
-                f"No se pudo obtener la sugerencia:\n\n{err}\n\n"
-                "Revisa Configuración → Inteligencia artificial: elige un "
-                "proveedor (Groq, Gemini y OpenRouter son gratuitos), pega tu clave y "
-                "pulsa «Probar conexión». O usa una plantilla local mientras tanto.")
+            QMessageBox.warning(self, tr("Sugerir con IA"),
+                tr("No se pudo obtener la sugerencia:\n\n{err}\n\nRevisa Configuración → Inteligencia artificial: elige un proveedor (Groq, Gemini y OpenRouter son gratuitos), pega tu clave y pulsa «Probar conexión». O usa una plantilla local mientras tanto.").format(err=err))
             return
         if not ps:
-            QMessageBox.information(self, "Sugerir con IA",
-                "La IA no devolvió partidas. Intenta agregar más detalle al "
+            QMessageBox.information(self, tr("Sugerir con IA"),
+                tr("La IA no devolvió partidas. Intenta agregar más detalle al "
                 "nombre del proyecto (incluye el tipo de obra) y vuelve a "
-                "intentarlo.")
+                "intentarlo."))
             return
         self._poblar(ps)
 
@@ -13055,7 +12983,7 @@ class _DialogSugerirPartidas(QDialog):
             1 for i in range(self.tree.topLevelItemCount())
             if self.tree.topLevelItem(i).checkState(0) == Qt.Checked
         )
-        self.lbl_count.setText(f"{n} partidas marcadas para importar")
+        self.lbl_count.setText(tr("{n} partidas marcadas para importar").format(n=n))
 
     def _importar(self):
         from PySide6.QtWidgets import QMessageBox, QApplication
@@ -13065,8 +12993,8 @@ class _DialogSugerirPartidas(QDialog):
             if it and it.checkState(0) == Qt.Checked:
                 marcadas.append(p)
         if not marcadas:
-            QMessageBox.information(self, "Importar partidas",
-                "No hay partidas marcadas. Marca al menos una.")
+            QMessageBox.information(self, tr("Importar partidas"),
+                tr("No hay partidas marcadas. Marca al menos una."))
             return
         usar_bib = self.chk_biblio.isChecked()
         solo_estructura = False
@@ -13087,14 +13015,14 @@ class _DialogSugerirPartidas(QDialog):
         finally:
             QApplication.restoreOverrideCursor()
         if usar_bib and con_acu > 0:
-            que = ("recursos y rendimientos, sin los precios de referencia"
-                   if solo_estructura else "recursos, rendimientos y precios")
-            extra = (f"\n\n✨ <b>{con_acu}</b> de ellas se importaron con su "
-                     f"ACU completo ({que}) desde tu biblioteca.")
+            que = (tr("recursos y rendimientos, sin los precios de referencia")
+                   if solo_estructura else tr("recursos, rendimientos y precios"))
+            extra = "\n\n" + tr("✨ <b>{con_acu}</b> de ellas se importaron con su "
+                     "ACU completo ({que}) desde tu biblioteca.").format(con_acu=con_acu, que=que)
         else:
             extra = ""
-        QMessageBox.information(self, "Importar partidas",
-            f"Se importaron <b>{creadas}</b> partidas al proyecto.{extra}")
+        QMessageBox.information(self, tr("Importar partidas"),
+            tr("Se importaron <b>{creadas}</b> partidas al proyecto.{extra}").format(creadas=creadas, extra=extra))
         self.accept()
 
 
@@ -13108,7 +13036,7 @@ class _DialogIATodo(QDialog):
         self.nombre_proyecto = nombre_proyecto
         self._omitir_inicial = bool(omitir_existentes)
         self._worker         = None
-        self.setWindowTitle("Generar especificaciones — Todo el proyecto")
+        self.setWindowTitle(tr("Generar especificaciones — Todo el proyecto"))
         self.setMinimumWidth(540)
         self.setModal(True)
         self._build()
@@ -13118,20 +13046,20 @@ class _DialogIATodo(QDialog):
         vl.setSpacing(12)
         vl.setContentsMargins(18, 18, 18, 18)
 
-        lbl = QLabel(f"Proyecto: <b>{self.nombre_proyecto}</b>")
+        lbl = QLabel(tr("Proyecto: <b>{nombre_proyecto}</b>").format(nombre_proyecto=self.nombre_proyecto))
         lbl.setWordWrap(True)
         lbl.setStyleSheet("font-size:12px;")
         vl.addWidget(lbl)
 
         info = QLabel(
-            "Se generará una especificación técnica para cada partida hoja.\n"
-            "El proceso puede tardar varios minutos según la cantidad de partidas."
+            tr("Se generará una especificación técnica para cada partida hoja.\n"
+            "El proceso puede tardar varios minutos según la cantidad de partidas.")
         )
         info.setWordWrap(True)
         info.setStyleSheet("font-size:11px; color:#485A6C; line-height:1.5;")
         vl.addWidget(info)
 
-        self.chk_omitir = QCheckBox("Omitir partidas que ya tienen especificaciones")
+        self.chk_omitir = QCheckBox(tr("Omitir partidas que ya tienen especificaciones"))
         self.chk_omitir.setChecked(self._omitir_inicial)
         self.chk_omitir.setStyleSheet("font-size:11px;")
         vl.addWidget(self.chk_omitir)
@@ -13158,13 +13086,13 @@ class _DialogIATodo(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        self.btn_cancelar = QPushButton("Cancelar")
+        self.btn_cancelar = QPushButton(tr("Cancelar"))
         self.btn_cancelar.setFixedHeight(32)
         self.btn_cancelar.setStyleSheet(_DLG_BTN_CANCEL)
         self.btn_cancelar.clicked.connect(self._on_cancelar)
         hl.addWidget(self.btn_cancelar)
 
-        self.btn_generar = QPushButton("✨  Generar Todo")
+        self.btn_generar = QPushButton(tr("✨  Generar Todo"))
         self.btn_generar.setFixedHeight(32)
         self.btn_generar.setStyleSheet(_DLG_BTN_IA)
         self.btn_generar.clicked.connect(self._generar)
@@ -13176,10 +13104,10 @@ class _DialogIATodo(QDialog):
         self.chk_omitir.setEnabled(False)
         self.pb.show()
         self.pb.setValue(0)
-        self.lbl_estado.setText("Iniciando generación…")
+        self.lbl_estado.setText(tr("Iniciando generación…"))
         self.lbl_estado.setStyleSheet("font-size:10px; color:#667885;")
         self.lbl_estado.show()
-        self.btn_cancelar.setText("Detener")
+        self.btn_cancelar.setText(tr("Detener"))
 
         self._worker = _WorkerEspecsTodo(
             self.proyecto_id,
@@ -13198,25 +13126,25 @@ class _DialogIATodo(QDialog):
         self.pb.setValue(100)
         if error:
             self.lbl_estado.setStyleSheet("font-size:10px; color:#C6262E;")
-            self.lbl_estado.setText(f"Error: {error}")
+            self.lbl_estado.setText(tr("Error: {error}").format(error=error))
             self.btn_generar.setEnabled(True)
-            self.btn_generar.setText("✨  Reintentar")
+            self.btn_generar.setText(tr("✨  Reintentar"))
             self.chk_omitir.setEnabled(True)
         else:
             self.lbl_estado.setStyleSheet("font-size:10px; color:#68B723; font-weight:600;")
             self.lbl_estado.setText(
-                f"Completado. {n_guardadas} especificaciones guardadas."
+                tr("Completado. {n_guardadas} especificaciones guardadas.").format(n_guardadas=n_guardadas)
             )
             self.btn_generar.setEnabled(True)
-            self.btn_generar.setText("✨  Generar de nuevo")
+            self.btn_generar.setText(tr("✨  Generar de nuevo"))
             self.chk_omitir.setEnabled(True)
-        self.btn_cancelar.setText("Cerrar")
+        self.btn_cancelar.setText(tr("Cerrar"))
 
     def _on_cancelar(self):
         if self._worker and self._worker.isRunning():
             self._worker.cancelar()
             self._worker.wait(3000)
-            self.lbl_estado.setText("Proceso detenido.")
+            self.lbl_estado.setText(tr("Proceso detenido."))
         self.accept()
 
 
@@ -13257,7 +13185,7 @@ class _WorkerChat(QThread):
             try:
                 err = f"{type(e).__name__}: {e}\n\n{traceback.format_exc()[:1500]}"
             except Exception:
-                err = "Error desconocido al consultar la IA."
+                err = tr("Error desconocido al consultar la IA.")
             self.terminado.emit('', err)
 
 
@@ -13298,53 +13226,53 @@ class _ChatACU(QWidget):
     # Botones rápidos por modo: (icono+texto, pregunta enviada)
     _QUICK_BY_MODO = {
         'ACU': [
-            ("📐 Rendimiento",      "Dime SOLO el rendimiento estimado de esta partida, en UN párrafo de máximo 3 líneas: la cifra con su unidad (ej. 25 m2/día), la cuadrilla típica CAPECO y el ajuste por la ubicación del proyecto si aplica. Texto plano sin markdown. Sin introducción, sin explicación larga, sin cierre."),
-            ("📦 Insumos esperados","Dame SOLO la lista de insumos que debería tener el ACU de esta partida. Agrupa bajo los encabezados MANO DE OBRA, MATERIALES, EQUIPOS (y SUBCONTRATOS solo si aplica). Una línea por insumo con el formato:  - nombre (unidad). Texto plano: sin markdown, sin asteriscos, sin tablas. Sin cantidades, sin explicaciones, sin introducción ni cierre."),
-            ("📊 Cantidades",       "Dame SOLO las cantidades recomendadas de los MATERIALES del ACU de esta partida — NO incluyas mano de obra ni equipos (esos se derivan de cuadrilla/rendimiento). Una línea por material con el formato:  - nombre: cantidad unidad por 1 [unidad de la partida]. La cantidad ya debe incluir la merma típica peruana (cemento 5-10%, agregados 5%, acero 7-10% por traslapes, madera 10-15%, ladrillo 5%). Texto plano: sin markdown, sin tablas, sin justificar el cálculo, sin introducción ni cierre. Ejemplo:  - Madera tornillo: 4.80 p2 por 1 m (incluye 10% merma)."),
-            ("⚠️ Revisar todo",     "Revisa esta partida completa: rendimiento vs CAPECO, cuadrilla coherente, insumos cargados (¿falta MO/MAT/EQ típico?), precios vs mercado peruano. Cierra con 1-3 recomendaciones priorizadas."),
-            ("🧮 Calc",             "/calc"),
+            (N_("📐 Rendimiento"),      "Dime SOLO el rendimiento estimado de esta partida, en UN párrafo de máximo 3 líneas: la cifra con su unidad (ej. 25 m2/día), la cuadrilla típica CAPECO y el ajuste por la ubicación del proyecto si aplica. Texto plano sin markdown. Sin introducción, sin explicación larga, sin cierre."),
+            (N_("📦 Insumos esperados"),"Dame SOLO la lista de insumos que debería tener el ACU de esta partida. Agrupa bajo los encabezados MANO DE OBRA, MATERIALES, EQUIPOS (y SUBCONTRATOS solo si aplica). Una línea por insumo con el formato:  - nombre (unidad). Texto plano: sin markdown, sin asteriscos, sin tablas. Sin cantidades, sin explicaciones, sin introducción ni cierre."),
+            (N_("📊 Cantidades"),       "Dame SOLO las cantidades recomendadas de los MATERIALES del ACU de esta partida — NO incluyas mano de obra ni equipos (esos se derivan de cuadrilla/rendimiento). Una línea por material con el formato:  - nombre: cantidad unidad por 1 [unidad de la partida]. La cantidad ya debe incluir la merma típica peruana (cemento 5-10%, agregados 5%, acero 7-10% por traslapes, madera 10-15%, ladrillo 5%). Texto plano: sin markdown, sin tablas, sin justificar el cálculo, sin introducción ni cierre. Ejemplo:  - Madera tornillo: 4.80 p2 por 1 m (incluye 10% merma)."),
+            (N_("⚠️ Revisar todo"),     "Revisa esta partida completa: rendimiento vs CAPECO, cuadrilla coherente, insumos cargados (¿falta MO/MAT/EQ típico?), precios vs mercado peruano. Cierra con 1-3 recomendaciones priorizadas."),
+            (N_("🧮 Calc"),             "/calc"),
         ],
         'Insumos': [
-            ("💲 Precios ref.", "Revisa los precios de los insumos de esta partida y dime cuáles podrían estar fuera de rango de mercado en Perú."),
-            ("📊 Top insumos", "/insumos"),
-            ("🔁 Repetidos",   "/duplicados"),
-            ("🧮 Calc",        "/calc"),
+            (N_("💲 Precios ref."), "Revisa los precios de los insumos de esta partida y dime cuáles podrían estar fuera de rango de mercado en Perú."),
+            (N_("📊 Top insumos"), "/insumos"),
+            (N_("🔁 Repetidos"),   "/duplicados"),
+            (N_("🧮 Calc"),        "/calc"),
         ],
         'Metrados': [
-            ("📏 Verificar",   "Verifica si la planilla de metrados es coherente con la unidad y el alcance de esta partida."),
-            ("➗ Fórmula",      "¿Qué fórmula geométrica es la correcta para calcular el metrado de esta partida?"),
-            ("🔩 Tabla acero", "Dame la tabla de kg/m por diámetro según NTP 341.031 / ASTM A615: 6mm, 8mm, 3/8\", 1/2\", 5/8\", 3/4\", 1\", 1 3/8\". Útil para metrados de acero."),
-            ("🧮 Calc",        "/calc"),
+            (N_("📏 Verificar"),   "Verifica si la planilla de metrados es coherente con la unidad y el alcance de esta partida."),
+            (N_("➗ Fórmula"),      "¿Qué fórmula geométrica es la correcta para calcular el metrado de esta partida?"),
+            (N_("🔩 Tabla acero"), "Dame la tabla de kg/m por diámetro según NTP 341.031 / ASTM A615: 6mm, 8mm, 3/8\", 1/2\", 5/8\", 3/4\", 1\", 1 3/8\". Útil para metrados de acero."),
+            (N_("🧮 Calc"),        "/calc"),
         ],
         'Especificaciones': [
-            ("📝 Redactar", "Redacta una especificación técnica completa para esta partida (Descripción, Materiales con normas, Procedimiento, Control, Medición, Pago)."),
-            ("📚 Normas",   "¿Qué normas técnicas peruanas (RNE, NTP, ASTM) aplican a esta partida?"),
-            ("📋 Resumir",  "Resume la especificación actual de esta partida en 1 párrafo conciso, conservando las normas citadas y el procedimiento esencial."),
-            ("🧮 Calc",     "/calc"),
+            (N_("📝 Redactar"), "Redacta una especificación técnica completa para esta partida (Descripción, Materiales con normas, Procedimiento, Control, Medición, Pago)."),
+            (N_("📚 Normas"),   "¿Qué normas técnicas peruanas (RNE, NTP, ASTM) aplican a esta partida?"),
+            (N_("📋 Resumir"),  "Resume la especificación actual de esta partida en 1 párrafo conciso, conservando las normas citadas y el procedimiento esencial."),
+            (N_("🧮 Calc"),     "/calc"),
         ],
         'Resumen': [
-            ("🏆 Top partidas", "/partidas"),
-            ("🧮 Totales",      "/total"),
-            ("📊 Análisis IA",  "¿Qué riesgos típicos tiene este proyecto en obras similares en Perú? Identifica las partidas más críticas por costo o riesgo y sugiere mitigaciones priorizadas."),
-            ("🧮 Calc",         "/calc"),
+            (N_("🏆 Top partidas"), "/partidas"),
+            (N_("🧮 Totales"),      "/total"),
+            (N_("📊 Análisis IA"),  "¿Qué riesgos típicos tiene este proyecto en obras similares en Perú? Identifica las partidas más críticas por costo o riesgo y sugiere mitigaciones priorizadas."),
+            (N_("🧮 Calc"),         "/calc"),
         ],
         'Cronograma': [
-            ("📅 Programar",   "Sugiere un orden constructivo realista para las partidas de este proyecto, indicando dependencias FS/SS/FF y duraciones aproximadas."),
-            ("🔗 Dependencias","Explícame qué tipo de dependencia (FS, SS, FF, SF, pct, tgt_pct) debería usar entre dos partidas y cuándo conviene cada una."),
-            ("🚧 Ruta crítica","¿Qué partidas suelen estar en la ruta crítica de este tipo de obra? ¿Cómo puedo reducir el plazo total?"),
-            ("🗓 Calendario",   "¿Cómo debo manejar feriados, lluvias y domingos en el cronograma? ¿Qué porcentaje de holgura recomiendas?"),
-            ("◐ Paralelos",    "¿Cuándo conviene que el sucesor esté al 50% cuando termine la predecesora (tgt_pct)? Da 3 ejemplos en obra peruana."),
-            ("🧮 Calc",        "/calc"),
+            (N_("📅 Programar"),   "Sugiere un orden constructivo realista para las partidas de este proyecto, indicando dependencias FS/SS/FF y duraciones aproximadas."),
+            (N_("🔗 Dependencias"),"Explícame qué tipo de dependencia (FS, SS, FF, SF, pct, tgt_pct) debería usar entre dos partidas y cuándo conviene cada una."),
+            (N_("🚧 Ruta crítica"),"¿Qué partidas suelen estar en la ruta crítica de este tipo de obra? ¿Cómo puedo reducir el plazo total?"),
+            (N_("🗓 Calendario"),   "¿Cómo debo manejar feriados, lluvias y domingos en el cronograma? ¿Qué porcentaje de holgura recomiendas?"),
+            (N_("◐ Paralelos"),    "¿Cuándo conviene que el sucesor esté al 50% cuando termine la predecesora (tgt_pct)? Da 3 ejemplos en obra peruana."),
+            (N_("🧮 Calc"),        "/calc"),
         ],
     }
 
     _PLACEHOLDER_BY_MODO = {
-        'ACU':              "Pregunta sobre rendimientos, cuadrillas, insumos… o calcula: 12.5*8",
-        'Insumos':          "Pregunta sobre precios referenciales, índices INEI… o calcula: 12.5*8",
-        'Metrados':         "Pregunta sobre planilla, fórmulas geométricas… o calcula: 2.4*0.15*6.8",
-        'Especificaciones': "Pregunta sobre redacción técnica, normas RNE/NTP/ASTM… o calcula: 12.5*8",
-        'Resumen':          "Pregunta sobre análisis general, riesgos… o calcula: 5400*1.18",
-        'Cronograma':       "Pregunta sobre dependencias FS/SS/FF/SF, ruta crítica, plazos… o calcula: 850/30",
+        'ACU':              N_("Pregunta sobre rendimientos, cuadrillas, insumos… o calcula: 12.5*8"),
+        'Insumos':          N_("Pregunta sobre precios referenciales, índices INEI… o calcula: 12.5*8"),
+        'Metrados':         N_("Pregunta sobre planilla, fórmulas geométricas… o calcula: 2.4*0.15*6.8"),
+        'Especificaciones': N_("Pregunta sobre redacción técnica, normas RNE/NTP/ASTM… o calcula: 12.5*8"),
+        'Resumen':          N_("Pregunta sobre análisis general, riesgos… o calcula: 5400*1.18"),
+        'Cronograma':       N_("Pregunta sobre dependencias FS/SS/FF/SF, ruta crítica, plazos… o calcula: 850/30"),
     }
 
     # Pide a la ventana principal abrir Configuración → Inteligencia
@@ -13447,27 +13375,27 @@ class _ChatACU(QWidget):
             f"QPushButton:hover {{ background:#243040;"
             f" color:{self._TERM_AI}; }}"
         )
-        btn_notas = QPushButton("🗒️ notas")
+        btn_notas = QPushButton(tr("🗒️ notas"))
         btn_notas.setFixedHeight(20)
         btn_notas.setCursor(Qt.PointingHandCursor)
         btn_notas.setStyleSheet(_bloc_btn_ss)
         try:
             from utils.tooltip import set_tooltip as _stt_m
             _stt_m(btn_notas,
-                   "Notas del proyecto (privadas — NO se envían al LLM)")
+                   tr("Notas del proyecto (privadas — NO se envían al LLM)"))
         except Exception:
             pass
         btn_notas.clicked.connect(self._abrir_panel_notas)
         hl_hdr.addWidget(btn_notas)
 
-        btn_memoria = QPushButton("🧠 memoria")
+        btn_memoria = QPushButton(tr("🧠 memoria"))
         btn_memoria.setFixedHeight(20)
         btn_memoria.setCursor(Qt.PointingHandCursor)
         btn_memoria.setStyleSheet(_bloc_btn_ss)
         try:
             from utils.tooltip import set_tooltip as _stt_m2
             _stt_m2(btn_memoria,
-                    "Memoria global — el LLM la usa como contexto en cada pregunta")
+                    tr("Memoria global — el LLM la usa como contexto en cada pregunta"))
         except Exception:
             pass
         btn_memoria.clicked.connect(self._abrir_panel_memoria)
@@ -13501,7 +13429,7 @@ class _ChatACU(QWidget):
         )
         try:
             from utils.tooltip import set_tooltip as _stt
-            _stt(self.btn_minimizar, "Cerrar chat — vuelve al icono Tuxia")
+            _stt(self.btn_minimizar, tr("Cerrar chat — vuelve al icono Tuxia"))
         except Exception:
             pass
         hl_hdr.addWidget(self.btn_minimizar)
@@ -13605,7 +13533,7 @@ class _ChatACU(QWidget):
 
         self.inp_chat = QLineEdit()
         self.inp_chat.setPlaceholderText(
-            "Pregunta sobre rendimientos, insumos… o calcula: 12.5*8"
+            tr("Pregunta sobre rendimientos, insumos… o calcula: 12.5*8")
         )
         self.inp_chat.setStyleSheet(
             f"QLineEdit {{ border:none; background:transparent;"
@@ -13671,10 +13599,10 @@ class _ChatACU(QWidget):
         self._actualizar_titulo()
         if self._partida_id is None:
             self.inp_chat.setPlaceholderText(
-                f"Seleccione una partida — modo {modo}…"
+                tr("Seleccione una partida — modo {modo}…").format(modo=tr(modo))
             )
         else:
-            self.inp_chat.setPlaceholderText(self._PLACEHOLDER_BY_MODO[modo])
+            self.inp_chat.setPlaceholderText(tr(self._PLACEHOLDER_BY_MODO[modo]))
         self._rebuild_quick_buttons()
 
     def _rebuild_quick_buttons(self):
@@ -13685,7 +13613,7 @@ class _ChatACU(QWidget):
             if it.widget():
                 it.widget().deleteLater()
         for texto, pregunta in self._QUICK_BY_MODO.get(self._modo, []):
-            btn = QPushButton(texto)
+            btn = QPushButton(tr(texto))
             btn.setFixedHeight(20)
             btn.setStyleSheet(self._BTN_Q)
             btn.clicked.connect(lambda _ch, p=pregunta: self._enviar(p, eco=False))
@@ -13720,11 +13648,11 @@ class _ChatACU(QWidget):
         self._actualizar_titulo()
         if partida_id is None:
             self.inp_chat.setPlaceholderText(
-                "Modo proyecto — pregunta sobre el proyecto completo…"
+                tr("Modo proyecto — pregunta sobre el proyecto completo…")
             )
         else:
             self.inp_chat.setPlaceholderText(
-                self._PLACEHOLDER_BY_MODO.get(self._modo, "")
+                tr(self._PLACEHOLDER_BY_MODO.get(self._modo, ""))
             )
 
     def _actualizar_titulo(self):
@@ -13765,7 +13693,7 @@ class _ChatACU(QWidget):
         — solo la respuesta. Igual se agrega al historial para el contexto IA."""
         if self._partida_id is None and self._proyecto_id is None:
             self._agregar_burbuja("asistente",
-                "No hay proyecto activo.", error=True)
+                tr("No hay proyecto activo."), error=True)
             return
         if self._worker and self._worker.isRunning():
             return
@@ -13807,7 +13735,7 @@ class _ChatACU(QWidget):
                 )
             else:
                 _resp(analizar_proyecto(self._proyecto_id)
-                      if self._proyecto_id else "Abre un proyecto primero.")
+                      if self._proyecto_id else tr("Abre un proyecto primero."))
             return
         if cmd in ('/total', '/totales', '/montos'):
             _resp(totales_detalle(self._proyecto_id))
@@ -13859,9 +13787,9 @@ class _ChatACU(QWidget):
             return
         if cmd in ('/ia', '/configurar', '/apikey', '/config'):
             from core.asistente_local import guia_configurar_ia
-            _resp(("La IA ya está configurada. " if _hay_ia else "")
+            _resp((tr("La IA ya está configurada.") + " " if _hay_ia else "")
                   + guia_configurar_ia()
-                  + "\n\nAbriendo Configuración →\nInteligencia artificial…")
+                  + "\n\n" + tr("Abriendo Configuración →\nInteligencia artificial…"))
             self.ir_a_ia.emit()
             return
         if cmd in ('/calc', '/calculadora', '/calcular'):
@@ -13894,15 +13822,13 @@ class _ChatACU(QWidget):
                 ))
                 if es_del_proyecto and self._proyecto_id:
                     append_memoria(self._proyecto_id, _captura)
-                    alcance = "🗒️ notas del proyecto (no se envía al LLM)"
+                    alcance = tr("🗒️ notas del proyecto (no se envía al LLM)")
                 else:
                     append_memoria(None, _captura)
-                    alcance = "🧠 memoria global (el LLM la usará)"
-                _resp(f"{TUX_FELIZ}\n\nAnotado en {alcance}:\n"
-                      f"«{_captura}»\n\nAbre los botones del header o "
-                      "escribe «/notas» / «/memoria» para ver/editar.")
+                    alcance = tr("🧠 memoria global (el LLM la usará)")
+                _resp(tr("{TUX_FELIZ}\n\nAnotado en {alcance}:\n«{captura}»\n\nAbre los botones del header o escribe «/notas» / «/memoria» para ver/editar.").format(TUX_FELIZ=TUX_FELIZ, alcance=alcance, captura=_captura))
             except Exception as e:
-                _resp(f"{TUX_TIP}\n\nNo pude guardar: {e}")
+                _resp(tr("{TUX_TIP}\n\nNo pude guardar: {e}").format(TUX_TIP=TUX_TIP, e=e))
             return
 
         # ── Detección de mensajes conversacionales (hola, gracias, etc) ──
@@ -13950,7 +13876,7 @@ class _ChatACU(QWidget):
                 hits = _sm(texto, proyecto_id=self._proyecto_id, limit=3)
                 hits = [(s, m) for s, m in hits if s >= 65]
                 if hits:
-                    lineas = [TUX_TIP, "", "📌 De mis memos:"]
+                    lineas = [TUX_TIP, "", tr("📌 De mis memos:")]
                     for s, m in hits:
                         alcance = '(global)' if m['proyecto_id'] is None else ''
                         lineas.append(f"  [{m['id']}] {m['texto']} {alcance}".rstrip())
@@ -13987,7 +13913,7 @@ class _ChatACU(QWidget):
         self.btn_enviar.setEnabled(True)
         self.lbl_estado_chat.setText("")
         if error:
-            self._agregar_burbuja("asistente", f"Error: {error}", error=True)
+            self._agregar_burbuja("asistente", tr("Error: {error}").format(error=error), error=True)
             return
         # Truncar respuestas extremadamente largas — QLabel.setWordWrap con
         # texto enorme puede consumir mucha memoria y crashear el proceso al
@@ -13998,7 +13924,7 @@ class _ChatACU(QWidget):
             corto = respuesta[:MAX].rsplit('\n', 1)[0]
             self._agregar_burbuja(
                 "asistente",
-                corto + f"\n\n[respuesta truncada — {len(respuesta):,} caracteres]"
+                corto + "\n\n" + tr("[respuesta truncada — {n:,} caracteres]").format(n=len(respuesta))
             )
             self._agregar_boton_ver_completo(respuesta)
         else:
@@ -14009,7 +13935,7 @@ class _ChatACU(QWidget):
         """Inserta un botón inline 'Ver respuesta completa' que abre un
         diálogo scrollable con el texto íntegro."""
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit
-        btn = QPushButton("  ⤴  Ver respuesta completa …")
+        btn = QPushButton(tr("  ⤴  Ver respuesta completa …"))
         btn.setStyleSheet(
             f"QPushButton {{ background:transparent; color:{self._TERM_ACCENT};"
             f" border:1px dashed {self._TERM_BORDER}; border-radius:4px;"
@@ -14020,7 +13946,7 @@ class _ChatACU(QWidget):
         )
         def _abrir():
             dlg = QDialog(self.window())
-            dlg.setWindowTitle("Respuesta completa")
+            dlg.setWindowTitle(tr("Respuesta completa"))
             dlg.resize(720, 520)
             vl = QVBoxLayout(dlg)
             vl.setContentsMargins(0, 0, 0, 0)
@@ -14180,7 +14106,7 @@ class _ChatACU(QWidget):
         hl.setContentsMargins(10, 0, 8, 0)
         hl.setSpacing(8)
 
-        btn_back = QPushButton("← chat")
+        btn_back = QPushButton(tr("← chat"))
         btn_back.setFixedHeight(20)
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
@@ -14194,7 +14120,7 @@ class _ChatACU(QWidget):
         btn_back.clicked.connect(self._volver_a_chat)
         hl.addWidget(btn_back)
 
-        self.lbl_bloc_titulo = QLabel("🗒️ notas")
+        self.lbl_bloc_titulo = QLabel(tr("🗒️ notas"))
         self.lbl_bloc_titulo.setStyleSheet(
             f"color:{self._TERM_HDR_FG}; font-size:11px; font-weight:600;"
             f" border:none; background:transparent;"
@@ -14219,7 +14145,7 @@ class _ChatACU(QWidget):
         )
         hl.addWidget(self.lbl_mem_estado)
 
-        btn_save = QPushButton("💾 guardar")
+        btn_save = QPushButton(tr("💾 guardar"))
         btn_save.setFixedHeight(20)
         btn_save.setCursor(Qt.PointingHandCursor)
         btn_save.setStyleSheet(
@@ -14270,24 +14196,24 @@ class _ChatACU(QWidget):
         if not self._proyecto_id:
             self._agregar_burbuja(
                 "asistente",
-                "Las notas son del proyecto activo. Abre un proyecto primero "
-                "o usa «🧠 memoria» para notas globales."
+                tr("Las notas son del proyecto activo. Abre un proyecto primero "
+                "o usa «🧠 memoria» para notas globales.")
             )
             return
         self._abrir_bloc('notas', self._proyecto_id,
-                         "🗒️ notas",
-                         "(privadas del proyecto — NO se envían al LLM)",
-                         "# notas de este proyecto\n"
-                         "# clientes, decisiones, pendientes administrativos…")
+                         tr("🗒️ notas"),
+                         tr("(privadas del proyecto — NO se envían al LLM)"),
+                         tr("# notas de este proyecto\n"
+                            "# clientes, decisiones, pendientes administrativos…"))
 
     def _abrir_panel_memoria(self):
         """Abre el bloc MEMORIA GLOBAL (el LLM lo recibe como contexto)."""
         self._abrir_bloc('memoria', None,
-                         "🧠 memoria",
-                         "(global — el LLM la recibe como contexto en cada pregunta)",
-                         "# memoria global de Tuxia\n"
-                         "# precios referenciales, fórmulas habituales, "
-                         "datos técnicos que quieres que la IA tenga presente…")
+                         tr("🧠 memoria"),
+                         tr("(global — el LLM la recibe como contexto en cada pregunta)"),
+                         tr("# memoria global de Tuxia\n"
+                            "# precios referenciales, fórmulas habituales, "
+                            "datos técnicos que quieres que la IA tenga presente…"))
 
     def _abrir_bloc(self, modo: str, proyecto_id: int | None,
                     titulo: str, subtitulo: str, placeholder: str):
@@ -14311,8 +14237,8 @@ class _ChatACU(QWidget):
     def _volver_a_chat(self):
         if self._bloc_mod:
             res = QMessageBox.question(
-                self, "Cambios sin guardar",
-                "Tienes cambios sin guardar. ¿Guardar antes de volver al chat?",
+                self, tr("Cambios sin guardar"),
+                tr("Tienes cambios sin guardar. ¿Guardar antes de volver al chat?"),
                 QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
             )
             if res == QMessageBox.Cancel:
@@ -14327,7 +14253,7 @@ class _ChatACU(QWidget):
 
     def _on_bloc_mod(self):
         self._bloc_mod = True
-        self.lbl_mem_estado.setText("● sin guardar")
+        self.lbl_mem_estado.setText(tr("● sin guardar"))
         self.lbl_mem_estado.setStyleSheet(
             f"color:#FFC857; font-size:10px; background:transparent;"
             f" border:none; font-family:{self._FONT_MONO};"
@@ -14343,7 +14269,7 @@ class _ChatACU(QWidget):
         from core.memo_manager import set_memoria
         set_memoria(self._bloc_proyecto_id, self.txt_bloc.toPlainText())
         self._bloc_mod = False
-        self.lbl_mem_estado.setText("✓ guardado")
+        self.lbl_mem_estado.setText(tr("✓ guardado"))
         self.lbl_mem_estado.setStyleSheet(
             f"color:#9EE493; font-size:10px; background:transparent;"
             f" border:none; font-family:{self._FONT_MONO};"
@@ -14366,9 +14292,9 @@ class _ChatTuxiaDialog(QDialog):
     MARGIN = 18    # separación de los bordes del padre
 
     def __init__(self, proyecto_id: int, modo: str = 'Cronograma',
-                 titulo: str = "Asistente Tuxia", parent=None):
+                 titulo: str = N_("Asistente Tuxia"), parent=None):
         super().__init__(parent)
-        self.setWindowTitle(titulo)
+        self.setWindowTitle(tr(titulo))
         # Ventana tipo Tool — ligera, sin botones max/min, no aparece en taskbar
         self.setWindowFlags(
             Qt.Tool | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
@@ -14459,7 +14385,7 @@ class _TuxiaSpeechBubble(QFrame):
         from PySide6.QtGui import QPalette as _QPal
         hl_top = QHBoxLayout()
         hl_top.setSpacing(0)
-        self.lbl_titulo = QLabel("tuxia · tip")
+        self.lbl_titulo = QLabel(tr("tuxia · tip"))
         # Palette explícita en el label para sistemas con tema oscuro
         _pal_t = self.lbl_titulo.palette()
         _pal_t.setColor(_QPal.WindowText, QColor("#4F46E5"))
@@ -14502,7 +14428,7 @@ class _TuxiaSpeechBubble(QFrame):
         hl_b = QHBoxLayout()
         hl_b.setSpacing(6)
         hl_b.addStretch()
-        self.btn_chat = QPushButton("Abrir chat")
+        self.btn_chat = QPushButton(tr("Abrir chat"))
         self.btn_chat.setCursor(Qt.PointingHandCursor)
         self.btn_chat.setFixedHeight(22)
         self.btn_chat.setStyleSheet(
@@ -14514,7 +14440,7 @@ class _TuxiaSpeechBubble(QFrame):
         self.btn_chat.clicked.connect(self.cuerpo_clk.emit)
         hl_b.addWidget(self.btn_chat)
 
-        self.btn_aplicar = QPushButton("Ir")
+        self.btn_aplicar = QPushButton(tr("Ir"))
         self.btn_aplicar.setCursor(Qt.PointingHandCursor)
         self.btn_aplicar.setFixedHeight(22)
         self.btn_aplicar.setStyleSheet(
@@ -14529,8 +14455,8 @@ class _TuxiaSpeechBubble(QFrame):
         vl.addLayout(hl_b)
 
     def set_tip(self, texto: str, accion_label: str | None = None,
-                titulo: str = "tuxia · tip"):
-        self.lbl_titulo.setText(titulo)
+                titulo: str = N_("tuxia · tip")):
+        self.lbl_titulo.setText(tr(titulo))
         self.lbl_texto.setText(texto)
         if accion_label:
             self.btn_aplicar.setText(accion_label)
@@ -14860,7 +14786,7 @@ class _TuxiaHelper(QWidget):
         try:
             from utils.tooltip import set_tooltip as _set_tt
             _set_tt(self.btn_tux,
-                    "Asistente Tuxia — click para abrir el chat")
+                    tr("Asistente Tuxia — click para abrir el chat"))
         except Exception:
             from utils.i18n import tr as _tr_tux
             self.btn_tux.setToolTip(_tr_tux("Asistente Tuxia — click para abrir el chat"))
@@ -14944,11 +14870,11 @@ class _TuxiaHelper(QWidget):
                 self._ambient_history = self._ambient_history[-20:]
             # Decide el título según el tipo de tip.
             if key.startswith('cap_'):
-                titulo = "tuxia · ¿sabías que…?"
+                titulo = tr("tuxia · ¿sabías que…?")
             elif key.startswith('motiv_'):
-                titulo = "tuxia · ánimo"
+                titulo = tr("tuxia · ánimo")
             else:
-                titulo = "tuxia · tip del día"
+                titulo = tr("tuxia · tip del día")
             # Usamos once_per_session=False porque el filtrado ya lo hace
             # `_ambient_history`. fade más largo (18s) para dar tiempo de leer.
             self.show_tip(msg, titulo=titulo, fade_ms=18_000,
@@ -14961,7 +14887,7 @@ class _TuxiaHelper(QWidget):
 
     def show_tip(self, texto: str, *, accion_id: str | None = None,
                  accion_label: str | None = None,
-                 titulo: str = "tuxia · tip",
+                 titulo: str = N_("tuxia · tip"),
                  fade_ms: int | None = None,
                  key: str | None = None,
                  once_per_session: bool = True):
