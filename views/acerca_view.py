@@ -32,6 +32,7 @@ from core.database import get_config, set_config
 from core.config import BASE_DIR
 from core.update_manager import CURRENT_VERSION
 from utils.icons import icon
+from utils.i18n import tr, N_
 
 
 # ── Paleta ──
@@ -64,17 +65,17 @@ def _app_info() -> list[tuple[str, str]]:
     """Ficha técnica del programa. Función (no constante) para que la
     versión se lea siempre actualizada."""
     return [
-        ("Versión",          CURRENT_VERSION),
-        ("Desarrollado por", "Ing. Marco Sumari"),
-        ("Institución",      "Sumari SAC · Arquitectura + Ingeniería"),
-        ("Plataforma",       "Multiplataforma (Linux · Windows · macOS)"),
+        (tr("Versión"),          CURRENT_VERSION),
+        (tr("Desarrollado por"), "Ing. Marco Sumari"),
+        (tr("Institución"),      tr("Sumari SAC · Arquitectura + Ingeniería")),
+        (tr("Plataforma"),       tr("Multiplataforma (Linux · Windows · macOS)")),
         ("Backend",          "Python 3 + SQLite 3"),
         ("UI",               "PySide6 (Qt 6)"),
-        ("Reportes",         "PDF · Excel · ODS · Word · ODT"),
-        ("Licencia",         "GPL-3.0-or-later · software libre"),
-        ("Sitio web",        "<a href='https://ingepresupuestos.com'>ingepresupuestos.com</a>"),
+        (tr("Reportes"),         "PDF · Excel · ODS · Word · ODT"),
+        (tr("Licencia"),         tr("GPL-3.0-or-later · software libre")),
+        (tr("Sitio web"),        "<a href='https://ingepresupuestos.com'>ingepresupuestos.com</a>"),
         # Enlace interno: abre la ventana «Apoya al proyecto» (ver la fila).
-        ("Apoya al proyecto", "<a href='apoyar'>Probándolo, reportando o con un aporte</a>"),
+        (tr("Apoya al proyecto"), "<a href='apoyar'>" + tr("Probándolo, reportando o con un aporte") + "</a>"),
     ]
 
 
@@ -123,7 +124,7 @@ class _SendWorker(QThread):
                 msg = f"HTTP {e.code}"
             self.failed.emit(msg)
         except Exception as e:
-            self.failed.emit(f"Error de red: {e}")
+            self.failed.emit(tr("Error de red: {e}").format(e=e))
 
 
 # ── Vista principal ──
@@ -153,7 +154,7 @@ class AcercaView(QWidget):
         hl.setContentsMargins(14, 0, 14, 0)
         hl.setSpacing(10)
 
-        title = QLabel("Acerca de")
+        title = QLabel(tr("Acerca de"))
         title.setStyleSheet(
             "color:white; font-size:13px; font-weight:700; letter-spacing:0.5px;"
             " background:transparent; border:none;"
@@ -222,7 +223,7 @@ class AcercaView(QWidget):
         )
         cv.addWidget(nombre)
 
-        sub = QLabel("Software para la elaboración\nde Presupuestos de Obra")
+        sub = QLabel(tr("Software para la elaboración\nde Presupuestos de Obra"))
         sub.setAlignment(Qt.AlignCenter)
         sub.setStyleSheet(
             f"color:{SLATE_300}; font-size:12px; "
@@ -252,7 +253,7 @@ class AcercaView(QWidget):
         ihi = QLabel(); ihi.setPixmap(icon("configuracion").pixmap(16, 16))
         ihi.setStyleSheet("background:transparent; border:none;")
         hl.addWidget(ihi)
-        hht = QLabel("Información técnica")
+        hht = QLabel(tr("Información técnica"))
         f = QFont(); f.setBold(True)
         hht.setFont(f)
         hht.setStyleSheet(
@@ -314,7 +315,7 @@ class AcercaView(QWidget):
         col.addWidget(card_info)
 
         # Botón "Buscar actualizaciones" — chequeo manual contra version.json
-        btn_update = QPushButton("🔄  Buscar actualizaciones")
+        btn_update = QPushButton("🔄  " + tr("Buscar actualizaciones"))
         btn_update.setCursor(Qt.PointingHandCursor)
         btn_update.setFixedHeight(36)
         btn_update.setStyleSheet(
@@ -343,7 +344,7 @@ class AcercaView(QWidget):
         # Aviso de licencia (GPL §4: el programa debe mostrar el aviso)
         lbl_libre = QLabel(
             "© 2026 Marco Sumari\n"
-            "Software libre bajo la GNU GPL v3 o posterior."
+            + tr("Software libre bajo la GNU GPL v3 o posterior.")
         )
         lbl_libre.setWordWrap(True)
         lbl_libre.setStyleSheet(
@@ -371,7 +372,7 @@ class AcercaView(QWidget):
         """Ventana «Apoya al proyecto» (desde la fila de Información técnica)."""
         from PySide6.QtWidgets import QDialog
         dlg = QDialog(self)
-        dlg.setWindowTitle("Apoya al proyecto")
+        dlg.setWindowTitle(tr("Apoya al proyecto"))
         dlg.setModal(True)
         dlg.setStyleSheet(f"QDialog {{ background:{WHITE}; }}")
         lay = QVBoxLayout(dlg)
@@ -399,21 +400,21 @@ class AcercaView(QWidget):
         i_h = QLabel(); i_h.setPixmap(icon("favorito_on").pixmap(20, 20))
         i_h.setStyleSheet("background:transparent; border:none;")
         hl.addWidget(i_h)
-        t = QLabel("Apoya al proyecto")
+        t = QLabel(tr("Apoya al proyecto"))
         t.setStyleSheet(f"color:{SLATE_700}; font-size:15px; font-weight:700;"
                         " background:transparent; border:none;")
         hl.addWidget(t)
         hl.addStretch(1)
         v.addWidget(hd)
 
-        intro = QLabel(
+        intro = QLabel(tr(
             "IngePresupuestos es software libre y gratuito. Para seguir dando "
             "soporte y mejorándolo, puedes apoyarlo de tres maneras:<br>"
             "• <b>Probándolo y reportando</b> lo que falle o te falte, con el "
             "formulario de contacto de «Acerca de».<br>"
             "• <b>Recomendándolo</b> a un colega.<br>"
             "• <b>Con un aporte</b>, si te ahorró horas de trabajo."
-        )
+        ))
         intro.setWordWrap(True)
         intro.setTextFormat(Qt.RichText)
         intro.setStyleSheet(f"color:{SLATE_700}; font-size:12px; background:transparent;"
@@ -435,7 +436,7 @@ class AcercaView(QWidget):
         fl.addWidget(qr, 0, Qt.AlignTop)
         dv = QVBoxLayout()
         dv.setSpacing(4)
-        l1 = QLabel("<b>Yape o Plin</b> <span style='color:#95A3AB'>Perú</span>")
+        l1 = QLabel(tr("<b>Yape o Plin</b> <span style='color:#95A3AB'>Perú</span>"))
         l1.setTextFormat(Qt.RichText)
         l1.setStyleSheet(f"color:{SLATE_700}; font-size:12px; background:transparent; border:none;")
         dv.addWidget(l1)
@@ -449,7 +450,7 @@ class AcercaView(QWidget):
         num.setStyleSheet(f"color:{ORANGE_DARK}; font-size:16px; font-weight:700;"
                           " background:transparent; border:none;")
         nl.addWidget(num)
-        self.btn_copiar_yape = QPushButton("Copiar")
+        self.btn_copiar_yape = QPushButton(tr("Copiar"))
         self.btn_copiar_yape.setCursor(Qt.PointingHandCursor)
         self.btn_copiar_yape.setFixedHeight(24)
         self.btn_copiar_yape.setStyleSheet(
@@ -463,8 +464,8 @@ class AcercaView(QWidget):
         nl.addWidget(self.btn_copiar_yape)
         nl.addStretch(1)
         dv.addWidget(num_w)
-        nota = QLabel("A nombre de Marco Sumari. El mismo número recibe Plin "
-                      "desde Interbank, BBVA o Scotiabank.")
+        nota = QLabel(tr("A nombre de Marco Sumari. El mismo número recibe Plin "
+                      "desde Interbank, BBVA o Scotiabank."))
         nota.setWordWrap(True)
         nota.setStyleSheet(f"color:#95A3AB; font-size:10px; background:transparent; border:none;")
         dv.addWidget(nota)
@@ -473,11 +474,13 @@ class AcercaView(QWidget):
         v.addWidget(fila)
 
         ext = QLabel(
-            f"<b>Desde el extranjero:</b> "
-            f"<a href='{self.LIBERAPAY_URL}' style='color:{ORANGE_DARK}'>Liberapay</a> "
-            f"(tarjeta o PayPal) o PayPal directo a "
-            f"<span style='color:{SLATE_700}'>{self.PAYPAL_CORREO}</span>.<br>"
-            f"<a href='{self.APOYAR_URL}' style='color:{ORANGE_DARK}'>"
+            tr("<b>Desde el extranjero:</b> "
+               "<a href='{liberapay}' style='color:{color}'>Liberapay</a> "
+               "(tarjeta o PayPal) o PayPal directo a "
+               "<span style='color:{slate}'>{correo}</span>.<br>").format(
+                liberapay=self.LIBERAPAY_URL, color=ORANGE_DARK,
+                slate=SLATE_700, correo=self.PAYPAL_CORREO)
+            + f"<a href='{self.APOYAR_URL}' style='color:{ORANGE_DARK}'>"
             f"ingepresupuestos.com/apoyar</a>"
         )
         ext.setTextFormat(Qt.RichText)
@@ -490,9 +493,9 @@ class AcercaView(QWidget):
     def _copiar_yape(self):
         from PySide6.QtWidgets import QApplication
         QApplication.clipboard().setText(self.YAPE_NUMERO.replace(" ", ""))
-        self.btn_copiar_yape.setText("Copiado ✓")
+        self.btn_copiar_yape.setText(tr("Copiado") + " ✓")
         from PySide6.QtCore import QTimer
-        QTimer.singleShot(1800, lambda: self.btn_copiar_yape.setText("Copiar"))
+        QTimer.singleShot(1800, lambda: self.btn_copiar_yape.setText(tr("Copiar")))
 
     def _buscar_actualizaciones(self):
         """Chequeo manual de actualizaciones (no silencioso)."""
@@ -547,7 +550,7 @@ class AcercaView(QWidget):
         i_h = QLabel(); i_h.setPixmap(icon("usuario").pixmap(16, 16))
         i_h.setStyleSheet("background:transparent; border:none;")
         hl.addWidget(i_h)
-        hht = QLabel("Contacto y sugerencias")
+        hht = QLabel(tr("Contacto y sugerencias"))
         f = QFont(); f.setBold(True)
         hht.setFont(f)
         hht.setStyleSheet(
@@ -580,49 +583,47 @@ class AcercaView(QWidget):
         fv.setContentsMargins(0, 0, 0, 0)
         fv.setSpacing(8)
 
-        lbl_n = QLabel("Nombre  <span style='color:#95A3AB;font-weight:normal'>(opcional)</span>")
+        lbl_n = QLabel(tr("Nombre  <span style='color:#95A3AB;font-weight:normal'>(opcional)</span>"))
         lbl_n.setTextFormat(Qt.RichText)
         lbl_n.setStyleSheet(f"color:{SLATE_700}; font-weight:600; font-size:12px;")
         fv.addWidget(lbl_n)
         self.inp_nombre = QLineEdit()
-        self.inp_nombre.setPlaceholderText("Tu nombre")
+        self.inp_nombre.setPlaceholderText(tr("Tu nombre"))
         fv.addWidget(self.inp_nombre)
 
         # Sin remitente no hay forma de contestar: llegaban sugerencias y
         # reportes de error a los que era imposible responder.
-        lbl_e = QLabel("Correo  <span style='color:#95A3AB;font-weight:normal'>"
-                       "(para poder responderte)</span>")
+        lbl_e = QLabel(tr("Correo  <span style='color:#95A3AB;font-weight:normal'>"
+                       "(para poder responderte)</span>"))
         lbl_e.setTextFormat(Qt.RichText)
         lbl_e.setStyleSheet(f"color:{SLATE_700}; font-weight:600; font-size:12px;")
         fv.addWidget(lbl_e)
         self.inp_email = QLineEdit()
-        self.inp_email.setPlaceholderText("tucorreo@ejemplo.com")
-        self.inp_email.setToolTip(
+        self.inp_email.setPlaceholderText(tr("tucorreo@ejemplo.com"))
+        self.inp_email.setToolTip(tr(
             "Opcional, pero sin él no podremos contestarte.\n"
             "Solo se usa para responder a este mensaje."
-        )
+        ))
         fv.addWidget(self.inp_email)
 
-        lbl_t = QLabel("Tipo de mensaje")
+        lbl_t = QLabel(tr("Tipo de mensaje"))
         lbl_t.setStyleSheet(f"color:{SLATE_700}; font-weight:600; font-size:12px;")
         fv.addWidget(lbl_t)
         self.cmb_tipo = QComboBox()
-        self.cmb_tipo.addItems([
-            "Sugerencia de mejora",
-            "Reporte de error / bug",
-            "Consulta técnica",
-            "Otro",
-        ])
+        # Se ve traducido; al autor le llega el texto en español (itemData).
+        for _t in (N_("Sugerencia de mejora"), N_("Reporte de error / bug"),
+                   N_("Consulta técnica"), N_("Otro")):
+            self.cmb_tipo.addItem(tr(_t), _t)
         fv.addWidget(self.cmb_tipo)
 
-        lbl_m = QLabel("Mensaje")
+        lbl_m = QLabel(tr("Mensaje"))
         lbl_m.setStyleSheet(f"color:{SLATE_700}; font-weight:600; font-size:12px;")
         fv.addWidget(lbl_m)
         self.txt_mensaje = QTextEdit()
-        self.txt_mensaje.setPlaceholderText(
+        self.txt_mensaje.setPlaceholderText(tr(
             "Describe tu sugerencia, el problema encontrado o cualquier "
             "consulta que tengas…"
-        )
+        ))
         self.txt_mensaje.setMinimumHeight(140)
         self.txt_mensaje.setStyleSheet(
             "QTextEdit { background:white; border:1px solid #C5CDD3;"
@@ -638,7 +639,7 @@ class AcercaView(QWidget):
         self.lbl_err.setVisible(False)
         fv.addWidget(self.lbl_err)
 
-        self.btn_enviar = QPushButton("Enviar mensaje")
+        self.btn_enviar = QPushButton(tr("Enviar mensaje"))
         self.btn_enviar.setIcon(icon("guardar"))
         self.btn_enviar.setIconSize(QSize(18, 18))
         self.btn_enviar.setCursor(Qt.PointingHandCursor)
@@ -676,18 +677,18 @@ class AcercaView(QWidget):
         p.end()
         ico_ok.setPixmap(pix)
         ok_v.addWidget(ico_ok)
-        lbl_ok = QLabel("¡Mensaje enviado!")
+        lbl_ok = QLabel(tr("¡Mensaje enviado!"))
         lbl_ok.setAlignment(Qt.AlignCenter)
         f2 = QFont(); f2.setPointSize(13); f2.setBold(True)
         lbl_ok.setFont(f2)
         lbl_ok.setStyleSheet(f"color:{SLATE_700};")
         ok_v.addWidget(lbl_ok)
-        sub = QLabel("Gracias por tu mensaje. Lo revisaré lo antes posible.")
+        sub = QLabel(tr("Gracias por tu mensaje. Lo revisaré lo antes posible."))
         sub.setAlignment(Qt.AlignCenter)
         sub.setStyleSheet(f"color:{SLATE_300}; font-size:12px;")
         sub.setWordWrap(True)
         ok_v.addWidget(sub)
-        btn_otro = QPushButton("Enviar otro mensaje")
+        btn_otro = QPushButton(tr("Enviar otro mensaje"))
         btn_otro.setCursor(Qt.PointingHandCursor)
         btn_otro.setStyleSheet(
             f"QPushButton {{ background:{WHITE}; color:{SLATE_700};"
@@ -702,10 +703,10 @@ class AcercaView(QWidget):
 
         bv.addWidget(self._stack, 1)
 
-        nota_contacto = QLabel(
+        nota_contacto = QLabel(tr(
             "Tu mensaje será enviado al equipo de IngePresupuestos.\n"
             "Si no hay conexión a internet, se abrirá tu correo electrónico."
-        )
+        ))
         nota_contacto.setWordWrap(True)
         nota_contacto.setStyleSheet(
             f"color:{SLATE_300}; font-size:11px; padding:4px 0;"
@@ -741,9 +742,9 @@ class AcercaView(QWidget):
         identificarse), pero sí se advierte una vez: el caso real fue gente
         pidiendo mejoras a la que no se le pudo contestar."""
         resp = QMessageBox.question(
-            self, "Enviar sin correo",
-            "No pusiste un correo, así que no habrá forma de responderte.\n\n"
-            "¿Enviar de todos modos?",
+            self, tr("Enviar sin correo"),
+            tr("No pusiste un correo, así que no habrá forma de responderte.\n\n"
+               "¿Enviar de todos modos?"),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if resp != QMessageBox.Yes:
             self.inp_email.setFocus()
@@ -756,15 +757,15 @@ class AcercaView(QWidget):
         url = self.inp_url.text().strip() or self._DEFAULT_FORM_URL
         mensaje = self.txt_mensaje.toPlainText().strip()
         if not mensaje:
-            self.lbl_err.setText("Por favor escribe un mensaje antes de enviar.")
+            self.lbl_err.setText(tr("Por favor escribe un mensaje antes de enviar."))
             self.lbl_err.setVisible(True)
             self.txt_mensaje.setFocus()
             return
 
         email = self.inp_email.text().strip()
         if email and not _email_valido(email):
-            self.lbl_err.setText("Ese correo no parece válido. Revísalo o "
-                                 "déjalo en blanco.")
+            self.lbl_err.setText(tr("Ese correo no parece válido. Revísalo o "
+                                    "déjalo en blanco."))
             self.lbl_err.setVisible(True)
             self.inp_email.setFocus()
             return
@@ -773,7 +774,7 @@ class AcercaView(QWidget):
         self.lbl_err.setVisible(False)
 
         nombre = self.inp_nombre.text().strip() or "(anónimo)"
-        tipo = self.cmb_tipo.currentText()
+        tipo = self.cmb_tipo.currentData() or self.cmb_tipo.currentText()
         self._last_payload = {
             "Fecha":   datetime.now().strftime("%d/%m/%Y %H:%M"),
             "Nombre":  nombre,
@@ -785,7 +786,7 @@ class AcercaView(QWidget):
         set_config('contacto_nombre', self.inp_nombre.text().strip())
         set_config('contacto_email', email)
         self.btn_enviar.setEnabled(False)
-        self.btn_enviar.setText("Enviando…")
+        self.btn_enviar.setText(tr("Enviando…"))
 
         self._worker = _SendWorker(url, self._last_payload, self)
         self._worker.finished_ok.connect(self._on_ok)
@@ -794,13 +795,13 @@ class AcercaView(QWidget):
 
     def _on_ok(self):
         self._worker = None
-        self.btn_enviar.setText("Enviar mensaje")
+        self.btn_enviar.setText(tr("Enviar mensaje"))
         self.btn_enviar.setEnabled(True)
         self._stack.setCurrentIndex(1)
 
     def _on_fail(self, msg: str):
         self._worker = None
-        self.btn_enviar.setText("Enviar mensaje")
+        self.btn_enviar.setText(tr("Enviar mensaje"))
         self.btn_enviar.setEnabled(True)
         from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
@@ -820,9 +821,9 @@ class AcercaView(QWidget):
             f"&body={urllib.parse.quote(body)}"
         )
         resp = QMessageBox.question(
-            self, "Error de envío",
-            f"No se pudo enviar el mensaje:\n{msg}\n\n"
-            "¿Deseas abrir tu correo electrónico para enviarlo manualmente?",
+            self, tr("Error de envío"),
+            tr("No se pudo enviar el mensaje:\n{msg}\n\n"
+               "¿Deseas abrir tu correo electrónico para enviarlo manualmente?").format(msg=msg),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
         )
         if resp == QMessageBox.Yes:

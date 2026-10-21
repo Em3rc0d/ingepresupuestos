@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QByteArray
 from PySide6.QtGui import QFont, QPixmap
 
-from utils.i18n import N_
+from utils.i18n import N_, tr
 from core.database import (get_db, get_decimales_ppto, set_decimales_ppto,
                            get_decimales_metrado, set_decimales_metrado,
                            get_decimales_cant_acu, set_decimales_cant_acu,
@@ -525,7 +525,7 @@ class ConfiguracionView(QWidget):
                     pm.scaled(60, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 )
                 return
-        self._lbl_logo_preview.setText("Sin logo")
+        self._lbl_logo_preview.setText(tr("Sin logo"))
         self._lbl_logo_preview.setStyleSheet(
             f"background:white; border:1px solid {SILVER_300}; border-radius:6px;"
             f" color:{SLATE_300}; font-size:10px;"
@@ -533,9 +533,9 @@ class ConfiguracionView(QWidget):
 
     def _emp_cargar_logo(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar logo",
+            self, tr("Seleccionar logo"),
             os.path.expanduser("~"),
-            "Imágenes (*.png *.jpg *.jpeg *.bmp)"
+            tr("Imágenes (*.png *.jpg *.jpeg *.bmp)")
         )
         if not path:
             return
@@ -548,7 +548,7 @@ class ConfiguracionView(QWidget):
     def _emp_quitar_logo(self):
         _set_logo_rep('')
         self._lbl_logo_preview.setPixmap(QPixmap())
-        self._lbl_logo_preview.setText("Sin logo")
+        self._lbl_logo_preview.setText(tr("Sin logo"))
         self._lbl_logo_preview.setStyleSheet(
             f"background:white; border:1px solid {SILVER_300}; border-radius:6px;"
             f" color:{SLATE_300}; font-size:10px;"
@@ -569,7 +569,7 @@ class ConfiguracionView(QWidget):
         fmt['rep_empresa_direccion'] = self._inp_emp_direccion.text().strip()
         fmt['rep_empresa_telefono']  = self._inp_emp_telefono.text().strip()
         pdf_reports.set_formato(fmt)
-        self._lbl_emp_estado.setText("✓  Datos de empresa guardados")
+        self._lbl_emp_estado.setText("✓  " + tr("Datos de empresa guardados"))
 
     # ── Card jornada laboral ─────────────────────────────────────────────
 
@@ -604,7 +604,7 @@ class ConfiguracionView(QWidget):
         self._spin_jornada = QSpinBox()
         self._spin_jornada.setRange(1, 24)
         self._spin_jornada.setValue(int(get_config('jornada_defecto', '8')))
-        self._spin_jornada.setSuffix(" horas")
+        self._spin_jornada.setSuffix(" " + tr("horas"))
         self._spin_jornada.setMinimumHeight(34)
         self._spin_jornada.setMaximumWidth(120)
         form.addRow(tr("Jornada:"), self._spin_jornada)
@@ -630,7 +630,7 @@ class ConfiguracionView(QWidget):
         val = self._spin_jornada.value()
         set_config('jornada_defecto', str(val))
         self._lbl_jornada_estado.setText(
-            f"✓  Jornada por defecto: {val} horas. Se aplica a proyectos nuevos."
+            "✓  " + tr("Jornada por defecto: {val} horas. Se aplica a proyectos nuevos.").format(val=val)
         )
 
     # ── Card país (issue #9) ─────────────────────────────────────────────
@@ -645,15 +645,15 @@ class ConfiguracionView(QWidget):
         vl.setContentsMargins(24, 20, 24, 24)
         vl.setSpacing(12)
 
-        lbl = QLabel("País")
+        lbl = QLabel(tr("País"))
         lbl.setStyleSheet(_SEC_SS)
         vl.addWidget(lbl)
-        nota = QLabel(
+        nota = QLabel(tr(
             "El país fija los valores por defecto de los proyectos nuevos: "
             "moneda (también la de los catálogos), el nombre de la "
             "identificación tributaria en los reportes y el impuesto del pie "
             "de presupuesto. Los proyectos ya creados no cambian. Cambiar la "
-            "moneda no convierte los precios.")
+            "moneda no convierte los precios."))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         vl.addWidget(nota)
@@ -663,7 +663,7 @@ class ConfiguracionView(QWidget):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        btn = QPushButton("Guardar")
+        btn = QPushButton(tr("Guardar"))
         btn.setFixedHeight(34)
         btn.setStyleSheet(_BTN_SAVE)
         btn.clicked.connect(self._guardar_pais)
@@ -681,10 +681,12 @@ class ConfiguracionView(QWidget):
         iso = self._form_pais.guardar()
         moneda = self._form_pais.cmb_moneda.currentText()
         self._lbl_pais_estado.setText(
-            f"✓  {PAISES[iso]['nombre']}: {moneda} · "
-            f"{self._form_pais.inp_etiqueta.text()} · "
-            f"{self._form_pais.inp_imp_nombre.text()} "
-            f"{self._form_pais.spn_imp_pct.value():g} %. Se aplica a proyectos nuevos.")
+            "✓  " + tr("{pais}: {moneda} · {etiqueta} · {impuesto} {pct:g} %. "
+                       "Se aplica a proyectos nuevos.").format(
+                pais=PAISES[iso]['nombre'], moneda=moneda,
+                etiqueta=self._form_pais.inp_etiqueta.text(),
+                impuesto=self._form_pais.inp_imp_nombre.text(),
+                pct=self._form_pais.spn_imp_pct.value()))
 
     # ── Card backups ─────────────────────────────────────────────────────
 
@@ -735,7 +737,7 @@ class ConfiguracionView(QWidget):
         self._actualizar_info_backups()
         info_vl.addWidget(self._lbl_bkp_info)
 
-        lbl_path = QLabel(f"Carpeta: {carpeta}")
+        lbl_path = QLabel(tr("Carpeta: {carpeta}").format(carpeta=carpeta))
         lbl_path.setWordWrap(True)
         lbl_path.setStyleSheet(
             f"color:{SLATE_300}; font-size:10px; background:transparent; border:none;"
@@ -768,18 +770,19 @@ class ConfiguracionView(QWidget):
         ultimo_str = ultimo_dt.strftime('%Y-%m-%d %H:%M') if ultimo_dt else "—"
         tamano_mb = info['tamano_total'] / (1024 * 1024)
         self._lbl_bkp_info.setText(
-            f"Backups: {cantidad}  |  Último: {ultimo_str}  |  "
-            f"Tamaño total: {tamano_mb:.1f} MB"
+            tr("Backups: {cantidad}  |  Último: {ultimo}  |  "
+               "Tamaño total: {mb:.1f} MB").format(
+                cantidad=cantidad, ultimo=ultimo_str, mb=tamano_mb)
         )
 
     def _hacer_backup(self):
         from core.backup import crear_backup
         resultado = crear_backup('manual')
         if resultado:
-            self._lbl_bkp_estado.setText(f"✓  Backup creado: {resultado.name}")
+            self._lbl_bkp_estado.setText("✓  " + tr("Backup creado: {nombre}").format(nombre=resultado.name))
             self._actualizar_info_backups()
         else:
-            self._lbl_bkp_estado.setText("✗  No se pudo crear el backup")
+            self._lbl_bkp_estado.setText("✗  " + tr("No se pudo crear el backup"))
             self._lbl_bkp_estado.setStyleSheet(
                 "color:#C6262E; font-size:11px; background:transparent; border:none;"
             )
@@ -866,17 +869,17 @@ class ConfiguracionView(QWidget):
     def _examinar_ruta_export(self):
         actual = self._inp_ruta_export.text() or os.path.expanduser("~")
         carpeta = QFileDialog.getExistingDirectory(
-            self, "Seleccionar carpeta de exportación", actual
+            self, tr("Seleccionar carpeta de exportación"), actual
         )
         if carpeta:
             self._inp_ruta_export.setText(carpeta)
             set_config('ruta_exportacion', carpeta)
-            self._lbl_ruta_estado.setText(f"✓  Ruta guardada: {carpeta}")
+            self._lbl_ruta_estado.setText("✓  " + tr("Ruta guardada: {carpeta}").format(carpeta=carpeta))
 
     def _limpiar_ruta_export(self):
         self._inp_ruta_export.clear()
         set_config('ruta_exportacion', '')
-        self._lbl_ruta_estado.setText("✓  Restablecido a carpeta de Descargas del sistema")
+        self._lbl_ruta_estado.setText("✓  " + tr("Restablecido a carpeta de Descargas del sistema"))
 
     # ── Card atajos de teclado ───────────────────────────────────────────
 
@@ -907,10 +910,10 @@ class ConfiguracionView(QWidget):
             ("Ctrl+N", tr("Nuevo Proyecto")),
             ("Ctrl+O", tr("Abrir")),
             ("Ctrl+P", tr("Imprimir")),
-            ("Ctrl+S", tr("Guardar") + " (notas/memoria)"),
-            ("Ctrl+F", tr("Buscar") + " partida"),
+            ("Ctrl+S", tr("Guardar (notas/memoria)")),
+            ("Ctrl+F", tr("Buscar partida")),
             ("F5", tr("Recalcular")),
-            ("F2", tr("Editar") + " partida"),
+            ("F2", tr("Editar partida")),
             ("F1", tr("Atajos de teclado")),
             ("Ins", tr("Agregar partida")),
             ("Ctrl+Ins", tr("Agregar título")),
@@ -923,9 +926,9 @@ class ConfiguracionView(QWidget):
             ("Alt+Down", tr("Bajar")),
             ("Alt+Right", tr("Bajar nivel")),
             ("Alt+Left", tr("Subir nivel")),
-            ("Ctrl+Home", "Ir a primera partida"),
-            ("Ctrl+End", "Ir a última partida"),
-            ("Esc", "Deseleccionar"),
+            ("Ctrl+Home", tr("Ir a primera partida")),
+            ("Ctrl+End", tr("Ir a última partida")),
+            ("Esc", tr("Deseleccionar")),
         ]
 
         grid = QHBoxLayout()
@@ -971,14 +974,14 @@ class ConfiguracionView(QWidget):
         vl.setContentsMargins(24, 20, 24, 24)
         vl.setSpacing(12)
 
-        lbl = QLabel("Precisión decimal")
+        lbl = QLabel(tr("Precisión decimal"))
         lbl.setStyleSheet(_SEC_SS)
         vl.addWidget(lbl)
         sep = QFrame(); sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet(f"color:{SILVER_300};")
         vl.addWidget(sep)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Define cuántos decimales se usan al calcular y mostrar cada parte "
             "del presupuesto (mismo criterio que S10 «Datos Adicionales»).\n"
             "Montos: precios unitarios, parciales y totales. Metrados: metrado "
@@ -986,7 +989,7 @@ class ConfiguracionView(QWidget):
             "la cantidad se redondea antes de multiplicarla por el precio.\n"
             "Los proyectos abiertos se actualizan al volver a ellos. El P.U. "
             "guardado de cada partida se recalcula con Recalcular (F5)."
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         vl.addWidget(nota)
@@ -998,30 +1001,30 @@ class ConfiguracionView(QWidget):
         self.spin_dec.setValue(get_decimales_ppto())
         self.spin_dec.setMinimumHeight(34)
         self.spin_dec.setMaximumWidth(80)
-        form.addRow("Decimales en montos (PU y parciales):", self.spin_dec)
+        form.addRow(tr("Decimales en montos (PU y parciales):"), self.spin_dec)
 
         self.spin_dec_met = QSpinBox()
         self.spin_dec_met.setRange(0, 6)
         self.spin_dec_met.setValue(get_decimales_metrado())
         self.spin_dec_met.setMinimumHeight(34)
         self.spin_dec_met.setMaximumWidth(80)
-        form.addRow("Decimales en metrados:", self.spin_dec_met)
+        form.addRow(tr("Decimales en metrados:"), self.spin_dec_met)
 
         # Un ajuste por tipo de insumo (issue #2): S10 deja, p. ej., la MO y
         # el equipo derivados de la cuadrilla en 2 decimales y los
         # materiales en 4. La cantidad se redondea ANTES de multiplicar.
         self.spin_dec_cant = {}
-        for tipo, etiqueta in (('MO', "Cantidades de mano de obra (MO):"),
-                               ('MAT', "Cantidades de materiales (MAT):"),
-                               ('EQ', "Cantidades de equipos (EQ):"),
-                               ('SC', "Cantidades de subcontratos (SC):")):
+        for tipo, etiqueta in (('MO', N_("Cantidades de mano de obra (MO):")),
+                               ('MAT', N_("Cantidades de materiales (MAT):")),
+                               ('EQ', N_("Cantidades de equipos (EQ):")),
+                               ('SC', N_("Cantidades de subcontratos (SC):"))):
             sp = QSpinBox()
             sp.setRange(0, 6)
             sp.setValue(get_decimales_cant_acu(tipo))
             sp.setMinimumHeight(34)
             sp.setMaximumWidth(80)
             sp.valueChanged.connect(self._actualizar_ejemplo)
-            form.addRow(etiqueta, sp)
+            form.addRow(tr(etiqueta), sp)
             self.spin_dec_cant[tipo] = sp
         vl.addLayout(form)
 
@@ -1047,7 +1050,7 @@ class ConfiguracionView(QWidget):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        btn = QPushButton("Guardar")
+        btn = QPushButton(tr("Guardar"))
         btn.setFixedHeight(34)
         btn.setStyleSheet(_BTN_SAVE)
         btn.clicked.connect(self._guardar_decimales)
@@ -1074,26 +1077,26 @@ class ConfiguracionView(QWidget):
         vl.setContentsMargins(24, 20, 24, 24)
         vl.setSpacing(12)
 
-        lbl = QLabel("Apariencia")
+        lbl = QLabel(tr("Apariencia"))
         lbl.setStyleSheet(_SEC_SS)
         vl.addWidget(lbl)
         sep = QFrame(); sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet(f"color:{SILVER_300};")
         vl.addWidget(sep)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Ajusta el tamaño del texto para monitores pequeños.\n"
             "El cambio se aplica de inmediato; algunos elementos se ven mejor al reiniciar."
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         vl.addWidget(nota)
 
         _PRESETS = [
-            ("Normal",       1.0,  "100% — pantalla estándar"),
-            ("Mediano",      1.12, "112% — laptop 14\", cambio sutil"),
-            ("Grande",       1.22, "122% — fuentes notablemente mayores"),
-            ("Extra grande", 1.35, "135% — máxima legibilidad"),
+            (tr("Normal"),       1.0,  tr("100% — pantalla estándar")),
+            (tr("Mediano"),      1.12, tr("112% — laptop 14\", cambio sutil")),
+            (tr("Grande"),       1.22, tr("122% — fuentes notablemente mayores")),
+            (tr("Extra grande"), 1.35, tr("135% — máxima legibilidad")),
         ]
 
         escala_actual = float(get_config('ui_escala', '1.0'))
@@ -1130,9 +1133,9 @@ class ConfiguracionView(QWidget):
         )
         prev_vl = QVBoxLayout(prev)
         prev_vl.setContentsMargins(12, 8, 12, 8)
-        self.lbl_preview_escala = QLabel(
+        self.lbl_preview_escala = QLabel(tr(
             "Vista previa — Partida 01.01  TRABAJOS PRELIMINARES"
-        )
+        ))
         self.lbl_preview_escala.setStyleSheet(
             f"color:{SLATE_500}; background:transparent; border:none;"
         )
@@ -1153,8 +1156,9 @@ class ConfiguracionView(QWidget):
         set_config('ui_escala', str(factor))
         pct = int(factor * 100)
         self.lbl_escala_estado.setText(
-            f"✓  {nombre} ({pct}%) guardado. "
-            "Reinicia la aplicación para aplicar el cambio en todos los paneles."
+            "✓  " + tr("{nombre} ({pct}%) guardado. "
+                       "Reinicia la aplicación para aplicar el cambio en todos los paneles.").format(
+                nombre=nombre, pct=pct)
         )
 
     # ── Card barra de título ──────────────────────────────────────────────
@@ -1169,17 +1173,17 @@ class ConfiguracionView(QWidget):
         vl.setContentsMargins(24, 20, 24, 24)
         vl.setSpacing(12)
 
-        lbl = QLabel("Barra de título")
+        lbl = QLabel(tr("Barra de título"))
         lbl.setStyleSheet(_SEC_SS)
         vl.addWidget(lbl)
         sep = QFrame(); sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet(f"color:{SILVER_300};")
         vl.addWidget(sep)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Elige cómo quieres ver la barra superior de la ventana.\n"
             "El cambio se aplica al reiniciar la aplicación."
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         vl.addWidget(nota)
@@ -1190,13 +1194,13 @@ class ConfiguracionView(QWidget):
         hl = QHBoxLayout()
         hl.setSpacing(8)
         for clave, nombre, desc in [
-            ('0', "Del sistema (recomendada)",
-             "Barra de título nativa del sistema operativo — respeta el "
-             "tema de tu entorno. Apariencia más profesional y consistente "
-             "con el resto de tus apps."),
-            ('1', "Personalizada (oscura)",
-             "Barra de título integrada con el diseño de la app — misma "
-             "apariencia en Linux, Windows y macOS."),
+            ('0', tr("Del sistema (recomendada)"),
+             tr("Barra de título nativa del sistema operativo — respeta el "
+                "tema de tu entorno. Apariencia más profesional y consistente "
+                "con el resto de tus apps.")),
+            ('1', tr("Personalizada (oscura)"),
+             tr("Barra de título integrada con el diseño de la app — misma "
+                "apariencia en Linux, Windows y macOS.")),
         ]:
             btn = QPushButton(nombre)
             btn.setCheckable(True)
@@ -1228,7 +1232,8 @@ class ConfiguracionView(QWidget):
     def _aplicar_barra(self, clave: str, nombre: str):
         set_config('barra_titulo_custom', clave)
         self.lbl_barra_estado.setText(
-            f"✓  {nombre} guardado. Reinicia la aplicación para aplicar el cambio."
+            "✓  " + tr("{nombre} guardado. Reinicia la aplicación para aplicar el cambio.").format(
+                nombre=nombre)
         )
 
     # ── Card asistente Tuxia ──────────────────────────────────────────────
@@ -1243,20 +1248,20 @@ class ConfiguracionView(QWidget):
         vl.setContentsMargins(24, 20, 24, 24)
         vl.setSpacing(12)
 
-        lbl = QLabel("Asistente Tuxia")
+        lbl = QLabel(tr("Asistente Tuxia"))
         lbl.setStyleSheet(_SEC_SS)
         vl.addWidget(lbl)
         sep = QFrame(); sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet(f"color:{SILVER_300};")
         vl.addWidget(sep)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Tuxia es un pingüino flotante que da consejos contextuales, "
             "detecta incoherencias en el presupuesto y recuerda hacer "
             "backups.\n"
             "Si lo activas, aparece en la esquina inferior derecha al abrir "
             "un proyecto. El cambio se aplica al abrir el siguiente proyecto."
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         vl.addWidget(nota)
@@ -1267,13 +1272,13 @@ class ConfiguracionView(QWidget):
         hl = QHBoxLayout()
         hl.setSpacing(8)
         for clave, nombre, desc in [
-            ('0', "Ocultar",
-             "Interfaz limpia, sin asistente flotante. "
-             "Las acciones (chat IA, validador, backups) siguen "
-             "disponibles desde la barra de herramientas."),
-            ('1', "Mostrar",
-             "Activa el pingüino con tips contextuales, validaciones "
-             "automáticas y recordatorios de backup."),
+            ('0', tr("Ocultar"),
+             tr("Interfaz limpia, sin asistente flotante. "
+                "Las acciones (chat IA, validador, backups) siguen "
+                "disponibles desde la barra de herramientas.")),
+            ('1', tr("Mostrar"),
+             tr("Activa el pingüino con tips contextuales, validaciones "
+                "automáticas y recordatorios de backup.")),
         ]:
             btn = QPushButton(nombre)
             btn.setCheckable(True)
@@ -1305,8 +1310,9 @@ class ConfiguracionView(QWidget):
     def _aplicar_tuxia(self, clave: str, nombre: str):
         set_config('mostrar_tuxia', clave)
         self.lbl_tuxia_estado.setText(
-            f"✓  Asistente Tuxia: {nombre.lower()}. "
-            "El cambio se aplica al abrir el siguiente proyecto."
+            "✓  " + tr("Asistente Tuxia: {estado}. "
+                       "El cambio se aplica al abrir el siguiente proyecto.").format(
+                estado=nombre.lower())
         )
 
     # ── Tab Usuarios (solo admin) ───────────────────────────────────────
@@ -1322,12 +1328,12 @@ class ConfiguracionView(QWidget):
         # Toolbar
         hl_bar = QHBoxLayout()
         hl_bar.setSpacing(8)
-        lbl_sec = QLabel("Administrar usuarios")
+        lbl_sec = QLabel(tr("Administrar usuarios"))
         lbl_sec.setStyleSheet(_SEC_SS)
         hl_bar.addWidget(lbl_sec)
         hl_bar.addStretch()
 
-        btn_nuevo = QPushButton("+ Nuevo usuario")
+        btn_nuevo = QPushButton("+ " + tr("Nuevo usuario"))
         btn_nuevo.setFixedHeight(34)
         btn_nuevo.setCursor(Qt.PointingHandCursor)
         btn_nuevo.setStyleSheet(BTN_PRIMARY_SS)
@@ -1347,7 +1353,7 @@ class ConfiguracionView(QWidget):
         self._usr_table = QTableWidget()
         self._usr_table.setColumnCount(6)
         self._usr_table.setHorizontalHeaderLabels(
-            ["Nombre", "Usuario", "Email", "Rol", "Estado", "Creado"]
+            [tr("Nombre"), tr("Usuario"), tr("Email"), tr("Rol"), tr("Estado"), tr("Creado")]
         )
         self._usr_table.setSelectionBehavior(QTableWidget.SelectRows)
         self._usr_table.setSelectionMode(QTableWidget.SingleSelection)
@@ -1397,28 +1403,28 @@ class ConfiguracionView(QWidget):
             f"QPushButton:disabled {{ color:{SILVER_300}; border-color:{SILVER_300}; }}"
         )
 
-        self._btn_editar = QPushButton("Editar")
+        self._btn_editar = QPushButton(tr("Editar"))
         self._btn_editar.setFixedHeight(32)
         self._btn_editar.setCursor(Qt.PointingHandCursor)
         self._btn_editar.setStyleSheet(_BTN_SS)
         self._btn_editar.clicked.connect(self._usr_editar)
         hl_acc.addWidget(self._btn_editar)
 
-        self._btn_password = QPushButton("Cambiar contraseña")
+        self._btn_password = QPushButton(tr("Cambiar contraseña"))
         self._btn_password.setFixedHeight(32)
         self._btn_password.setCursor(Qt.PointingHandCursor)
         self._btn_password.setStyleSheet(_BTN_SS)
         self._btn_password.clicked.connect(self._usr_cambiar_pass)
         hl_acc.addWidget(self._btn_password)
 
-        self._btn_toggle = QPushButton("Activar/Desactivar")
+        self._btn_toggle = QPushButton(tr("Activar/Desactivar"))
         self._btn_toggle.setFixedHeight(32)
         self._btn_toggle.setCursor(Qt.PointingHandCursor)
         self._btn_toggle.setStyleSheet(_BTN_SS)
         self._btn_toggle.clicked.connect(self._usr_toggle)
         hl_acc.addWidget(self._btn_toggle)
 
-        self._btn_eliminar = QPushButton("Eliminar")
+        self._btn_eliminar = QPushButton(tr("Eliminar"))
         self._btn_eliminar.setFixedHeight(32)
         self._btn_eliminar.setCursor(Qt.PointingHandCursor)
         self._btn_eliminar.setStyleSheet(_BTN_RED)
@@ -1447,7 +1453,7 @@ class ConfiguracionView(QWidget):
             self._usr_table.setItem(i, 2, QTableWidgetItem(u.email))
             rol_item = QTableWidgetItem(u.rol.capitalize())
             self._usr_table.setItem(i, 3, rol_item)
-            estado = "Activo" if u.activo else "Inactivo"
+            estado = tr("Activo") if u.activo else tr("Inactivo")
             est_item = QTableWidgetItem(estado)
             if not u.activo:
                 est_item.setForeground(Qt.red)
@@ -1542,8 +1548,9 @@ class ConfiguracionView(QWidget):
         row = self._usr_table.currentRow()
         nombre = self._usr_table.item(row, 0).text()
         resp = QMessageBox.question(
-            self, "Eliminar usuario",
-            f"¿Eliminar permanentemente a «{nombre}»?\nEsta acción no se puede deshacer.",
+            self, tr("Eliminar usuario"),
+            tr("¿Eliminar permanentemente a «{nombre}»?\nEsta acción no se puede deshacer.").format(
+                nombre=nombre),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         if resp != QMessageBox.Yes:
@@ -1562,9 +1569,11 @@ class ConfiguracionView(QWidget):
         nt = self.spin_dec_met.value()
         nc = self.spin_dec_cant['MO'].value()
         self.lbl_ej.setText(
-            f"Ejemplo — monto: {1234.5678:,.{nm}f}   ·   "
-            f"metrado: {125.4567:,.{nt}f}   ·   "
-            f"cantidad MO: {0.666667:.{nc}f}"
+            tr("Ejemplo — monto: {monto}   ·   "
+               "metrado: {metrado}   ·   "
+               "cantidad MO: {cantidad}").format(
+                monto=f"{1234.5678:,.{nm}f}", metrado=f"{125.4567:,.{nt}f}",
+                cantidad=f"{0.666667:.{nc}f}")
         )
 
     def _guardar_decimales(self):
@@ -1587,8 +1596,9 @@ class ConfiguracionView(QWidget):
             set_decimales_cant_acu(n, t)
         cant_txt = " · ".join(f"{t} {n}" for t, n in n_cant.items())
         self.lbl_dec_estado.setText(
-            f"✓  Guardado: montos {n_ppto} · metrados {n_met} · cantidades {cant_txt}. "
-            "Para recalcular el P.U. de las partidas, usa Recalcular (F5) en el proyecto."
+            "✓  " + tr("Guardado: montos {n_ppto} · metrados {n_met} · cantidades {cant}. "
+                       "Para recalcular el P.U. de las partidas, usa Recalcular (F5) en el proyecto.").format(
+                n_ppto=n_ppto, n_met=n_met, cant=cant_txt)
         )
 
 
@@ -1618,7 +1628,7 @@ class _UsuarioDialog(QDialog):
     def __init__(self, parent=None, usuario=None):
         super().__init__(parent)
         self._usuario = usuario
-        self.setWindowTitle("Editar usuario" if usuario else "Nuevo usuario")
+        self.setWindowTitle(tr("Editar usuario") if usuario else tr("Nuevo usuario"))
         self.setFixedWidth(400)
         self.setWindowModality(Qt.WindowModal)
         self._build_ui()
@@ -1628,31 +1638,31 @@ class _UsuarioDialog(QDialog):
         vl.setContentsMargins(24, 20, 24, 20)
         vl.setSpacing(10)
 
-        lbl_n = QLabel("Nombre completo")
+        lbl_n = QLabel(tr("Nombre completo"))
         lbl_n.setStyleSheet(_DLG_LBL_SS)
         vl.addWidget(lbl_n)
         self._inp_nombre = QLineEdit()
         self._inp_nombre.setStyleSheet(_DLG_INP_SS)
-        self._inp_nombre.setPlaceholderText("Nombre y apellidos")
+        self._inp_nombre.setPlaceholderText(tr("Nombre y apellidos"))
         vl.addWidget(self._inp_nombre)
 
-        lbl_u = QLabel("Usuario")
+        lbl_u = QLabel(tr("Usuario"))
         lbl_u.setStyleSheet(_DLG_LBL_SS)
         vl.addWidget(lbl_u)
         self._inp_username = QLineEdit()
         self._inp_username.setStyleSheet(_DLG_INP_SS)
-        self._inp_username.setPlaceholderText("nombre de usuario")
+        self._inp_username.setPlaceholderText(tr("nombre de usuario"))
         vl.addWidget(self._inp_username)
 
-        lbl_e = QLabel("Email")
+        lbl_e = QLabel(tr("Email"))
         lbl_e.setStyleSheet(_DLG_LBL_SS)
         vl.addWidget(lbl_e)
         self._inp_email = QLineEdit()
         self._inp_email.setStyleSheet(_DLG_INP_SS)
-        self._inp_email.setPlaceholderText("correo@dominio.com (opcional)")
+        self._inp_email.setPlaceholderText(tr("correo@dominio.com (opcional)"))
         vl.addWidget(self._inp_email)
 
-        lbl_r = QLabel("Rol")
+        lbl_r = QLabel(tr("Rol"))
         lbl_r.setStyleSheet(_DLG_LBL_SS)
         vl.addWidget(lbl_r)
         self._combo_rol = QComboBox()
@@ -1661,16 +1671,16 @@ class _UsuarioDialog(QDialog):
         vl.addWidget(self._combo_rol)
 
         if not self._usuario:
-            lbl_p = QLabel("Contraseña")
+            lbl_p = QLabel(tr("Contraseña"))
             lbl_p.setStyleSheet(_DLG_LBL_SS)
             vl.addWidget(lbl_p)
             self._inp_pass = QLineEdit()
             self._inp_pass.setStyleSheet(_DLG_INP_SS)
             self._inp_pass.setEchoMode(QLineEdit.Password)
-            self._inp_pass.setPlaceholderText("mín. 6 caracteres")
+            self._inp_pass.setPlaceholderText(tr("mín. 6 caracteres"))
             vl.addWidget(self._inp_pass)
 
-            lbl_p2 = QLabel("Confirmar contraseña")
+            lbl_p2 = QLabel(tr("Confirmar contraseña"))
             lbl_p2.setStyleSheet(_DLG_LBL_SS)
             vl.addWidget(lbl_p2)
             self._inp_pass2 = QLineEdit()
@@ -1687,7 +1697,7 @@ class _UsuarioDialog(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setFixedHeight(34)
         btn_cancel.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700};"
@@ -1698,7 +1708,7 @@ class _UsuarioDialog(QDialog):
         btn_cancel.clicked.connect(self.reject)
         hl.addWidget(btn_cancel)
 
-        btn_ok = QPushButton("Guardar")
+        btn_ok = QPushButton(tr("Guardar"))
         btn_ok.setFixedHeight(34)
         btn_ok.setStyleSheet(BTN_PRIMARY_SS)
         btn_ok.clicked.connect(self._validar)
@@ -1717,19 +1727,19 @@ class _UsuarioDialog(QDialog):
         nombre = self._inp_nombre.text().strip()
         username = self._inp_username.text().strip()
         if not nombre or not username:
-            self._lbl_err.setText("Nombre y usuario son obligatorios")
+            self._lbl_err.setText(tr("Nombre y usuario son obligatorios"))
             return
         if not self._usuario:
             p1 = self._inp_pass.text()
             p2 = self._inp_pass2.text()
             if not p1:
-                self._lbl_err.setText("La contraseña es obligatoria")
+                self._lbl_err.setText(tr("La contraseña es obligatoria"))
                 return
             if p1 != p2:
-                self._lbl_err.setText("Las contraseñas no coinciden")
+                self._lbl_err.setText(tr("Las contraseñas no coinciden"))
                 return
             if len(p1) < 6:
-                self._lbl_err.setText("Mínimo 6 caracteres")
+                self._lbl_err.setText(tr("Mínimo 6 caracteres"))
                 return
         self.accept()
 
@@ -1750,7 +1760,7 @@ class _CambiarPasswordDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Cambiar contraseña")
+        self.setWindowTitle(tr("Cambiar contraseña"))
         self.setFixedWidth(360)
         self.setWindowModality(Qt.WindowModal)
         self._build_ui()
@@ -1760,16 +1770,16 @@ class _CambiarPasswordDialog(QDialog):
         vl.setContentsMargins(24, 20, 24, 20)
         vl.setSpacing(10)
 
-        lbl = QLabel("Nueva contraseña")
+        lbl = QLabel(tr("Nueva contraseña"))
         lbl.setStyleSheet(_DLG_LBL_SS)
         vl.addWidget(lbl)
         self._inp_pass = QLineEdit()
         self._inp_pass.setStyleSheet(_DLG_INP_SS)
         self._inp_pass.setEchoMode(QLineEdit.Password)
-        self._inp_pass.setPlaceholderText("mín. 6 caracteres")
+        self._inp_pass.setPlaceholderText(tr("mín. 6 caracteres"))
         vl.addWidget(self._inp_pass)
 
-        lbl2 = QLabel("Confirmar contraseña")
+        lbl2 = QLabel(tr("Confirmar contraseña"))
         lbl2.setStyleSheet(_DLG_LBL_SS)
         vl.addWidget(lbl2)
         self._inp_pass2 = QLineEdit()
@@ -1786,7 +1796,7 @@ class _CambiarPasswordDialog(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setFixedHeight(34)
         btn_cancel.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_700};"
@@ -1797,7 +1807,7 @@ class _CambiarPasswordDialog(QDialog):
         btn_cancel.clicked.connect(self.reject)
         hl.addWidget(btn_cancel)
 
-        btn_ok = QPushButton("Cambiar")
+        btn_ok = QPushButton(tr("Cambiar"))
         btn_ok.setFixedHeight(34)
         btn_ok.setStyleSheet(BTN_PRIMARY_SS)
         btn_ok.clicked.connect(self._validar)
@@ -1808,13 +1818,13 @@ class _CambiarPasswordDialog(QDialog):
         p1 = self._inp_pass.text()
         p2 = self._inp_pass2.text()
         if not p1:
-            self._lbl_err.setText("Ingresa la nueva contraseña")
+            self._lbl_err.setText(tr("Ingresa la nueva contraseña"))
             return
         if p1 != p2:
-            self._lbl_err.setText("Las contraseñas no coinciden")
+            self._lbl_err.setText(tr("Las contraseñas no coinciden"))
             return
         if len(p1) < 6:
-            self._lbl_err.setText("Mínimo 6 caracteres")
+            self._lbl_err.setText(tr("Mínimo 6 caracteres"))
             return
         self.accept()
 

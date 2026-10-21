@@ -19,6 +19,7 @@ from PySide6.QtGui import QFont
 
 from core.database import get_config, set_config
 from utils.theme import BTN_PRIMARY_SS
+from utils.i18n import tr, N_
 
 
 SLATE_700  = "#273445"
@@ -108,7 +109,7 @@ class _WorkerModelos(QThread):
             modelos.sort(key=lambda x: (not x[2], _rango(x[0]), x[1].lower()))
             self.terminado.emit(modelos, '')
         except urllib.error.URLError as e:
-            self.terminado.emit([], f'Sin conexión: {e.reason}')
+            self.terminado.emit([], tr('Sin conexión: {motivo}').format(motivo=e.reason))
         except Exception as e:
             self.terminado.emit([], str(e))
 
@@ -132,10 +133,10 @@ class _WorkerModelosGemini(QThread):
 # quince entradas entre versiones viejas, imagen y audio, y eso sí confunde
 # (Marco, 8 sep 2026). «Ver modelos de mi cuenta» trae los reales.
 GEMINI_MODELOS = (
-    ('gemini-2.5-flash',      'recomendado · gratuito y rápido'),
-    ('gemini-2.5-flash-lite', 'más rápido, menos preciso · gratuito'),
-    ('gemini-2.5-pro',        'mejor razonamiento · cuota gratuita baja'),
-    ('gemini-2.0-flash',      'generación anterior, estable · gratuito'),
+    ('gemini-2.5-flash',      N_('recomendado · gratuito y rápido')),
+    ('gemini-2.5-flash-lite', N_('más rápido, menos preciso · gratuito')),
+    ('gemini-2.5-pro',        N_('mejor razonamiento · cuota gratuita baja')),
+    ('gemini-2.0-flash',      N_('generación anterior, estable · gratuito')),
 )
 GEMINI_MODELO_DEFECTO = 'gemini-2.5-flash'
 
@@ -159,7 +160,7 @@ class _ModeloCombo(QComboBox):
         self.blockSignals(True)
         self.clear()
         for mid, nota in modelos:
-            self.addItem(f"{mid}  —  {nota}" if nota else mid, mid)
+            self.addItem(f"{mid}  —  {tr(nota)}" if nota else mid, mid)
         self.blockSignals(False)
         self.setText(actual or self._defecto)
 
@@ -242,7 +243,7 @@ class IAView(QWidget):
         root.setContentsMargins(32, 24, 32, 32)
         root.setSpacing(20)
 
-        lbl_t = QLabel("Inteligencia artificial")
+        lbl_t = QLabel(tr("Inteligencia artificial"))
         lbl_t.setStyleSheet(
             f"color:{SLATE_700}; font-size:18px; font-weight:700; "
             f"background:transparent; border:none;"
@@ -284,14 +285,14 @@ class IAView(QWidget):
         vl.setContentsMargins(24, 20, 24, 24)
         vl.setSpacing(12)
 
-        lbl = QLabel("Proveedor de IA")
+        lbl = QLabel(tr("Proveedor de IA"))
         lbl.setStyleSheet(_SEC_SS)
         vl.addWidget(lbl)
         sep = QFrame(); sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet(f"color:{SILVER_300};")
         vl.addWidget(sep)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "La IA es opcional y funciona con la cuenta que tú elijas: sirve "
             "para conversar con Tuxia, revisar el proyecto, sugerir partidas y "
             "redactar especificaciones técnicas.<br><br>"
@@ -300,7 +301,7 @@ class IAView(QWidget):
             "PC sin internet ni clave — · 2) crea tu clave en el enlace que "
             "muestra el panel y pégala · 3) pulsa «Probar conexión» y luego "
             "Guardar. La clave se guarda solo en este equipo."
-        )
+        ))
         nota.setTextFormat(Qt.RichText)
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
@@ -312,13 +313,13 @@ class IAView(QWidget):
         grid_radio.setVerticalSpacing(6)
         self._bg_prov = QButtonGroup(self)
 
-        self.rb_groq        = QRadioButton("Groq  (gratuito)")
-        self.rb_openrouter  = QRadioButton("OpenRouter  (gratuito)")
-        self.rb_gemini      = QRadioButton("Google Gemini  (gratuito)")
+        self.rb_groq        = QRadioButton(tr("Groq  (gratuito)"))
+        self.rb_openrouter  = QRadioButton(tr("OpenRouter  (gratuito)"))
+        self.rb_gemini      = QRadioButton(tr("Google Gemini  (gratuito)"))
         self.rb_openai      = QRadioButton("OpenAI  (GPT-4o)")
         self.rb_anthropic   = QRadioButton("Anthropic Claude")
-        self.rb_ollama      = QRadioButton("Ollama  (local, sin internet)")
-        self.rb_deepseek    = QRadioButton("DeepSeek  (muy económico)")
+        self.rb_ollama      = QRadioButton(tr("Ollama  (local, sin internet)"))
+        self.rb_deepseek    = QRadioButton(tr("DeepSeek  (muy económico)"))
         self.rb_qwen        = QRadioButton("Qwen  (Alibaba)")
 
         _RB_SS = "font-size:12px; background:transparent; border:none;"
@@ -368,7 +369,7 @@ class IAView(QWidget):
         hl_btns = QHBoxLayout()
         hl_btns.setSpacing(8)
 
-        self.btn_probar = QPushButton("Probar conexión")
+        self.btn_probar = QPushButton(tr("Probar conexión"))
         self.btn_probar.setFixedHeight(34)
         self.btn_probar.setStyleSheet(
             f"QPushButton {{ background:#F0F2F5; color:{SLATE_700}; border:1px solid {SILVER_300};"
@@ -389,7 +390,7 @@ class IAView(QWidget):
         hl_btns.addWidget(self.lbl_ia_estado)
 
         hl_btns.addStretch()
-        btn_ia_ok = QPushButton("Guardar")
+        btn_ia_ok = QPushButton(tr("Guardar"))
         btn_ia_ok.setFixedHeight(34)
         btn_ia_ok.setStyleSheet(_BTN_SAVE)
         btn_ia_ok.clicked.connect(self._guardar_ia)
@@ -404,7 +405,7 @@ class IAView(QWidget):
         btn = QPushButton("👁")
         btn.setFixedSize(34, 34)
         btn.setCheckable(True)
-        btn.setToolTip("Mostrar / ocultar clave")
+        btn.setToolTip(tr("Mostrar / ocultar clave"))
         btn.setStyleSheet(
             f"QPushButton {{"
             f"  background:white; color:{SLATE_300};"
@@ -425,10 +426,10 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Groq ofrece modelos abiertos (GPT-OSS 120B, Qwen…) gratis con límite de tokens/minuto.<br>"
             "Obtén tu clave en  <a href='https://console.groq.com/keys'>console.groq.com/keys</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -454,10 +455,10 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Anthropic Claude Haiku: rápido y económico para specs técnicas.<br>"
             "Obtén tu clave en  <a href='https://console.anthropic.com/settings/keys'>console.anthropic.com/settings/keys</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -483,12 +484,12 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "DeepSeek V4-Flash: calidad alta a precio MUY bajo (centavos por "
             "millón de tokens; con descuento adicional en horario valle).<br>"
             "Obtén tu clave en  "
             "<a href='https://platform.deepseek.com/api_keys'>platform.deepseek.com</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -516,11 +517,11 @@ class IAView(QWidget):
             f"QLineEdit {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:0 10px; font-size:11px; }}"
         )
-        form.addRow("Modelo:", self.inp_deepseek_modelo)
+        form.addRow(tr("Modelo:"), self.inp_deepseek_modelo)
         vl.addLayout(form)
 
-        modelos_nota = QLabel(
-            "Modelos: deepseek-v4-flash (recomendado) · deepseek-v4-pro")
+        modelos_nota = QLabel(tr(
+            "Modelos: deepseek-v4-flash (recomendado) · deepseek-v4-pro"))
         modelos_nota.setStyleSheet(
             f"font-size:10px; color:{SLATE_300}; "
             f"background:transparent; border:none;"
@@ -535,12 +536,12 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Qwen (Alibaba) vía Model Studio INTERNACIONAL — la clave del "
             "endpoint de China no funciona aquí.<br>Obtén tu clave en  "
             "<a href='https://modelstudio.console.alibabacloud.com/'>"
             "modelstudio.console.alibabacloud.com</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -568,11 +569,11 @@ class IAView(QWidget):
             f"QLineEdit {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:0 10px; font-size:11px; }}"
         )
-        form.addRow("Modelo:", self.inp_qwen_modelo)
+        form.addRow(tr("Modelo:"), self.inp_qwen_modelo)
         vl.addLayout(form)
 
-        modelos_nota = QLabel(
-            "Modelos: qwen3.6-flash (recomendado) · qwen3.7-plus · qwen3.7-max")
+        modelos_nota = QLabel(tr(
+            "Modelos: qwen3.6-flash (recomendado) · qwen3.7-plus · qwen3.7-max"))
         modelos_nota.setStyleSheet(
             f"font-size:10px; color:{SLATE_300}; "
             f"background:transparent; border:none;"
@@ -587,11 +588,11 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "GPT-4o-mini: muy buena calidad a bajo costo (~$0.15/millón de tokens).<br>"
             "GPT-4o: máxima calidad, más caro. Obtén tu clave en  "
             "<a href='https://platform.openai.com/api-keys'>platform.openai.com/api-keys</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -619,10 +620,10 @@ class IAView(QWidget):
             f"QLineEdit {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:0 10px; font-size:11px; }}"
         )
-        form.addRow("Modelo:", self.inp_openai_modelo)
+        form.addRow(tr("Modelo:"), self.inp_openai_modelo)
         vl.addLayout(form)
 
-        modelos_nota = QLabel("Modelos: gpt-4o-mini (recomendado) · gpt-4o · gpt-4-turbo")
+        modelos_nota = QLabel(tr("Modelos: gpt-4o-mini (recomendado) · gpt-4o · gpt-4-turbo"))
         modelos_nota.setStyleSheet(
             f"font-size:10px; color:{SLATE_300}; "
             f"background:transparent; border:none;"
@@ -636,12 +637,12 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Google Gemini 2.5 Flash es gratuito con límites generosos. Si te quedas "
             "corto, activa facturación en Google AI Studio: la misma clave pasa al "
             "plan de pago, sin cambiar nada aquí.<br>"
             "Obtén tu clave en  <a href='https://aistudio.google.com/app/apikey'>aistudio.google.com/app/apikey</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -670,20 +671,20 @@ class IAView(QWidget):
             f" padding:0 10px; font-size:11px; }}"
         )
         fila_m.addWidget(self.inp_gemini_modelo, 1)
-        self.btn_gemini_modelos = QPushButton("Ver modelos de mi cuenta")
+        self.btn_gemini_modelos = QPushButton(tr("Ver modelos de mi cuenta"))
         self.btn_gemini_modelos.setCursor(Qt.PointingHandCursor)
         self.btn_gemini_modelos.setFixedHeight(32)
-        self.btn_gemini_modelos.setToolTip(
-            "Pregunta a Google qué modelos puede usar tu clave y los pone en la lista.")
+        self.btn_gemini_modelos.setToolTip(tr(
+            "Pregunta a Google qué modelos puede usar tu clave y los pone en la lista."))
         self.btn_gemini_modelos.clicked.connect(self._gemini_ver_modelos)
         fila_m.addWidget(self.btn_gemini_modelos)
-        form.addRow("Modelo:", fila_m)
+        form.addRow(tr("Modelo:"), fila_m)
         vl.addLayout(form)
 
-        self.lbl_gemini_modelos = QLabel(
+        self.lbl_gemini_modelos = QLabel(tr(
             "Con «gemini-2.5-flash» basta para casi todo. Puedes escribir otro "
             "modelo a mano, o pulsar «Ver modelos de mi cuenta» tras pegar la clave."
-        )
+        ))
         self.lbl_gemini_modelos.setWordWrap(True)
         self.lbl_gemini_modelos.setStyleSheet(
             f"font-size:10px; color:{SLATE_300}; "
@@ -695,10 +696,10 @@ class IAView(QWidget):
     def _gemini_ver_modelos(self):
         api_key = self.inp_gemini.text().strip()
         if not api_key:
-            self.lbl_gemini_modelos.setText("Primero pega tu clave de Gemini.")
+            self.lbl_gemini_modelos.setText(tr("Primero pega tu clave de Gemini."))
             return
         self.btn_gemini_modelos.setEnabled(False)
-        self.lbl_gemini_modelos.setText("Consultando a Google…")
+        self.lbl_gemini_modelos.setText(tr("Consultando a Google…"))
         self._worker_gemini = _WorkerModelosGemini(api_key)
         self._worker_gemini.terminado.connect(self._on_gemini_modelos)
         self._worker_gemini.start()
@@ -707,12 +708,14 @@ class IAView(QWidget):
         self.btn_gemini_modelos.setEnabled(True)
         if err or not modelos:
             self.lbl_gemini_modelos.setText(
-                f"No se pudo obtener la lista: {err or 'la cuenta no devolvió modelos'}")
+                tr("No se pudo obtener la lista: {err}").format(
+                    err=err or tr('la cuenta no devolvió modelos')))
             return
         notas = dict(GEMINI_MODELOS)
         self.inp_gemini_modelo.poner([(m, notas.get(m, '')) for m in modelos])
         self.lbl_gemini_modelos.setText(
-            f"{len(modelos)} modelos disponibles con tu clave. Los «flash» estables van primero.")
+            tr("{n} modelos disponibles con tu clave. Los «flash» estables van primero.").format(
+                n=len(modelos)))
 
     def _panel_openrouter(self) -> QWidget:
         w = QWidget()
@@ -720,10 +723,10 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "OpenRouter da acceso a decenas de modelos con una sola clave, incluyendo modelos gratuitos.<br>"
             "Obtén tu clave en  <a href='https://openrouter.ai/keys'>openrouter.ai/keys</a>"
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -745,16 +748,19 @@ class IAView(QWidget):
         # Lista de RESPALDO (si «↺ Actualizar lista» no ha corrido aún).
         # Ids verificados en vivo contra openrouter.ai/api/v1/models
         # (2026-08-18) — la anterior estaba entera retirada del catálogo.
+        _gratis = tr("{name}  [gratis]")
+        _barato = tr("{name}  [pago barato]")
+        _pago = tr("{name}  [pago]")
         _OR_MODELOS = [
-            ("openai/gpt-oss-20b:free",                 "⭐ GPT-OSS 20B  [gratis]"),
-            ("z-ai/glm-5.2:free",                       "⭐ GLM 5.2  [gratis]"),
-            ("nvidia/nemotron-3-super-120b-a12b:free",  "Nemotron 3 Super 120B  [gratis]"),
-            ("google/gemma-4-31b-it:free",              "Gemma 4 31B  [gratis]"),
-            ("deepseek/deepseek-v4-flash-0731",         "DeepSeek V4 Flash  [pago barato]"),
-            ("qwen/qwen3.7-flash",                      "Qwen 3.7 Flash  [pago barato]"),
-            ("google/gemini-3.6-flash",                 "Gemini 3.6 Flash  [pago]"),
-            ("moonshotai/kimi-k3",                      "Kimi K3  [pago]"),
-            ("anthropic/claude-sonnet-5",               "Claude Sonnet 5  [pago]"),
+            ("openai/gpt-oss-20b:free",                 _gratis.format(name="⭐ GPT-OSS 20B")),
+            ("z-ai/glm-5.2:free",                       _gratis.format(name="⭐ GLM 5.2")),
+            ("nvidia/nemotron-3-super-120b-a12b:free",  _gratis.format(name="Nemotron 3 Super 120B")),
+            ("google/gemma-4-31b-it:free",              _gratis.format(name="Gemma 4 31B")),
+            ("deepseek/deepseek-v4-flash-0731",         _barato.format(name="DeepSeek V4 Flash")),
+            ("qwen/qwen3.7-flash",                      _barato.format(name="Qwen 3.7 Flash")),
+            ("google/gemini-3.6-flash",                 _pago.format(name="Gemini 3.6 Flash")),
+            ("moonshotai/kimi-k3",                      _pago.format(name="Kimi K3")),
+            ("anthropic/claude-sonnet-5",               _pago.format(name="Claude Sonnet 5")),
         ]
 
         # Popup styling cubierto por `install_global_popup_styles(app)`.
@@ -772,14 +778,14 @@ class IAView(QWidget):
         )
 
         hl_lbl = QHBoxLayout()
-        lbl_mod = QLabel("Modelo:")
+        lbl_mod = QLabel(tr("Modelo:"))
         lbl_mod.setStyleSheet(
             f"font-size:11px; color:{SLATE_500}; "
             f"background:transparent; border:none;"
         )
         hl_lbl.addWidget(lbl_mod)
         hl_lbl.addStretch()
-        self.btn_or_refresh = QPushButton("↺  Actualizar lista")
+        self.btn_or_refresh = QPushButton("↺  " + tr("Actualizar lista"))
         self.btn_or_refresh.setFixedHeight(24)
         self.btn_or_refresh.setStyleSheet(
             f"QPushButton {{ background:{SILVER_100}; color:{SLATE_500};"
@@ -807,10 +813,10 @@ class IAView(QWidget):
         )
         vl.addWidget(self.lbl_or_modelos)
 
-        modelos_nota = QLabel(
+        modelos_nota = QLabel(tr(
             "También puede escribir cualquier modelo de "
             "<a href='https://openrouter.ai/models?q=free'>openrouter.ai/models</a>"
-        )
+        ))
         modelos_nota.setWordWrap(True)
         modelos_nota.setStyleSheet(
             f"font-size:10px; color:{SLATE_300}; "
@@ -826,11 +832,11 @@ class IAView(QWidget):
         vl.setContentsMargins(0, 4, 0, 0)
         vl.setSpacing(8)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Ollama ejecuta modelos de IA localmente, sin internet ni costo.<br>"
             "Instala Ollama desde  <a href='https://ollama.com'>ollama.com</a>"
             "  y descarga un modelo (ej: <code>ollama pull llama3.2</code>)."
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(_NOTE_SS)
         nota.setOpenExternalLinks(True)
@@ -846,7 +852,7 @@ class IAView(QWidget):
             f"QLineEdit {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:0 10px; font-size:12px; }}"
         )
-        form.addRow("URL del servidor:", self.inp_ollama_url)
+        form.addRow(tr("URL del servidor:"), self.inp_ollama_url)
 
         self.inp_ollama_modelo = QLineEdit()
         self.inp_ollama_modelo.setPlaceholderText("llama3.2")
@@ -855,13 +861,13 @@ class IAView(QWidget):
             f"QLineEdit {{ border:1px solid {SILVER_300}; border-radius:6px;"
             f" padding:0 10px; font-size:12px; }}"
         )
-        form.addRow("Modelo:", self.inp_ollama_modelo)
+        form.addRow(tr("Modelo:"), self.inp_ollama_modelo)
         vl.addLayout(form)
 
-        modelos_nota = QLabel(
+        modelos_nota = QLabel(tr(
             "Modelos recomendados: llama3.2 · mistral · phi3 · gemma3\n"
             "Para specs técnicas se recomienda un modelo de 7B parámetros o mayor."
-        )
+        ))
         modelos_nota.setWordWrap(True)
         modelos_nota.setStyleSheet(
             f"font-size:10px; color:{SLATE_300}; "
@@ -963,7 +969,7 @@ class IAView(QWidget):
             f"font-size:11px; color:{SLATE_300}; "
             f"background:transparent; border:none;"
         )
-        self.lbl_ia_estado.setText("Probando conexión…")
+        self.lbl_ia_estado.setText(tr("Probando conexión…"))
 
         prov    = self._proveedor_seleccionado()
         api_key = self._api_key_actual()
@@ -994,8 +1000,8 @@ class IAView(QWidget):
 
     def _actualizar_modelos_or(self):
         self.btn_or_refresh.setEnabled(False)
-        self.btn_or_refresh.setText("↺  Cargando…")
-        self.lbl_or_modelos.setText("Consultando openrouter.ai…")
+        self.btn_or_refresh.setText("↺  " + tr("Cargando…"))
+        self.lbl_or_modelos.setText(tr("Consultando openrouter.ai…"))
         api_key = self.inp_openrouter.text().strip()
         self._worker_modelos = _WorkerModelos(api_key)
         self._worker_modelos.terminado.connect(self._on_modelos_or)
@@ -1003,13 +1009,13 @@ class IAView(QWidget):
 
     def _on_modelos_or(self, modelos: list, error: str):
         self.btn_or_refresh.setEnabled(True)
-        self.btn_or_refresh.setText("↺  Actualizar lista")
+        self.btn_or_refresh.setText("↺  " + tr("Actualizar lista"))
         if error:
             self.lbl_or_modelos.setStyleSheet(
                 f"font-size:10px; color:{RED}; "
                 f"background:transparent; border:none;"
             )
-            self.lbl_or_modelos.setText(f"Error: {error}")
+            self.lbl_or_modelos.setText(tr("Error: {err}").format(err=error))
             return
 
         modelo_actual = self._openrouter_modelo_id()
@@ -1018,11 +1024,11 @@ class IAView(QWidget):
         n_gratis = 0
         for mid, name, es_gratis, price_in, price_out in modelos:
             if es_gratis:
-                etiqueta = f"⭐ {name}  [gratis]"
+                etiqueta = "⭐ " + tr("{name}  [gratis]").format(name=name)
                 n_gratis += 1
             else:
                 costo = price_in * 1_000_000
-                etiqueta = f"{name}  [${costo:.2f}/M tokens]"
+                etiqueta = tr("{name}  [${costo:.2f}/M tokens]").format(name=name, costo=costo)
             self.inp_openrouter_modelo.addItem(etiqueta, userData=mid)
 
         idx = self.inp_openrouter_modelo.findData(modelo_actual)
@@ -1037,7 +1043,8 @@ class IAView(QWidget):
             f"background:transparent; border:none;"
         )
         self.lbl_or_modelos.setText(
-            f"✓  {n_total} modelos cargados  ·  {n_gratis} gratuitos"
+            "✓  " + tr("{n_total} modelos cargados  ·  {n_gratis} gratuitos").format(
+                n_total=n_total, n_gratis=n_gratis)
         )
 
     def _openrouter_modelo_id(self) -> str:
@@ -1076,6 +1083,6 @@ class IAView(QWidget):
             f"background:transparent; border:none;"
         )
         self.lbl_ia_estado.setText(
-            "✓  Guardado. Cada proveedor recuerda su clave — cambia de "
-            "proveedor y guarda para usarlo."
+            "✓  " + tr("Guardado. Cada proveedor recuerda su clave — cambia de "
+                       "proveedor y guarda para usarlo.")
         )

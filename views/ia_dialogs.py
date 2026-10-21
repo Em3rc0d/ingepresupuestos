@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.ai_specs import validar_proyecto, chat_proyecto_asistente
+from utils.i18n import tr
 
 SLATE_700  = "#273445"
 SLATE_500  = "#485A6C"
@@ -54,7 +55,7 @@ class ValidadorDialog(QDialog):
     def __init__(self, proyecto_id: int, proyecto_nombre: str, parent=None):
         super().__init__(parent)
         self.proyecto_id = proyecto_id
-        self.setWindowTitle("Revisor de proyecto con IA")
+        self.setWindowTitle(tr("Revisor de proyecto con IA"))
         self.setWindowModality(Qt.WindowModal)
         self.setWindowFlags(
             Qt.Window | Qt.WindowCloseButtonHint
@@ -68,17 +69,17 @@ class ValidadorDialog(QDialog):
         root.setSpacing(12)
 
         # Header
-        ttl = QLabel("Revisor de proyecto con IA")
+        ttl = QLabel(tr("Revisor de proyecto con IA"))
         ttl.setStyleSheet(
             f"color:{SLATE_700}; font-size:16px; font-weight:700; "
             f"background:transparent;"
         )
         root.addWidget(ttl)
 
-        sub = QLabel(
-            f"Proyecto: <b>{proyecto_nombre}</b> &nbsp;·&nbsp; "
-            f"La IA buscará inconsistencias, faltantes y oportunidades de mejora."
-        )
+        sub = QLabel(tr(
+            "Proyecto: <b>{nombre}</b> &nbsp;·&nbsp; "
+            "La IA buscará inconsistencias, faltantes y oportunidades de mejora."
+        ).format(nombre=proyecto_nombre))
         sub.setWordWrap(True)
         sub.setStyleSheet(f"color:{SLATE_300}; font-size:12px;")
         root.addWidget(sub)
@@ -95,7 +96,7 @@ class ValidadorDialog(QDialog):
         cv.setContentsMargins(16, 14, 16, 14)
         cv.setSpacing(8)
 
-        self.lbl_estado = QLabel("Analizando proyecto con IA…")
+        self.lbl_estado = QLabel(tr("Analizando proyecto con IA…"))
         self.lbl_estado.setStyleSheet(
             f"color:{SLATE_500}; font-size:12px; background:transparent;"
         )
@@ -115,7 +116,7 @@ class ValidadorDialog(QDialog):
         # Barra de acciones
         hl = QHBoxLayout()
         hl.setSpacing(8)
-        self.btn_repetir = QPushButton("Volver a analizar")
+        self.btn_repetir = QPushButton(tr("Volver a analizar"))
         self.btn_repetir.setCursor(Qt.PointingHandCursor)
         self.btn_repetir.setFixedHeight(34)
         self.btn_repetir.setEnabled(False)
@@ -130,7 +131,7 @@ class ValidadorDialog(QDialog):
         self.btn_repetir.clicked.connect(self._iniciar)
         hl.addWidget(self.btn_repetir)
         hl.addStretch(1)
-        btn_close = QPushButton("Cerrar")
+        btn_close = QPushButton(tr("Cerrar"))
         btn_close.setCursor(Qt.PointingHandCursor)
         btn_close.setFixedHeight(34)
         from utils.theme import BTN_PRIMARY_SS
@@ -147,9 +148,9 @@ class ValidadorDialog(QDialog):
         self.lbl_estado.setStyleSheet(
             f"color:{SLATE_500}; font-size:12px; background:transparent;"
         )
-        self.lbl_estado.setText(
+        self.lbl_estado.setText(tr(
             "Analizando proyecto con IA — esto puede tomar 10-30 segundos…"
-        )
+        ))
         self.txt_informe.setMarkdown("")
         self._worker = _WorkerValidar(self.proyecto_id, parent=self)
         self._worker.terminado.connect(self._on_terminado)
@@ -161,12 +162,12 @@ class ValidadorDialog(QDialog):
             self.lbl_estado.setStyleSheet(
                 f"color:{RED}; font-size:12px; background:transparent;"
             )
-            self.lbl_estado.setText(f"✗  Error: {err}")
+            self.lbl_estado.setText("✗  " + tr("Error: {err}").format(err=err))
             return
         self.lbl_estado.setStyleSheet(
             f"color:{GREEN}; font-size:12px; background:transparent;"
         )
-        self.lbl_estado.setText("✓  Informe generado.")
+        self.lbl_estado.setText("✓  " + tr("Informe generado."))
         self.txt_informe.setMarkdown(informe)
 
     def done(self, code):
@@ -215,7 +216,7 @@ class AsistenteDialog(QDialog):
     def __init__(self, proyecto_id: int, proyecto_nombre: str, parent=None):
         super().__init__(parent)
         self.proyecto_id = proyecto_id
-        self.setWindowTitle("Asistente IA del proyecto")
+        self.setWindowTitle(tr("Asistente IA del proyecto"))
         self.setWindowModality(Qt.WindowModal)
         self.setWindowFlags(
             Qt.Window | Qt.WindowCloseButtonHint
@@ -232,17 +233,17 @@ class AsistenteDialog(QDialog):
         root.setSpacing(12)
 
         # Header
-        ttl = QLabel("Asistente IA del proyecto")
+        ttl = QLabel(tr("Asistente IA del proyecto"))
         ttl.setStyleSheet(
             f"color:{SLATE_700}; font-size:16px; font-weight:700; "
             f"background:transparent;"
         )
         root.addWidget(ttl)
 
-        sub = QLabel(
-            f"Proyecto: <b>{proyecto_nombre}</b> &nbsp;·&nbsp; "
-            f"Pregunta lo que necesites sobre presupuesto, partidas, insumos."
-        )
+        sub = QLabel(tr(
+            "Proyecto: <b>{nombre}</b> &nbsp;·&nbsp; "
+            "Pregunta lo que necesites sobre presupuesto, partidas, insumos."
+        ).format(nombre=proyecto_nombre))
         sub.setWordWrap(True)
         sub.setStyleSheet(f"color:{SLATE_300}; font-size:12px;")
         root.addWidget(sub)
@@ -278,9 +279,9 @@ class AsistenteDialog(QDialog):
         sug = QHBoxLayout()
         sug.setSpacing(6)
         for txt in (
-            "¿Cuál es la partida más cara?",
-            "Resumen de insumos críticos",
-            "¿Dónde puedo optimizar costos?",
+            tr("¿Cuál es la partida más cara?"),
+            tr("Resumen de insumos críticos"),
+            tr("¿Dónde puedo optimizar costos?"),
         ):
             b = QPushButton(txt)
             b.setCursor(Qt.PointingHandCursor)
@@ -301,7 +302,7 @@ class AsistenteDialog(QDialog):
         hl_in = QHBoxLayout()
         hl_in.setSpacing(8)
         self.inp = QLineEdit()
-        self.inp.setPlaceholderText("Escribe tu pregunta y pulsa Enter…")
+        self.inp.setPlaceholderText(tr("Escribe tu pregunta y pulsa Enter…"))
         self.inp.setFixedHeight(38)
         self.inp.setStyleSheet(
             f"QLineEdit {{ background:{WHITE}; "
@@ -311,7 +312,7 @@ class AsistenteDialog(QDialog):
         self.inp.returnPressed.connect(self._on_enviar_clicked)
         hl_in.addWidget(self.inp, 1)
 
-        self.btn_send = QPushButton("Enviar")
+        self.btn_send = QPushButton(tr("Enviar"))
         self.btn_send.setCursor(Qt.PointingHandCursor)
         self.btn_send.setFixedHeight(38)
         from utils.theme import BTN_PRIMARY_SS
@@ -322,8 +323,8 @@ class AsistenteDialog(QDialog):
 
         # Mensaje de bienvenida
         self._burbuja(
-            "Hola. Tengo cargado el contexto de tu proyecto. "
-            "¿En qué te puedo ayudar?",
+            tr("Hola. Tengo cargado el contexto de tu proyecto. "
+               "¿En qué te puedo ayudar?"),
             es_usuario=False
         )
 
@@ -349,7 +350,7 @@ class AsistenteDialog(QDialog):
         v = QVBoxLayout(b)
         v.setContentsMargins(12, 8, 12, 10)
         v.setSpacing(2)
-        rol = QLabel("Tú" if es_usuario else "Asistente")
+        rol = QLabel(tr("Tú") if es_usuario else tr("Asistente"))
         rol.setStyleSheet(
             f"color:{ORANGE_DRK if es_usuario else SLATE_300}; "
             f"font-size:10px; font-weight:700; "
@@ -386,7 +387,7 @@ class AsistenteDialog(QDialog):
             return
         self._burbuja(texto, es_usuario=True)
         self._historial.append({'rol': 'usuario', 'texto': texto})
-        self._lbl_pensando = self._burbuja("Pensando…", es_usuario=False)
+        self._lbl_pensando = self._burbuja(tr("Pensando…"), es_usuario=False)
         self.btn_send.setEnabled(False)
         self.inp.setEnabled(False)
 
@@ -403,7 +404,7 @@ class AsistenteDialog(QDialog):
         self.inp.setFocus()
 
         if err:
-            self._lbl_pensando.setText(f"✗  Error: {err}")
+            self._lbl_pensando.setText("✗  " + tr("Error: {err}").format(err=err))
             self._lbl_pensando.setStyleSheet(
                 f"color:{RED}; font-size:13px; "
                 f"background:transparent; border:none;"
