@@ -88,8 +88,9 @@ modules:
       - install -Dm755 installer/flatpak/flatpak-launcher.sh ${FLATPAK_DEST}/bin/ingepresupuestos
       # 4. Integración de escritorio
       - install -Dm644 installer/flatpak/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      # Solo el PNG: ingepresupuesto-icon.svg mide 147×121 y flatpak-builder
+      # rechaza un icono que no sea cuadrado (tumbó el Flatpak de la 3.0.18).
       - install -Dm644 resources/icons/elementary/24/ingepresupuestos.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png
-      - install -Dm644 ingepresupuesto-icon.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
       - install -Dm644 installer/flatpak/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
       # 5. Tipo MIME de los presupuestos (.db) con su icono de documento.
       #    Flatpak solo exporta iconos cuyo nombre empieza por el id de la
