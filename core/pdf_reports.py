@@ -709,6 +709,15 @@ def _base_css(formato: dict | None = None) -> str:
     padding-left: 12pt; padding-right: 16pt;
   }}
   table.data td.c {{ text-align: center; }}
+  /* ACU con aire (issue #31): letra y filas algo mayores, rótulo por tipo */
+  table.data.acu {{ font-size: 9pt; }}
+  table.data.acu td {{ padding: 5pt 6pt; }}
+  table.data.acu tr.acu-grupo td {{
+    background: white; border: none;
+    border-bottom: 0.6pt solid {SLATE_300};
+    padding: 7pt 6pt 3pt 6pt;
+    font-size: 7.5pt; font-weight: 700; letter-spacing: 0.6pt;
+  }}
   /* Títulos jerárquicos — sin fondo oscuro, solo bordes y peso de texto */
   /* Colores de fuente por nivel = espejo del programa (NIVEL_ESTILO en
      proyecto_view.py): N1 rojo, N2 arándano, N3 morado, N4 rosa. */
@@ -1162,6 +1171,12 @@ def _html_presupuesto(pid: int, proy: dict, items: list, totales: dict, *,
     return "\n".join(parts)
 
 
+_ACU_TIPO_LABEL = {'MO': 'Mano de obra', 'MAT': 'Materiales',
+                   'EQ': 'Equipos', 'SC': 'Sub-contratos'}
+_ACU_TIPO_COLOR = {'MO': MO_COLOR, 'MAT': MAT_COLOR,
+                   'EQ': EQ_COLOR, 'SC': SC_COLOR}
+
+
 def _html_acus(pid: int, proy: dict, items: list) -> str:
     o, od, _os = _brand_colors()
     sym = _moneda_simbolo(proy.get('moneda') or 'Soles')
@@ -1210,27 +1225,44 @@ def _html_acus(pid: int, proy: dict, items: list) -> str:
             )
             continue
 
+        # Un bloque por tipo con su rótulo y aire entre bloques: antes iban
+        # todos los recursos en una sola lista, distinguidos solo por la
+        # etiqueta de color, y el ACU se leía «muy comprimido» (pedido de un
+        # usuario de Chile, issue #31). Los subtotales siguen juntos al final.
+        grupos = {}
+        for it in acu_items:
+            grupos.setdefault(it.get('tipo') or 'MAT', []).append(it)
+        orden = [k for k in ('MO', 'MAT', 'EQ', 'SC') if k in grupos]
+        orden += [k for k in grupos if k not in orden]
         rows = []
-        for j, it in enumerate(acu_items):
-            tipo = it.get('tipo') or 'MAT'
-            pill_cls = {'MO': 'pill-mo', 'MAT': 'pill-mat',
-                        'EQ': 'pill-eq', 'SC': 'pill-sc'}.get(tipo, 'pill-mat')
-            cls = "alt" if (j % 2) else ""
+        for g, tipo in enumerate(orden):
+            if g:
+                rows.append('<tr class="spacer"><td colspan="7" '
+                            'style="font-size:5pt">&nbsp;</td></tr>')
+            color = _ACU_TIPO_COLOR.get(tipo, SLATE_700)
             rows.append(
-                f'<tr class="{cls}">'
-                f'<td><span class="pill {pill_cls}">{escape(tipo)}</span></td>'
-                f'<td>{escape(it.get("descripcion") or "")}</td>'
-                f'<td class="c">{escape(it.get("unidad") or "")}</td>'
-                f'<td class="r">{_fmt_cuadrilla(it)}</td>'
-                f'<td class="r">{_fmt(it.get("cantidad"), get_decimales_cant_acu(tipo))}</td>'
-                f'<td class="r">{_fmt(it.get("precio"), dec)}</td>'
-                f'<td class="r">{_fmt(it.get("parcial"), dec)}</td>'
-                f'</tr>'
-            )
+                f'<tr class="acu-grupo"><td colspan="7" style="color:{color}">'
+                f'{escape(_ACU_TIPO_LABEL.get(tipo, tipo).upper())}</td></tr>')
+            for j, it in enumerate(grupos[tipo]):
+                pill_cls = {'MO': 'pill-mo', 'MAT': 'pill-mat',
+                            'EQ': 'pill-eq', 'SC': 'pill-sc'}.get(tipo, 'pill-mat')
+                cls = "alt" if (j % 2) else ""
+                rows.append(
+                    f'<tr class="{cls}">'
+                    f'<td><span class="pill {pill_cls}">{escape(tipo)}</span></td>'
+                    f'<td>{escape(it.get("descripcion") or "")}</td>'
+                    f'<td class="c">{escape(it.get("unidad") or "")}</td>'
+                    f'<td class="r">{_fmt_cuadrilla(it)}</td>'
+                    f'<td class="r">{_fmt(it.get("cantidad"), get_decimales_cant_acu(tipo))}</td>'
+                    f'<td class="r">{_fmt(it.get("precio"), dec)}</td>'
+                    f'<td class="r">{_fmt(it.get("parcial"), dec)}</td>'
+                    f'</tr>'
+                )
+        rows.append('<tr class="spacer"><td colspan="7" '
+                    'style="font-size:6pt">&nbsp;</td></tr>')
         # Subtotales por tipo
         sub_rows = []
-        for k, label in [('MO', 'Mano de obra'), ('MAT', 'Materiales'),
-                         ('EQ', 'Equipos'), ('SC', 'Sub-contratos')]:
+        for k, label in _ACU_TIPO_LABEL.items():
             v = totales_tipo.get(k, 0)
             if v:
                 sub_rows.append(
@@ -1258,7 +1290,7 @@ def _html_acus(pid: int, proy: dict, items: list) -> str:
         # exactamente las mismas proporciones en cada partida → todas las
         # tablas ACU quedan alineadas verticalmente entre partidas.
         data_table = (
-            '<table class="data" width="100%">'
+            '<table class="data acu" width="100%">'
             '<thead><tr>'
             '<th width="7%">Tipo</th>'
             '<th width="38%">Recurso</th>'

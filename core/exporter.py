@@ -1290,6 +1290,18 @@ def exportar_acus(proyecto_id):
                 continue
             tipo_color = TIPO_FG[tipo]
 
+            # Rótulo del bloque y aire entre bloques (issue #31), espejo del
+            # `tr.acu-grupo` del PDF.
+            if recurso_idx:
+                ws.row_dimensions[r].height = 8
+                r += 1
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=N)
+            c_g = ws.cell(r, 1, TIPO_LABEL[tipo].upper())
+            c_g.font = Font(name='Inter', bold=True, size=9, color=tipo_color)
+            c_g.alignment = Alignment(horizontal='left', vertical='bottom')
+            ws.row_dimensions[r].height = 18
+            r += 1
+
             for it in tipo_items:
                 # `parcial`, `precio` y `cantidad` vienen ya calculados por
                 # `get_acu_items` (incluye el caso `%MO`/`%MAT` donde el
@@ -1349,6 +1361,9 @@ def exportar_acus(proyecto_id):
                 ws.row_dimensions[r].height = max(16, _alto_fila(
                     it['descripcion'] or '', 38))
                 r += 1
+
+        ws.row_dimensions[r].height = 8
+        r += 1
 
         # ── Subtotales agrupados al final (espejo del PDF) ──────────────────
         # Después de TODAS las filas de datos, listar Mano de obra, Materiales,
