@@ -252,6 +252,28 @@ def _add_heading(doc: Document, texto: str, *, size: int = 14,
     run.bold = bold
 
 
+def _franja_docx(parrafo, b64: str, ancho_cm: float, alto_max_mm: float):
+    """Pone una franja de imagen (issue #14) centrada en `parrafo`: llena el
+    ancho útil sin deformarse y sin pasar de `alto_max_mm`, como en el PDF."""
+    import base64 as _b64
+    from io import BytesIO as _BIO
+    from docx.image.image import Image as _DocxImage
+    from docx.shared import Mm as _Mm
+    blob = _b64.b64decode(b64)
+    img = _DocxImage.from_blob(blob)
+    ancho_mm = ancho_cm * 10.0
+    alto_mm = ancho_mm * img.px_height / max(1, img.px_width)
+    parrafo.text = ''
+    parrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    parrafo.paragraph_format.space_before = Pt(0)
+    parrafo.paragraph_format.space_after = Pt(0)
+    run = parrafo.add_run()
+    if alto_mm > alto_max_mm:
+        run.add_picture(_BIO(blob), height=_Mm(alto_max_mm))
+    else:
+        run.add_picture(_BIO(blob), width=_Mm(ancho_mm))
+
+
 def _add_header_marca(doc: Document, proy: dict, titulo: str):
     """Encabezado de página: 3 columnas (empresa | título+proyecto | costo+modalidad).
     Espejo del `_draw_header` del PDF. Ancho ADAPTATIVO al tamaño/orientación
@@ -263,6 +285,16 @@ def _add_header_marca(doc: Document, proy: dict, titulo: str):
         return          # «Imprimir el encabezado» apagado en Editar formato
     section = doc.sections[0]
     header = section.header
+    from core.pdf_reports import (FRANJA_CABECERA_MAX_MM, get_formato as _get_fmt,
+                                  franja_cabecera as _franja_cab)
+    _fmt_fr = _get_fmt()
+    if _franja_cab(_fmt_fr) is not None:
+        # Franja de imagen de la empresa (issue #14): reemplaza al encabezado.
+        ancho_cm = (section.page_width - section.left_margin
+                    - section.right_margin) / 360000
+        _franja_docx(header.paragraphs[0], _fmt_fr['rep_cabecera_img_b64'],
+                     ancho_cm, FRANJA_CABECERA_MAX_MM)
+        return
     # Limpiar el primer párrafo default
     if header.paragraphs:
         p0 = header.paragraphs[0]
@@ -423,6 +455,45 @@ def _add_footer(doc: Document, proy: dict):
                        - section.right_margin) / 360000
     L_W = C_W = R_W = ancho_util_cm / 3.0
 
+    # «Página X de N» con campos PAGE / NUMPAGES (ranura derecha del pie).
+    def _campo(run, instr_text: str):
+        rEl = run._r
+        for kind in ('begin', None, 'end'):
+            if kind in ('begin', 'end'):
+                fc = _OE('w:fldChar')
+                fc.set(_qn('w:fldCharType'), kind)
+                rEl.append(fc)
+            else:
+                it = _OE('w:instrText')
+                it.set(_qn('xml:space'), 'preserve')
+                it.text = instr_text
+                rEl.append(it)
+    def _runs_pagina(p_der):
+        r_pre = p_der.add_run("Página ")
+        r_pre.font.size = Pt(7); r_pre.font.color.rgb = _SLATE_500
+        r_pg = p_der.add_run()
+        r_pg.font.size = Pt(7); r_pg.font.color.rgb = _SLATE_500
+        _campo(r_pg, ' PAGE ')
+        r_de = p_der.add_run(' de ')
+        r_de.font.size = Pt(7); r_de.font.color.rgb = _SLATE_500
+        r_n = p_der.add_run()
+        r_n.font.size = Pt(7); r_n.font.color.rgb = _SLATE_500
+        _campo(r_n, ' NUMPAGES ')
+
+    # Franja de imagen de la empresa (issue #14): reemplaza al pie de texto;
+    # el número de página queda encima, a la derecha.
+    from core.pdf_reports import (FRANJA_PIE_MAX_MM, franja_pie as _franja_pie,
+                                  get_formato as _get_fmt, _oculto)
+    _fmt = _get_fmt()
+    if _franja_pie(_fmt) is not None:
+        p_pag = footer.paragraphs[0]
+        p_pag.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        if not _oculto(_fmt, 'rep_pie_der_oculto'):
+            _runs_pagina(p_pag)
+        _franja_docx(footer.add_paragraph(), _fmt['rep_pie_img_b64'],
+                     ancho_util_cm, FRANJA_PIE_MAX_MM)
+        return
+
     tbl = footer.add_table(rows=1, cols=3, width=Cm(ancho_util_cm))
     tbl.autofit = False
     _set_table_fixed_layout(tbl, [L_W, C_W, R_W])
@@ -456,30 +527,6 @@ def _add_footer(doc: Document, proy: dict):
     _set_cell(cell_l, f"Cliente: {cliente}" if cliente else "", align='left')
     # CENTRO: fecha
     p_c = _set_cell(cell_c, fecha, align='center')
-    # DER: Página X de N — campos PAGE / NUMPAGES
-    def _campo(run, instr_text: str):
-        rEl = run._r
-        for kind in ('begin', None, 'end'):
-            if kind in ('begin', 'end'):
-                fc = _OE('w:fldChar')
-                fc.set(_qn('w:fldCharType'), kind)
-                rEl.append(fc)
-            else:
-                it = _OE('w:instrText')
-                it.set(_qn('xml:space'), 'preserve')
-                it.text = instr_text
-                rEl.append(it)
-    def _runs_pagina(p_der):
-        r_pre = p_der.add_run("Página ")
-        r_pre.font.size = Pt(7); r_pre.font.color.rgb = _SLATE_500
-        r_pg = p_der.add_run()
-        r_pg.font.size = Pt(7); r_pg.font.color.rgb = _SLATE_500
-        _campo(r_pg, ' PAGE ')
-        r_de = p_der.add_run(' de ')
-        r_de.font.size = Pt(7); r_de.font.color.rgb = _SLATE_500
-        r_n = p_der.add_run()
-        r_n.font.size = Pt(7); r_n.font.color.rgb = _SLATE_500
-        _campo(r_n, ' NUMPAGES ')
     _set_cell(cell_r, "", align='right', run_setup=_runs_pagina)
 
     # Línea horizontal sutil arriba de la tabla del pie (espejo del PDF

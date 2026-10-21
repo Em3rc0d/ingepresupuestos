@@ -136,6 +136,7 @@ class FormatoReporteDialog(QDialog):
         self._seccion("🔤", "Colores de títulos", self._pagina_titulos())
         self._seccion("📄", "Página y texto", self._pagina_pagina())
         self._seccion("📝", "Encabezado y pie", self._pagina_encabezado_pie())
+        self._seccion("🪧", "Franjas de imagen", self._pagina_franjas())
 
         self._menu.currentRowChanged.connect(self._paginas.setCurrentIndex)
         self._menu.currentRowChanged.connect(self._recordar_seccion)
@@ -735,6 +736,101 @@ class FormatoReporteDialog(QDialog):
         lay.addStretch(1)
         return pagina
 
+    # ── Sección: Franjas de imagen (issue #14) ──
+    # Clave del formato → (título, para qué sirve). La imagen REEMPLAZA a su
+    # banda de texto (decisión de Marco, 21-10-2026).
+    _FRANJAS = (
+        ('rep_cabecera_img_b64', "Franja de cabecera",
+         "Reemplaza al encabezado de texto (logo, razón social y título)."),
+        ('rep_pie_img_b64', "Franja de pie",
+         "Reemplaza a los textos del pie; el número de página sigue, "
+         "encima de la franja."),
+    )
+    # Ancho máximo al que se guarda la imagen: sobra para A3 apaisado y no
+    # infla la base de datos con una foto de 6000 px.
+    _FRANJA_MAX_PX = 2400
+
+    def _pagina_franjas(self) -> QWidget:
+        pagina, lay = self._pagina_base(
+            "Franjas de imagen",
+            "El membrete de tu empresa arriba y su tira de logos abajo, a todo "
+            "el ancho de la página.")
+        self._franja_widgets = {}
+        for clave, titulo, ayuda in self._FRANJAS:
+            lay.addWidget(self._section_title(titulo))
+            fila = QHBoxLayout()
+            lbl = QLabel()
+            lbl.setFixedSize(360, 60)
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet(
+                f"background:{WHITE}; border:1px dashed {SLATE_100};"
+                f" border-radius:6px; color:{SLATE_300}; font-size:11px;")
+            fila.addWidget(lbl)
+            btns = QVBoxLayout()
+            btns.setSpacing(6)
+            btn_elegir = QPushButton("Elegir imagen…")
+            btn_elegir.setCursor(Qt.PointingHandCursor)
+            btn_elegir.setStyleSheet(self._btn_ss())
+            btn_elegir.clicked.connect(lambda _=False, c=clave: self._elegir_franja(c))
+            btns.addWidget(btn_elegir)
+            btn_quitar = QPushButton("Quitar")
+            btn_quitar.setCursor(Qt.PointingHandCursor)
+            btn_quitar.setStyleSheet(self._btn_ss(danger=True))
+            btn_quitar.clicked.connect(lambda _=False, c=clave: self._poner_franja(c, ''))
+            btns.addWidget(btn_quitar)
+            btns.addStretch(1)
+            fila.addLayout(btns)
+            fila.addStretch(1)
+            lay.addLayout(fila)
+            lay.addWidget(self._hint(ayuda))
+            self._franja_widgets[clave] = (lbl, btn_quitar)
+        lay.addWidget(self._hint(
+            "Recomendado: PNG o JPG de unos 2000 px de ancho. La franja llena "
+            "el ancho útil sin deformarse; si es muy alta se achica (hasta "
+            f"{int(pdf_reports.FRANJA_CABECERA_MAX_MM)} mm arriba y "
+            f"{int(pdf_reports.FRANJA_PIE_MAX_MM)} mm abajo). Sale en PDF, "
+            "Gantt, Curva S y Word; en Excel solo la de cabecera. Con el "
+            "encabezado o el pie apagados en «Encabezado y pie» no se imprime."
+        ))
+        lay.addStretch(1)
+        return pagina
+
+    def _elegir_franja(self, clave: str):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar imagen", os.path.expanduser("~"),
+            "Imágenes (*.png *.jpg *.jpeg *.bmp)")
+        if not path:
+            return
+        img = QImage(path)
+        if img.isNull():
+            QMessageBox.critical(self, "Franja de imagen",
+                                 "No se pudo leer la imagen.")
+            return
+        if img.width() > self._FRANJA_MAX_PX:
+            img = img.scaledToWidth(self._FRANJA_MAX_PX, Qt.SmoothTransformation)
+        from PySide6.QtCore import QBuffer, QIODevice
+        ba = QByteArray()
+        buf = QBuffer(ba)
+        buf.open(QIODevice.WriteOnly)
+        img.save(buf, "PNG")
+        self._poner_franja(clave, bytes(ba.toBase64()).decode('ascii'))
+
+    def _poner_franja(self, clave: str, b64: str):
+        """Guarda la franja en el formato (vacía = quitarla) y la muestra."""
+        self._formato[clave] = b64
+        lbl, btn_quitar = self._franja_widgets[clave]
+        img = QImage()
+        if b64 and img.loadFromData(QByteArray.fromBase64(b64.encode('ascii'))):
+            lbl.setPixmap(QPixmap.fromImage(img.scaled(
+                lbl.width() - 2, lbl.height() - 2,
+                Qt.KeepAspectRatio, Qt.SmoothTransformation)))
+            lbl.setText("")
+            btn_quitar.setEnabled(True)
+        else:
+            lbl.setPixmap(QPixmap())
+            lbl.setText("Sin imagen" if not b64 else "Imagen inválida")
+            btn_quitar.setEnabled(bool(b64))
+
     def _on_pie_toggled(self, on: bool):
         for w in (self.inp_pie_izq, self.chk_pie_izq, self.inp_pie_cen,
                   self.chk_pie_cen, self.inp_pie_der, self.chk_pie_der,
@@ -866,6 +962,8 @@ class FormatoReporteDialog(QDialog):
         self.spn_margen_der.setValue(int(round(mm['der'])))
         self._on_margen()
         self._update_logo_preview(f.get('rep_logo_b64') or '')
+        for clave, _t, _a in self._FRANJAS:
+            self._poner_franja(clave, f.get(clave) or '')
 
     # ─── Logo ────────────────────────────────────────────────────────────────
 

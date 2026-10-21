@@ -96,6 +96,12 @@ FORMATO_CLAVES = {
     # guardados por el usuario (JSON). Ver ESQUEMAS_FABRICA.
     'rep_esquema_titulos':  'clasico',
     'rep_esquemas_titulos': '',
+    # Franjas de imagen de la empresa (issue #14): su membrete arriba y su
+    # tira de logos abajo, PNG/JPG en base64. Cada una REEMPLAZA a su banda
+    # de texto (decisión de Marco, 21-10-2026); en el pie, el número de
+    # página sigue saliendo encima de la franja. Vacías = como siempre.
+    'rep_cabecera_img_b64': '',
+    'rep_pie_img_b64':      '',
 }
 
 # ── Colores de los títulos de los reportes ───────────────────────────────────
@@ -364,7 +370,44 @@ def _rect_logo(img, box_w: float, box_h: float) -> tuple[float, float]:
 
 def cargar_logo(formato: dict):
     """QImage del logo configurado, o None. Centraliza el decode base64."""
-    b64 = (formato.get('rep_logo_b64') or '').strip()
+    return _cargar_imagen(formato, 'rep_logo_b64')
+
+
+# Alto máximo de las franjas de imagen (issue #14), en mm de papel A4. La
+# franja ocupa el ancho útil de la página y su alto sale de la proporción de
+# la imagen; si pasa de este tope se achica entera (sin deformarse) y queda
+# centrada. 30 mm arriba es un membrete holgado; 20 mm abajo, una tira.
+FRANJA_CABECERA_MAX_MM = 30.0
+FRANJA_PIE_MAX_MM = 20.0
+
+
+def franja_cabecera(formato: dict | None = None):
+    """QImage de la franja que reemplaza al encabezado, o None (sin franja, o
+    con el encabezado apagado: apagar manda sobre todo)."""
+    f = formato if formato is not None else get_formato()
+    if _oculto(f, 'rep_encabezado_oculto'):
+        return None
+    return _cargar_imagen(f, 'rep_cabecera_img_b64')
+
+
+def franja_pie(formato: dict | None = None):
+    """QImage de la franja del pie, o None (ver `franja_cabecera`)."""
+    f = formato if formato is not None else get_formato()
+    if _oculto(f, 'rep_pie_oculto'):
+        return None
+    return _cargar_imagen(f, 'rep_pie_img_b64')
+
+
+def rect_franja(img, x: float, ancho: float, alto_max: float) -> tuple[float, float, float]:
+    """(x, w, h) de una franja que llena `ancho` sin deformarse y sin pasar de
+    `alto_max`; si el tope la achica, queda centrada en el ancho."""
+    w, h = _rect_logo(img, ancho, alto_max)
+    return x + (ancho - w) / 2.0, w, h
+
+
+def _cargar_imagen(formato: dict, clave: str):
+    """QImage de una imagen base64 del formato, o None si falta o no se lee."""
+    b64 = (formato.get(clave) or '').strip()
     if not b64:
         return None
     try:
@@ -3829,6 +3872,10 @@ class _PdfRenderer:
         'Tabloid': (11.0, 17.0),
     }
 
+    # Distancia de las franjas de imagen al borde del papel (con los márgenes
+    # por defecto): la misma a la que empieza el encabezado de texto.
+    _FRANJA_BORDE = 14
+
     def __init__(self, proyecto: dict, titulo_reporte: str, *, with_cover: bool = True,
                   paper: str = 'A4', orient: str = 'portrait',
                   pie_offset: int = 0, pie_total: int | None = None):
@@ -3878,6 +3925,28 @@ class _PdfRenderer:
         else:
             self.margin_top_body = int(1.05 * self.dpi) + self.header_dy
         self.margin_bot_body = _px(mm['inf'])
+        # Franjas de imagen de la empresa (issue #14): reemplazan la banda de
+        # texto y el cuerpo se corre lo que ellas midan. Arriba la franja
+        # arranca donde arrancaba el encabezado (14 px + margen); abajo
+        # termina a la misma distancia del borde, con el número de página
+        # en un renglón encima.
+        ancho_util = self.page_w - self.margin_x - self.margin_r
+        self.franja_cab = franja_cabecera(self.formato)
+        self.franja_cab_rect = None
+        if self.franja_cab is not None:
+            x, w, h = rect_franja(self.franja_cab, self.margin_x, ancho_util,
+                                  _px(FRANJA_CABECERA_MAX_MM))
+            self.franja_cab_rect = QRectF(x, self._FRANJA_BORDE + self.header_dy, w, h)
+            self.margin_top_body = int(self.franja_cab_rect.bottom()) + 12
+        self.franja_pie = franja_pie(self.formato)
+        self.franja_pie_rect = None
+        if self.franja_pie is not None:
+            x, w, h = rect_franja(self.franja_pie, self.margin_x, ancho_util,
+                                  _px(FRANJA_PIE_MAX_MM))
+            y = self.page_h - self._FRANJA_BORDE - self.footer_dy - h
+            self.franja_pie_rect = QRectF(x, y, w, h)
+            self.margin_bot_body = max(self.margin_bot_body,
+                                       int(self.page_h - y) + 16 + 10)
         # Tamaño del texto del cuerpo (1.0 = como siempre). El cuerpo se
         # maqueta a body/k —página lógica más grande, entran más filas— y se
         # dibuja con painter.scale(k). Encabezado, pie y portada no cambian.
@@ -4090,6 +4159,10 @@ class _PdfRenderer:
             return  # sin encabezado en portada
         if self.sin_encabezado:
             return  # el usuario lo apagó en «Editar formato»
+        if self.franja_cab is not None:
+            # La franja de la empresa reemplaza al encabezado de texto.
+            painter.drawImage(self.franja_cab_rect, self.franja_cab)
+            return
         painter.save()
         painter.translate(0, self.header_dy)     # margen superior configurable
         try:
@@ -4223,6 +4296,10 @@ class _PdfRenderer:
         if _oculto(self.formato, 'rep_pie_oculto'):
             return  # el usuario lo apagó en «Editar formato»
 
+        if self.franja_pie is not None:
+            self._draw_footer_franja(painter, page_index, page_count)
+            return
+
         y = self.page_h - self.footer_h + 6 - self.footer_dy   # margen inferior configurable
         # Línea separadora (opcional: «Editar formato → Encabezado y pie»)
         if not _oculto(self.formato, 'rep_pie_linea_oculta'):
@@ -4269,6 +4346,29 @@ class _PdfRenderer:
         if pie_der:
             rect_r = QRectF(self.page_w - self.margin_r - 160, y + 6, 160, 14)
             painter.drawText(rect_r, Qt.AlignRight | Qt.AlignVCenter, pie_der)
+
+    def _texto_pagina(self, page_index: int, page_count: int) -> str:
+        """El texto de la ranura derecha del pie («Página X de N», el propio
+        del usuario, o vacío si la apagó)."""
+        if _oculto(self.formato, 'rep_pie_der_oculto'):
+            return ''
+        if self.pie_total:
+            return (f"Página {page_index + 1 + self.pie_offset} "
+                    f"de {self.pie_total}")
+        return (self.formato.get('rep_pie_derecho')
+                or f"Página {page_index + 1} de {page_count}")
+
+    def _draw_footer_franja(self, painter: QPainter, page_index: int, page_count: int):
+        """Pie con la franja de la empresa: la imagen abajo y, encima, solo
+        el número de página a la derecha (issue #14)."""
+        r = self.franja_pie_rect
+        painter.drawImage(r, self.franja_pie)
+        pie_der = self._texto_pagina(page_index, page_count)
+        if pie_der:
+            painter.setFont(QFont('Inter', 7))
+            painter.setPen(QColor(SLATE_300))
+            painter.drawText(QRectF(self.page_w - self.margin_r - 160, r.top() - 16, 160, 14),
+                             Qt.AlignRight | Qt.AlignVCenter, pie_der)
 
     # --- Render principal ----------------------------------------------------
 

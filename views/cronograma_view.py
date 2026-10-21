@@ -43,6 +43,7 @@ from core.pdf_reports import (
     logo_escala as _logo_escala_rep,
     cargar_logo as _cargar_logo_rep,
     _rect_logo,
+    _oculto as _oculto_rep,
 )
 from utils.formatting import fmt, parse_num, ITEM_TRAMOS_POR_LINEA
 from utils.icons import qss_icon_url
@@ -3196,6 +3197,27 @@ class GanttWidget(QWidget):
             _esc_lg = _logo_escala_rep()
             HEADER_H   = (mm(18) * _k_hdr * max(1.0, _esc_lg)
                           if incluir_header else mm(0))
+            # Franjas de imagen de la empresa (issue #14): reemplazan al
+            # encabezado y a los textos del pie; el número de página y la
+            # leyenda siguen, encima de la franja del pie. Crecen con el
+            # papel como el encabezado.
+            from core.pdf_reports import (
+                FRANJA_CABECERA_MAX_MM, FRANJA_PIE_MAX_MM,
+                franja_cabecera, franja_pie, rect_franja)
+            _fmt_fr = _get_formato_reportes()
+            _fr_cab = franja_cabecera(_fmt_fr) if incluir_header else None
+            _fr_pie = franja_pie(_fmt_fr) if incluir_footer else None
+            _fr_cab_r = _fr_pie_r = None
+            if _fr_cab is not None:
+                _x, _w, _h = rect_franja(_fr_cab, 0, PG_W,
+                                         mm(FRANJA_CABECERA_MAX_MM) * _k_hdr)
+                _fr_cab_r = QRectF(_x, 0, _w, _h)
+                HEADER_H = _h + mm(3)
+            if _fr_pie is not None:
+                _x, _w, _h = rect_franja(_fr_pie, 0, PG_W,
+                                         mm(FRANJA_PIE_MAX_MM) * _k_hdr)
+                _fr_pie_r = QRectF(_x, PG_H - _h, _w, _h)
+                incluir_footer = False     # sus textos los reemplaza la franja
             # El footer puede contener: textos del formato (row 1) y/o
             # leyenda (row 2). Si solo uno de los dos está activo, lo
             # comprimimos a mm(5.5); si están ambos, mm(10).
@@ -3207,6 +3229,10 @@ class GanttWidget(QWidget):
                 FOOTER_H = mm(5.5)
             else:
                 FOOTER_H = mm(0)
+            # Lo que ocupa el pie de texto/leyenda; la franja va debajo.
+            FOOTER_TXT_H = FOOTER_H
+            if _fr_pie_r is not None:
+                FOOTER_H += _fr_pie_r.height() + mm(1)
             # Cabecera tabla y franja de tiempo del gantt deben coincidir en
             # altura para que las filas queden alineadas.
             HDR_TIME_H = mm(9)
@@ -3371,7 +3397,9 @@ class GanttWidget(QWidget):
                         printer.newPage()
                     page_num += 1
 
-                    if incluir_header:
+                    if _fr_cab_r is not None:
+                        painter.drawImage(_fr_cab_r, _fr_cab)
+                    elif incluir_header:
                         self._pdf_paint_header(
                             painter, 0, 0, PG_W, HEADER_H,
                             proy, page_num, total_pages, xi + 1, x_pages,
@@ -3411,9 +3439,11 @@ class GanttWidget(QWidget):
                                               rows_area_h))
                     painter.restore()
 
+                    if _fr_pie_r is not None:
+                        painter.drawImage(_fr_pie_r, _fr_pie)
                     if _row1_on or _row2_on:
                         self._pdf_paint_footer(
-                            painter, 0, PG_H - FOOTER_H, PG_W, FOOTER_H,
+                            painter, 0, PG_H - FOOTER_H, PG_W, FOOTER_TXT_H,
                             page_num, total_pages,
                             incluir_footer=incluir_footer,
                             incluir_legend=incluir_legend,
@@ -9645,7 +9675,29 @@ class CurvaSWidget(QWidget):
             right_w = mm(58)
             y_top   = mm(2)
 
-            if _enc_oc():
+            # Franjas de imagen de la empresa (issue #14): reemplazan al
+            # encabezado y a los textos del pie; el número de página sigue,
+            # encima de la franja del pie.
+            from core.pdf_reports import (
+                FRANJA_CABECERA_MAX_MM, FRANJA_PIE_MAX_MM,
+                franja_cabecera, franja_pie, rect_franja)
+            _fr_cab = franja_cabecera(_fmt) if _fmt else None
+            _fr_pie = franja_pie(_fmt) if _fmt else None
+            _fr_pie_r = None
+            pie_extra = 0.0           # alto que la franja del pie le quita al cuerpo
+            if _fr_pie is not None:
+                _x, _w, _h = rect_franja(_fr_pie, mm(2), page_w - mm(4),
+                                         mm(FRANJA_PIE_MAX_MM))
+                _fr_pie_r = QRectF(_x, page_h - _h, _w, _h)
+                pie_extra = _h + mm(1)
+
+            if _fr_cab is not None:
+                _x, _w, _h = rect_franja(_fr_cab, mm(2), page_w - mm(4),
+                                         mm(FRANJA_CABECERA_MAX_MM))
+                painter.drawImage(QRectF(_x, y_top, _w, _h), _fr_cab)
+                cur_y = y_top + _h + mm(4)
+                f = painter.font()
+            elif _enc_oc():
                 cur_y = mm(4)
                 f = painter.font()
             else:
@@ -9768,7 +9820,7 @@ class CurvaSWidget(QWidget):
             # que el gráfico quede tight (sin white-space lateral excesivo)
             # y centrado horizontalmente sobre la página.
             band_w = page_w - mm(4)
-            band_h_chart = (page_h - cur_y - mm(6)) * 0.50
+            band_h_chart = (page_h - pie_extra - cur_y - mm(6)) * 0.50
             scene_rect = self.scene.sceneRect()
             src_aspect = (scene_rect.width() / scene_rect.height()
                           if scene_rect.height() > 0 else 1.6)
@@ -9791,10 +9843,22 @@ class CurvaSWidget(QWidget):
 
             # ── Tabla resumen ──────────────────────────────────────────
             tab_y = cur_y
-            tab_h = page_h - tab_y - mm(6)
+            tab_h = page_h - pie_extra - tab_y - mm(6)
             self._pdf_render_tabla(painter, mm(2), tab_y, page_w - mm(4), tab_h)
 
-            if not _pie_oc():
+            if _fr_pie_r is not None:
+                painter.drawImage(_fr_pie_r, _fr_pie)
+                if not _oculto_rep(_fmt, 'rep_pie_der_oculto'):
+                    if pie_total:
+                        pag_txt = f"Página {1 + (pie_offset or 0)} de {pie_total}"
+                    else:
+                        pag_txt = _fmt.get('rep_pie_derecho') or "Página 1 de 1"
+                    painter.setPen(QColor(SLATE_300))
+                    f.setPointSizeF(7); f.setBold(False); painter.setFont(f)
+                    painter.drawText(QRectF(mm(2), _fr_pie_r.top() - mm(5),
+                                            page_w - mm(4), mm(4.5)),
+                                     Qt.AlignRight | Qt.AlignVCenter, pag_txt)
+            elif not _pie_oc():
                 # ── Footer tripartito estilo Resumen Ejecutivo ───────────────
                 # IZQ Cliente · CENTRO fecha · DER Página X de N. Línea slate-100
                 # de separador arriba. Espejo de `_draw_footer` del PDF principal.

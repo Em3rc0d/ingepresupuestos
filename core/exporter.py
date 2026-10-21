@@ -470,6 +470,8 @@ def _xlsx_header_pdf_style(ws, proyecto, titulo, n_cols, *, cols_partition=None)
     if _encabezado_oculto():
         _HDR_OMITIDAS[id(ws)] = 3
         return 1
+    if _xlsx_franja_cabecera(ws, n_cols):
+        return 4
     if cols_partition is not None:
         if len(cols_partition) == 3:
             # Override completo: (L_END, C_END, R_START) — permite "huecos"
@@ -609,6 +611,48 @@ def _xlsx_header_pdf_style(ws, proyecto, titulo, n_cols, *, cols_partition=None)
     ws.row_dimensions[3].height = 2
 
     return 4
+
+
+def _xlsx_franja_cabecera(ws, n_cols: int) -> bool:
+    """Franja de imagen de la empresa (issue #14) en lugar del encabezado de
+    tres zonas: anclada en A1, al ancho de las `n_cols` columnas, sin
+    deformarse y con el mismo tope de alto que el PDF. Ocupa las mismas tres
+    filas que el encabezado de texto, así que `_filas_hdr` y las filas a
+    repetir no cambian. True si la puso.
+
+    El pie de Excel no lleva franja: openpyxl no escribe imágenes en el pie
+    de impresión, y ese pie sigue siendo el de texto."""
+    from core.pdf_reports import (FRANJA_CABECERA_MAX_MM, franja_cabecera,
+                                  get_formato)
+    _fmt = get_formato()
+    if franja_cabecera(_fmt) is None:
+        return False
+    try:
+        import base64 as _b64
+        from io import BytesIO as _BIO
+        from openpyxl.drawing.image import Image as _XLImage
+        from PIL import Image as _PILImage
+        _pil = _PILImage.open(_BIO(_b64.b64decode(_fmt['rep_cabecera_img_b64'])))
+        # Una unidad de ancho de columna son ~7 px a 96 dpi.
+        ancho = sum((ws.column_dimensions[get_column_letter(c)].width or 8)
+                    for c in range(1, n_cols + 1)) * 7
+        alto_max = FRANJA_CABECERA_MAX_MM / 25.4 * 96
+        alto = ancho * _pil.height / max(1, _pil.width)
+        if alto > alto_max:
+            ancho, alto = ancho * alto_max / alto, alto_max
+        _png = _BIO()
+        _pil.convert('RGBA').save(_png, format='PNG')
+        _png.seek(0)
+        _im = _XLImage(_png)
+        _im.width, _im.height = int(ancho), int(alto)
+        _im.anchor = 'A1'
+        ws.add_image(_im)
+    except Exception:
+        return False      # imagen ilegible → encabezado de texto, no reventar
+    ws.row_dimensions[1].height = alto * 0.75 + 2   # px → puntos
+    ws.row_dimensions[2].height = 2
+    ws.row_dimensions[3].height = 4
+    return True
 
 
 # ─── Helper: encabezado Excel (legacy, estilo PowerCost) ────────────────────
