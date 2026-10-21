@@ -719,6 +719,21 @@ class _AcuBadgeDelegate(QStyledItemDelegate):
         painter.restore()
 
 
+# Rol con el valor COMPLETO de una celda numérica del ACU que muestra menos
+# decimales de los que guarda (el Precio, desde que sigue a Configuración).
+_VALOR_COMPLETO = Qt.UserRole + 10
+
+
+def _texto_edicion(valor: float, dec: int) -> str:
+    """El número tal como se guarda, para abrir un editor: hasta seis
+    decimales sin ceros de sobra, pero nunca menos de `dec`. Un editor que
+    arranca del texto redondeado de la celda guardaría el redondeo al salir
+    (28.0312 → 28.03 en todo el proyecto) sin que nadie lo haya tocado."""
+    s = f"{float(valor):.6f}".rstrip('0')
+    ent, _, frac = s.partition('.')
+    return f"{ent}.{frac.ljust(dec, '0')}" if (frac or dec) else ent
+
+
 class _InputCellDelegate(QStyledItemDelegate):
     """Pinta celdas editables como campo de formulario y abre editor inline al clic.
 
@@ -900,7 +915,11 @@ class _InputCellDelegate(QStyledItemDelegate):
         ed.installEventFilter(ed._nav_filt)
 
     def setEditorData(self, editor, index):
-        editor.setText(index.data() or '')
+        completo = index.data(_VALOR_COMPLETO)
+        texto = (_texto_edicion(completo, get_decimales_ppto())
+                 if completo is not None else (index.data() or ''))
+        editor.setText(texto)
+        editor.setProperty('texto_inicial', texto)
         editor.selectAll()
 
     def setModelData(self, editor, model, index):
@@ -911,6 +930,8 @@ class _InputCellDelegate(QStyledItemDelegate):
         acu_id = view._acu_row_ids[row]
         if acu_id <= 0:
             return
+        if editor.text() == editor.property('texto_inicial'):
+            return      # pasar por la celda (Tab, flechas) no es editarla
         val = parse_num_opt(editor.text())
         if val is None:
             return
@@ -5649,8 +5670,7 @@ class ProyectoView(QWidget):
         self.tbl_acu.setRowCount(0)
         self._acu_row_ids: list[int] = []
 
-        # Montos con los decimales de Configuración (como el árbol). El
-        # precio del insumo conserva al menos cuatro: es el que se edita.
+        # Montos y precios con los decimales de Configuración (como el árbol).
         dec = get_decimales_ppto()
         self._decimales_pintados = self._huella_decimales()
         current_tipo = None
@@ -5700,11 +5720,16 @@ class ProyectoView(QWidget):
                 it['unidad'] or '',
                 self._texto_cuadrilla(tipo, it['unidad'], cuad),
                 f"{cant:.{get_decimales_cant_acu(tipo)}f}",
-                f"{precio:.{max(4, dec)}f}",
+                f"{precio:.{dec}f}",
                 fmt(it['parcial'] or 0, self._moneda, dec),
             ]
             for c, v in enumerate(vals, start=1):
                 cell = QTableWidgetItem(str(v))
+                if c == 5:
+                    # Se ve con los decimales de Configuración, como en
+                    # Insumos (David Ramos, ronda 7); el editor abre con el
+                    # valor completo (`_VALOR_COMPLETO`).
+                    cell.setData(_VALOR_COMPLETO, float(precio))
                 if c in (3, 4, 5):
                     # El delegate pinta estos; setBackground como fallback neutro
                     cell.setBackground(_NEUTRAL_BG)
@@ -5985,7 +6010,11 @@ class ProyectoView(QWidget):
 
         ed = QLineEdit(tbl.viewport())
         ed.setGeometry(rect)
-        ed.setText(f"{_parse_precio(it_precio.text()):.4f}")
+        _completo = it_precio.data(Qt.UserRole)
+        texto_inicial = _texto_edicion(
+            _completo if _completo is not None else _parse_precio(it_precio.text()),
+            get_decimales_ppto())
+        ed.setText(texto_inicial)
         ed.selectAll()
         ed.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         ed.setStyleSheet(
@@ -6003,7 +6032,9 @@ class ProyectoView(QWidget):
             done[0] = True
             self._ins_ed = None
             ed.hide()
-            nuevo = parse_num_opt(ed.text())
+            # Sin cambios no se guarda: el texto inicial es el valor completo,
+            # pero guardar «lo mismo» igual recalcularía todo el proyecto.
+            nuevo = parse_num_opt(ed.text()) if ed.text() != texto_inicial else None
             if nuevo is not None:
                 dec = get_decimales_ppto()
                 # Tomar el Parcial ANTES de tocar el precio: si la tabla
@@ -6283,8 +6314,11 @@ class ProyectoView(QWidget):
             return
         recurso_id = badge.data(Qt.UserRole)
         desc       = badge.data(Qt.UserRole + 1) or ""
-        precio_txt = (self.tbl_ins.item(ri, 4) or QTableWidgetItem("0")).text()
-        precio     = _parse_precio(precio_txt)
+        it_precio  = self.tbl_ins.item(ri, 4) or QTableWidgetItem("0")
+        precio_txt = it_precio.text()
+        # El valor completo, no el redondeado que se ve: este va al catálogo.
+        _completo  = it_precio.data(Qt.UserRole)
+        precio     = float(_completo) if _completo is not None else _parse_precio(precio_txt)
 
         from PySide6.QtWidgets import QMenu
         from utils.i18n import tr

@@ -206,6 +206,92 @@ def test_al_volver_de_configuracion_el_proyecto_abierto_se_repinta():
         d.set_decimales_ppto(antes)
 
 
+# ── La columna Precio del ACU también (David, ronda 7: ACU.docx) ─────────────
+# Con 2 decimales en montos el ACU mostraba «28.0300» y la pestaña Insumos
+# «28.03». Ahora los dos siguen a Configuración, y los editores abren con el
+# valor COMPLETO: arrancar del texto redondeado y guardar al salir dejaba
+# 28.0312 en 28.03 en todo el proyecto sin que nadie lo tocara.
+
+def test_texto_de_edicion_guarda_todo_y_no_menos_que_los_decimales():
+    from views.proyecto_view import _texto_edicion
+    assert _texto_edicion(28.0312, 2) == '28.0312'
+    assert _texto_edicion(28.03, 2) == '28.03'
+    assert _texto_edicion(5, 2) == '5.00'
+    assert _texto_edicion(5, 0) == '5'
+    assert _texto_edicion(1.5, 4) == '1.5000'
+
+
+def _precio_largo():
+    """Una línea del ACU con un precio de cuatro decimales; (partida, acu_id)."""
+    part = _partida_con_acu()
+    conn = d.get_db()
+    acu_id, rid = conn.execute(
+        "SELECT id, recurso_id FROM acu_items WHERE partida_id=? ORDER BY id LIMIT 1",
+        (part,)).fetchone()
+    conn.execute("UPDATE acu_items SET precio=28.0312 WHERE recurso_id=? AND partida_id IN "
+                 "(SELECT id FROM partidas WHERE proyecto_id=?)", (rid, PID))
+    conn.commit()
+    conn.close()
+    return part, acu_id
+
+
+def _precio_en_bd(acu_id):
+    conn = d.get_db()
+    v = conn.execute("SELECT precio FROM acu_items WHERE id=?", (acu_id,)).fetchone()[0]
+    conn.close()
+    return v
+
+
+def test_el_precio_del_acu_sigue_los_decimales_y_se_edita_completo():
+    from PySide6.QtWidgets import QLineEdit
+    antes = d.get_decimales_ppto()
+    try:
+        d.set_decimales_ppto(2)
+        part, acu_id = _precio_largo()
+        v = _vista()
+        v.cargar_acu(part)
+        r = v._acu_row_ids.index(acu_id)
+        idx = v.tbl_acu.model().index(r, 5)
+        assert v.tbl_acu.item(r, 5).text() == '28.03'
+        deleg = v.tbl_acu.itemDelegateForColumn(5)
+        ed = QLineEdit()
+        deleg.setEditorData(ed, idx)
+        assert ed.text() == '28.0312'
+        # Pasar por la celda sin cambiar nada no guarda el redondeo.
+        deleg.setModelData(ed, v.tbl_acu.model(), idx)
+        _app.processEvents()
+        assert _precio_en_bd(acu_id) == 28.0312
+    finally:
+        d.set_decimales_ppto(antes)
+
+
+def test_el_editor_de_precio_de_insumos_no_guarda_el_redondeo():
+    from PySide6.QtCore import QEvent, Qt
+    from PySide6.QtGui import QKeyEvent
+    antes = d.get_decimales_ppto()
+    try:
+        d.set_decimales_ppto(2)
+        part, acu_id = _precio_largo()
+        conn = d.get_db()      # solo «En elaboración» deja editar precios
+        conn.execute("UPDATE proyectos SET estado='elaboracion' WHERE id=?", (PID,))
+        conn.commit()
+        conn.close()
+        v = _vista()
+        v.cargar_insumos()
+        fila = next(r for r in range(v.tbl_ins.rowCount())
+                    if v.tbl_ins.item(r, 4) is not None
+                    and v.tbl_ins.item(r, 4).data(Qt.UserRole) == 28.0312)
+        assert v.tbl_ins.item(fila, 4).text().endswith('28.03')
+        v._abrir_editor_precio_ins(fila)
+        ed = v._ins_ed
+        assert ed.text() == '28.0312'
+        _app.sendEvent(ed, QKeyEvent(QEvent.KeyPress, Qt.Key_Return, Qt.NoModifier))
+        _app.processEvents()
+        assert _precio_en_bd(acu_id) == 28.0312
+    finally:
+        d.set_decimales_ppto(antes)
+
+
 if __name__ == "__main__":
     fallos = 0
     for name, fn in list(globals().items()):
