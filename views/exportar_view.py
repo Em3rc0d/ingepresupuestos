@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 from core.database import get_db
 from core.config import DB_PATH
 from utils.icons import icon
+from utils.i18n import tr, N_
 
 
 # ── Paleta ──
@@ -55,48 +56,48 @@ TIPOS_EXPORT = [
     {
         "id":    "presupuesto",
         "icono": "xlsx",
-        "titulo": "Excel — Presupuesto",
-        "descripcion": "Hoja de cálculo con la tabla de partidas y pie del presupuesto.",
+        "titulo": N_("Excel — Presupuesto"),
+        "descripcion": N_("Hoja de cálculo con la tabla de partidas y pie del presupuesto."),
         "ext": "xlsx",
         "filter": "Excel (*.xlsx)",
     },
     {
         "id":    "acus",
         "icono": "xlsx",
-        "titulo": "Excel — Análisis de Costos",
-        "descripcion": "ACUs detallados de cada partida (mano de obra, materiales, equipo).",
+        "titulo": N_("Excel — Análisis de Costos"),
+        "descripcion": N_("ACUs detallados de cada partida (mano de obra, materiales, equipo)."),
         "ext": "xlsx",
         "filter": "Excel (*.xlsx)",
     },
     {
         "id":    "insumos",
         "icono": "xlsx",
-        "titulo": "Excel — Insumos",
-        "descripcion": "Listado consolidado de recursos del proyecto con cantidades y precios.",
+        "titulo": N_("Excel — Insumos"),
+        "descripcion": N_("Listado consolidado de recursos del proyecto con cantidades y precios."),
         "ext": "xlsx",
         "filter": "Excel (*.xlsx)",
     },
     {
         "id":    "completo",
         "icono": "xlsx",
-        "titulo": "Excel — Reporte completo",
-        "descripcion": "Un solo archivo con varias hojas: Presupuesto + ACUs + Insumos.",
+        "titulo": N_("Excel — Reporte completo"),
+        "descripcion": N_("Un solo archivo con varias hojas: Presupuesto + ACUs + Insumos."),
         "ext": "xlsx",
         "filter": "Excel (*.xlsx)",
     },
     {
         "id":    "pdf",
         "icono": "pdf",
-        "titulo": "PDF — Reporte completo",
-        "descripcion": "Documento PDF con portada, presupuesto, ACUs, insumos y cronograma.",
+        "titulo": N_("PDF — Reporte completo"),
+        "descripcion": N_("Documento PDF con portada, presupuesto, ACUs, insumos y cronograma."),
         "ext": "pdf",
         "filter": "PDF (*.pdf)",
     },
     {
         "id":    "db",
         "icono": "sqlite",
-        "titulo": "SQLite — Solo este proyecto",
-        "descripcion": "Archivo .db con datos del proyecto (compartir con otra instalación).",
+        "titulo": N_("SQLite — Solo este proyecto"),
+        "descripcion": N_("Archivo .db con datos del proyecto (compartir con otra instalación)."),
         "ext": "db",
         "filter": "SQLite (*.db)",
     },
@@ -118,7 +119,7 @@ class _ExportWorker(QThread):
     def run(self):
         try:
             if self.tipo == "backup":
-                self.progreso.emit("Copiando base de datos…")
+                self.progreso.emit(tr("Copiando base de datos…"))
                 # Backup atómico vía sqlite3 (seguro aunque haya writers
                 # activos). shutil.copyfile podía capturar la BD con un
                 # WAL intermedio y dejar el archivo corrupto.
@@ -133,12 +134,12 @@ class _ExportWorker(QThread):
                     src.close()
 
             elif self.tipo == "db":
-                self.progreso.emit("Replicando esquema y datos del proyecto…")
+                self.progreso.emit(tr("Replicando esquema y datos del proyecto…"))
                 from core.exporter import exportar_proyecto_db
                 exportar_proyecto_db(self.pid, self.destino)
 
             elif self.tipo == "pdf":
-                self.progreso.emit("Generando PDF (puede tomar unos segundos)…")
+                self.progreso.emit(tr("Generando PDF (puede tomar unos segundos)…"))
                 from core.pdf_reports import generar_pdf_archivo
                 generar_pdf_archivo("completo", self.pid, self.destino)
 
@@ -155,7 +156,7 @@ class _ExportWorker(QThread):
                 }.get(self.tipo)
                 if not fn:
                     raise ValueError(f"Tipo de exportación desconocido: {self.tipo}")
-                self.progreso.emit("Construyendo Excel…")
+                self.progreso.emit(tr("Construyendo Excel…"))
                 buf = fn(self.pid)
                 with open(self.destino, "wb") as f:
                     f.write(buf.getvalue())
@@ -200,12 +201,12 @@ class _ExportCard(QPushButton):
 
         col = QVBoxLayout()
         col.setSpacing(2)
-        ttl = QLabel(spec["titulo"])
+        ttl = QLabel(tr(spec["titulo"]))
         ttl.setStyleSheet(
             f"color:{SLATE_700}; font-size:12px; font-weight:600; "
             f"background:transparent; border:none;"
         )
-        d = QLabel(spec["descripcion"])
+        d = QLabel(tr(spec["descripcion"]))
         d.setWordWrap(True)
         d.setStyleSheet(
             f"color:{SLATE_500}; font-size:11px; "
@@ -242,7 +243,6 @@ class ExportarView(QWidget):
         top = QHBoxLayout(hdr)
         top.setContentsMargins(14, 0, 14, 0)
         top.setSpacing(10)
-        from utils.i18n import tr
         btn_back = QPushButton("← " + tr("Inicio"))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
@@ -319,7 +319,6 @@ class ExportarView(QWidget):
         ico.setPixmap(icon("sqlite").pixmap(22, 22))
         ico.setStyleSheet("background:transparent; border:none;")
         head.addWidget(ico)
-        from utils.i18n import tr
         ttl = QLabel(tr("Backup completo"))
         f = QFont(); f.setWeight(QFont.DemiBold)
         ttl.setFont(f)
@@ -330,12 +329,12 @@ class ExportarView(QWidget):
         head.addStretch(1)
         v.addLayout(head)
 
-        d = QLabel(
+        d = QLabel(tr(
             "<b>Descargar</b>: copia el archivo <code>presupuestos.db</code> con todos los "
             "proyectos. Útil para mover la instalación a otro equipo o como respaldo.<br>"
             "<b>Restaurar</b>: reemplaza tu base de datos actual con un <code>.db</code> "
             "previamente guardado (la BD actual se guarda como backup con timestamp)."
-        )
+        ))
         d.setWordWrap(True)
         d.setStyleSheet(
             f"color:{SLATE_500}; font-size:12px; "
@@ -398,7 +397,6 @@ class ExportarView(QWidget):
         ico.setPixmap(icon("folder").pixmap(22, 22))
         ico.setStyleSheet("background:transparent; border:none;")
         head.addWidget(ico)
-        from utils.i18n import tr
         ttl = QLabel(tr("Exportar") + " — " + tr("Proyecto"))
         f = QFont(); f.setWeight(QFont.DemiBold)
         ttl.setFont(f)
@@ -465,13 +463,13 @@ class ExportarView(QWidget):
         v.setContentsMargins(14, 12, 14, 12)
         v.setSpacing(8)
 
-        ttl = QLabel("¿Para qué sirve cada exportación?")
+        ttl = QLabel(tr("¿Para qué sirve cada exportación?"))
         f = QFont(); f.setWeight(QFont.DemiBold)
         ttl.setFont(f)
         ttl.setStyleSheet(f"color:{SLATE_700}; background:transparent; border:none;")
         v.addWidget(ttl)
 
-        ayuda = QLabel(
+        ayuda = QLabel(tr(
             "<b>Excel — Presupuesto/ACUs/Insumos:</b> hojas individuales del "
             "proyecto. El más usado para enviar a clientes o supervisores.<br><br>"
             "<b>Excel — Reporte completo:</b> un único archivo con todas las "
@@ -484,7 +482,7 @@ class ExportarView(QWidget):
             "sin afectar la base de datos del destino.<br><br>"
             "<b>Backup completo:</b> toda tu base de datos. Recomendado "
             "antes de actualizaciones."
-        )
+        ))
         ayuda.setWordWrap(True)
         ayuda.setTextFormat(Qt.RichText)
         ayuda.setStyleSheet(f"color:{SLATE_500}; font-size:12px; background:transparent; border:none;")
@@ -504,7 +502,7 @@ class ExportarView(QWidget):
         self.cmb_proy.blockSignals(True)
         self.cmb_proy.clear()
         if not rows:
-            self.cmb_proy.addItem("— Sin proyectos —", None)
+            self.cmb_proy.addItem(tr("— Sin proyectos —"), None)
         else:
             # Truncar items a 48 chars con elipsis para evitar que el popup
             # del QComboBox se estire a pantalla completa con nombres largos
@@ -534,7 +532,7 @@ class ExportarView(QWidget):
         fecha = datetime.now().strftime("%Y%m%d_%H%M")
         sugerido = f"presupuestos_backup_{fecha}.db"
         destino, _ = QFileDialog.getSaveFileName(
-            self, "Guardar backup completo", sugerido, "SQLite (*.db)"
+            self, tr("Guardar backup completo"), sugerido, "SQLite (*.db)"
         )
         if not destino:
             return
@@ -558,8 +556,8 @@ class ExportarView(QWidget):
 
         # 1. Elegir archivo
         origen, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar backup a restaurar", "",
-            "Bases SQLite ingePresupuestos (*.db *.sqlite)"
+            self, tr("Seleccionar backup a restaurar"), "",
+            tr("Bases SQLite ingePresupuestos (*.db *.sqlite)")
         )
         if not origen:
             return
@@ -575,35 +573,35 @@ class ExportarView(QWidget):
             if faltantes:
                 c.close()
                 QMessageBox.critical(
-                    self, "Archivo no compatible",
-                    f"El archivo no parece una BD de ingePresupuestos.\n\n"
-                    f"Faltan tablas: {', '.join(sorted(faltantes))}"
+                    self, tr("Archivo no compatible"),
+                    tr("El archivo no parece una BD de ingePresupuestos.\n\n"
+                       "Faltan tablas: {tablas}").format(tablas=', '.join(sorted(faltantes)))
                 )
                 return
             n_proy = c.execute("SELECT COUNT(*) FROM proyectos").fetchone()[0]
             c.close()
         except sqlite3.DatabaseError as e:
             QMessageBox.critical(
-                self, "Archivo inválido",
-                f"No es un archivo SQLite válido:\n\n{e}"
+                self, tr("Archivo inválido"),
+                tr("No es un archivo SQLite válido:\n\n{e}").format(e=e)
             )
             return
 
         # 3. Confirmación destructiva
-        msg = (
-            f"<b>Esto reemplazará tu base de datos actual.</b><br><br>"
-            f"Archivo a restaurar:<br>"
-            f"  <code>{origen}</code><br>"
-            f"  ({n_proy} proyectos)<br><br>"
-            f"Se hará un backup automático de tu BD actual con timestamp en la "
-            f"carpeta del programa antes de sobrescribir, así que podrás revertir "
-            f"si algo sale mal.<br><br>"
-            f"Después de la restauración debes <b>cerrar y volver a abrir</b> el "
-            f"programa para ver los datos restaurados.<br><br>"
-            f"¿Continuar?"
-        )
+        msg = tr(
+            "<b>Esto reemplazará tu base de datos actual.</b><br><br>"
+            "Archivo a restaurar:<br>"
+            "  <code>{origen}</code><br>"
+            "  ({n_proy} proyectos)<br><br>"
+            "Se hará un backup automático de tu BD actual con timestamp en la "
+            "carpeta del programa antes de sobrescribir, así que podrás revertir "
+            "si algo sale mal.<br><br>"
+            "Después de la restauración debes <b>cerrar y volver a abrir</b> el "
+            "programa para ver los datos restaurados.<br><br>"
+            "¿Continuar?"
+        ).format(origen=origen, n_proy=n_proy)
         r = QMessageBox.question(
-            self, "Restaurar backup", msg,
+            self, tr("Restaurar backup"), msg,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         if r != QMessageBox.Yes:
@@ -618,25 +616,26 @@ class ExportarView(QWidget):
             shutil.copyfile(origen, db_path)
         except Exception as e:
             QMessageBox.critical(
-                self, "Error al restaurar",
-                f"No se pudo restaurar el backup:\n\n{e}"
+                self, tr("Error al restaurar"),
+                tr("No se pudo restaurar el backup:\n\n{e}").format(e=e)
             )
             return
 
         QMessageBox.information(
-            self, "Restauración completada",
-            f"<b>Restauración exitosa.</b><br><br>"
-            f"BD actual guardada como:<br>"
-            f"  <code>{backup_path}</code><br><br>"
-            f"BD nueva activa:<br>"
-            f"  <code>{db_path}</code> ({n_proy} proyectos)<br><br>"
-            f"<b>Cierra y vuelve a abrir el programa</b> para cargar los datos."
+            self, tr("Restauración completada"),
+            tr("<b>Restauración exitosa.</b><br><br>"
+               "BD actual guardada como:<br>"
+               "  <code>{backup_path}</code><br><br>"
+               "BD nueva activa:<br>"
+               "  <code>{db_path}</code> ({n_proy} proyectos)<br><br>"
+               "<b>Cierra y vuelve a abrir el programa</b> para cargar los datos.").format(
+                backup_path=backup_path, db_path=db_path, n_proy=n_proy)
         )
 
     def _exportar_tipo(self, spec: dict):
         pid = self.cmb_proy.currentData()
         if pid is None:
-            QMessageBox.warning(self, "Exportar", "Selecciona un proyecto primero.")
+            QMessageBox.warning(self, tr("Exportar"), tr("Selecciona un proyecto primero."))
             return
 
         nombre_proy = self.cmb_proy.currentText().split('  ·  ')[0]
@@ -655,7 +654,7 @@ class ExportarView(QWidget):
         sugerido = f"{slug}{sufijo}_{fecha}.{spec['ext']}"
 
         destino, _ = QFileDialog.getSaveFileName(
-            self, f"Guardar {spec['titulo']}", sugerido, spec["filter"]
+            self, tr("Guardar {titulo}").format(titulo=tr(spec['titulo'])), sugerido, spec["filter"]
         )
         if not destino:
             return
@@ -671,7 +670,7 @@ class ExportarView(QWidget):
         for c in self._cards.values():
             c.setEnabled(False)
         self.bar.setVisible(True)
-        self.lbl_estado.setText("Iniciando…")
+        self.lbl_estado.setText(tr("Iniciando…"))
 
         self._worker = _ExportWorker(tipo, pid, destino, self)
         self._worker.progreso.connect(self.lbl_estado.setText)
@@ -685,8 +684,8 @@ class ExportarView(QWidget):
         self._worker = None
         self._on_proy_change()
         QMessageBox.information(
-            self, "Exportación completa",
-            f"Archivo guardado:\n{destino}"
+            self, tr("Exportación completa"),
+            tr("Archivo guardado:\n{destino}").format(destino=destino)
         )
 
     def _on_fail(self, msg: str):
@@ -694,4 +693,4 @@ class ExportarView(QWidget):
         self.lbl_estado.setText("")
         self._worker = None
         self._on_proy_change()
-        QMessageBox.critical(self, "Error al exportar", msg)
+        QMessageBox.critical(self, tr("Error al exportar"), msg)

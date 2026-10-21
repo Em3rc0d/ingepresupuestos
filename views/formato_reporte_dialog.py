@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from core import pdf_reports
+from utils.i18n import tr, N_
 
 ORANGE      = "#F37329"
 ORANGE_DARK = "#C0621A"
@@ -53,7 +54,7 @@ class FormatoReporteDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Configurar formato de reportes")
+        self.setWindowTitle(tr("Configurar formato de reportes"))
         self.setMinimumWidth(640)
         self.setMinimumHeight(380)
         self._dimensionar()
@@ -100,7 +101,7 @@ class FormatoReporteDialog(QDialog):
             " background:transparent; border:none;"
         )
         hdr_l.addWidget(ico)
-        t = QLabel("Configurar formato de reportes")
+        t = QLabel(tr("Configurar formato de reportes"))
         t.setStyleSheet(
             "color:white; font-size:14px; font-weight:700;"
             " background:transparent; border:none;"
@@ -130,13 +131,13 @@ class FormatoReporteDialog(QDialog):
         medio_l.addWidget(self._paginas, 1)
         outer.addWidget(medio, stretch=1)
 
-        self._seccion("🏢", "Empresa", self._pagina_empresa())
-        self._seccion("🖼️", "Logo", self._pagina_logo())
-        self._seccion("🎨", "Color de marca", self._pagina_color())
-        self._seccion("🔤", "Colores de títulos", self._pagina_titulos())
-        self._seccion("📄", "Página y texto", self._pagina_pagina())
-        self._seccion("📝", "Encabezado y pie", self._pagina_encabezado_pie())
-        self._seccion("🪧", "Franjas de imagen", self._pagina_franjas())
+        self._seccion("🏢", tr("Empresa"), self._pagina_empresa())
+        self._seccion("🖼️", tr("Logo"), self._pagina_logo())
+        self._seccion("🎨", tr("Color de marca"), self._pagina_color())
+        self._seccion("🔤", tr("Colores de títulos"), self._pagina_titulos())
+        self._seccion("📄", tr("Página y texto"), self._pagina_pagina())
+        self._seccion("📝", tr("Encabezado y pie"), self._pagina_encabezado_pie())
+        self._seccion("🪧", tr("Franjas de imagen"), self._pagina_franjas())
 
         self._menu.currentRowChanged.connect(self._paginas.setCurrentIndex)
         self._menu.currentRowChanged.connect(self._recordar_seccion)
@@ -152,20 +153,20 @@ class FormatoReporteDialog(QDialog):
         bar_l.setContentsMargins(18, 8, 18, 8)
         bar_l.setSpacing(10)
 
-        btn_reset = QPushButton("Restaurar valores por defecto")
+        btn_reset = QPushButton(tr("Restaurar valores por defecto"))
         btn_reset.setCursor(Qt.PointingHandCursor)
         btn_reset.setStyleSheet(self._btn_ss())
         btn_reset.clicked.connect(self._reset_defaults)
         bar_l.addWidget(btn_reset)
         bar_l.addStretch(1)
 
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setCursor(Qt.PointingHandCursor)
         btn_cancel.setStyleSheet(self._btn_ss())
         btn_cancel.clicked.connect(self.reject)
         bar_l.addWidget(btn_cancel)
 
-        btn_ok = QPushButton("Guardar")
+        btn_ok = QPushButton(tr("Guardar"))
         btn_ok.setCursor(Qt.PointingHandCursor)
         btn_ok.setStyleSheet(self._btn_ss(primary=True))
         btn_ok.clicked.connect(self._save_and_accept)
@@ -220,10 +221,10 @@ class FormatoReporteDialog(QDialog):
     # ── Sección: Empresa ──
     def _pagina_empresa(self) -> QWidget:
         pagina, lay = self._pagina_base(
-            "Empresa",
-            "Razón social y datos de contacto. Van en el encabezado de cada "
-            "página y en la portada; son los mismos de Configuración → Datos "
-            "de empresa.")
+            tr("Empresa"),
+            tr("Razón social y datos de contacto. Van en el encabezado de cada "
+               "página y en la portada; son los mismos de Configuración → Datos "
+               "de empresa."))
         form = QFormLayout()
         form.setSpacing(10)
         form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -231,12 +232,12 @@ class FormatoReporteDialog(QDialog):
         self.inp_empresa = QLineEdit()
         self.inp_empresa.setPlaceholderText("ingePresupuestos")
         self.inp_empresa.setStyleSheet(self._le_ss())
-        form.addRow("Nombre de empresa:", self.inp_empresa)
+        form.addRow(tr("Nombre de empresa:"), self.inp_empresa)
 
         self.inp_subtitulo = QLineEdit()
         self.inp_subtitulo.setPlaceholderText("Sistema de Presupuestos de Obra Pública")
         self.inp_subtitulo.setStyleSheet(self._le_ss())
-        form.addRow("Subtítulo / lema:", self.inp_subtitulo)
+        form.addRow(tr("Subtítulo / lema:"), self.inp_subtitulo)
 
         # Datos fiscales — van al pie de la portada del PDF.
         self.inp_ruc = QLineEdit()
@@ -246,14 +247,14 @@ class FormatoReporteDialog(QDialog):
         form.addRow(f"{etiqueta_tributaria()}:", self.inp_ruc)
 
         self.inp_direccion = QLineEdit()
-        self.inp_direccion.setPlaceholderText("Dirección")
+        self.inp_direccion.setPlaceholderText(tr("Dirección"))
         self.inp_direccion.setStyleSheet(self._le_ss())
-        form.addRow("Dirección:", self.inp_direccion)
+        form.addRow(tr("Dirección:"), self.inp_direccion)
 
         self.inp_telefono = QLineEdit()
-        self.inp_telefono.setPlaceholderText("Teléfono / celular")
+        self.inp_telefono.setPlaceholderText(tr("Teléfono / celular"))
         self.inp_telefono.setStyleSheet(self._le_ss())
-        form.addRow("Teléfono:", self.inp_telefono)
+        form.addRow(tr("Teléfono:"), self.inp_telefono)
 
         lay.addLayout(form)
         lay.addStretch(1)
@@ -262,8 +263,8 @@ class FormatoReporteDialog(QDialog):
     # ── Sección: Logo ──
     def _pagina_logo(self) -> QWidget:
         pagina, lay = self._pagina_base(
-            "Logo",
-            "Imagen que va a la izquierda del encabezado, junto a la razón social.")
+            tr("Logo"),
+            tr("Imagen que va a la izquierda del encabezado, junto a la razón social."))
         logo_row = QHBoxLayout()
         self._lbl_logo = QLabel()
         self._lbl_logo.setFixedSize(180, 60)
@@ -276,13 +277,13 @@ class FormatoReporteDialog(QDialog):
 
         logo_btns = QVBoxLayout()
         logo_btns.setSpacing(6)
-        btn_logo = QPushButton("Elegir imagen…")
+        btn_logo = QPushButton(tr("Elegir imagen…"))
         btn_logo.setCursor(Qt.PointingHandCursor)
         btn_logo.setStyleSheet(self._btn_ss())
         btn_logo.clicked.connect(self._choose_logo)
         logo_btns.addWidget(btn_logo)
 
-        self.btn_clear_logo = QPushButton("Quitar logo")
+        self.btn_clear_logo = QPushButton(tr("Quitar logo"))
         self.btn_clear_logo.setCursor(Qt.PointingHandCursor)
         self.btn_clear_logo.setStyleSheet(self._btn_ss(danger=True))
         self.btn_clear_logo.clicked.connect(self._clear_logo)
@@ -296,7 +297,7 @@ class FormatoReporteDialog(QDialog):
         # (A3/A1/A0); esto es el ajuste fino sobre ese tamaño base.
         esc_row = QHBoxLayout()
         esc_row.setSpacing(10)
-        esc_row.addWidget(QLabel("Tamaño del logo:"))
+        esc_row.addWidget(QLabel(tr("Tamaño del logo:")))
         self.sld_logo = QSlider(Qt.Horizontal)
         self.sld_logo.setRange(50, 200)
         self.sld_logo.setSingleStep(5)
@@ -308,27 +309,27 @@ class FormatoReporteDialog(QDialog):
         self.lbl_logo_esc.setFixedWidth(48)
         esc_row.addWidget(self.lbl_logo_esc)
         self.btn_logo_reset = QToolButton()
-        self.btn_logo_reset.setText("Restablecer")
+        self.btn_logo_reset.setText(tr("Restablecer"))
         self.btn_logo_reset.setCursor(Qt.PointingHandCursor)
         self.btn_logo_reset.clicked.connect(lambda: self.sld_logo.setValue(100))
         esc_row.addWidget(self.btn_logo_reset)
         esc_row.addStretch(1)
         lay.addLayout(esc_row)
 
-        lay.addWidget(self._hint(
+        lay.addWidget(self._hint(tr(
             "Recomendado: PNG con fondo transparente, máx. ~240×60 px. "
             "En A3/A1/A0 el encabezado se agranda solo — el tamaño del logo "
             "es solo para ajustarlo a gusto."
-        ))
+        )))
         lay.addStretch(1)
         return pagina
 
     # ── Sección: Color de marca ──
     def _pagina_color(self) -> QWidget:
         pagina, lay = self._pagina_base(
-            "Color de marca",
-            "Color principal usado en bandas, títulos y barras del Gantt. "
-            "El tono oscuro se calcula solo.")
+            tr("Color de marca"),
+            tr("Color principal usado en bandas, títulos y barras del Gantt. "
+               "El tono oscuro se calcula solo."))
         col_row = QHBoxLayout()
         col_row.setSpacing(10)
         self._color_swatch = QFrame()
@@ -346,15 +347,15 @@ class FormatoReporteDialog(QDialog):
         self.inp_color.textChanged.connect(self._on_color_text)
         col_row.addWidget(self.inp_color)
 
-        btn_pick = QPushButton("Elegir…")
+        btn_pick = QPushButton(tr("Elegir…"))
         btn_pick.setCursor(Qt.PointingHandCursor)
         btn_pick.setStyleSheet(self._btn_ss())
         btn_pick.clicked.connect(self._pick_color)
         col_row.addWidget(btn_pick)
         col_row.addStretch(1)
         lay.addLayout(col_row)
-        lay.addWidget(self._hint(
-            "Escribe un color HEX (por ejemplo #F37329) o elígelo de la paleta."))
+        lay.addWidget(self._hint(tr(
+            "Escribe un color HEX (por ejemplo #F37329) o elígelo de la paleta.")))
         lay.addStretch(1)
         return pagina
 
@@ -366,8 +367,14 @@ class FormatoReporteDialog(QDialog):
                      "01.01.01.01.01  Detalle", "01.01.01.01.01.01  Nivel 6",
                      "01.01.01.01.01.01.01  Nivel 7", "…01.01  Nivel 8",
                      "…01.01.01  Nivel 9")
-    NIVEL_ROTULO = ("Sub-presupuesto:",) + tuple(
+    NIVEL_ROTULO = (N_("Sub-presupuesto:"),) + tuple(
         f"Nivel {n}:" for n in range(1, pdf_reports.N_NIVELES + 1))
+
+    def _rotulo_nivel(self, i: int) -> str:
+        """Rótulo traducido de la fila `i` de NIVEL_ROTULO (0 = sub)."""
+        if i == 0:
+            return tr(self.NIVEL_ROTULO[0])
+        return tr("Nivel {n}:").format(n=i)
 
     def _pagina_titulos(self) -> QWidget:
         """Esquemas de colores para los nueve niveles de título de los
@@ -378,24 +385,24 @@ class FormatoReporteDialog(QDialog):
         2026; diseño de Marco, 8 sep: «varios estilos personalizables y
         guardables»)."""
         pagina, lay = self._pagina_base(
-            "Colores de títulos",
-            "El color de la cabecera de sub-presupuesto y de cada nivel de título en los reportes PDF y Excel. "
-            "Elige un esquema o arma el tuyo y guárdalo con nombre.")
+            tr("Colores de títulos"),
+            tr("El color de la cabecera de sub-presupuesto y de cada nivel de título en los reportes PDF y Excel. "
+               "Elige un esquema o arma el tuyo y guárdalo con nombre."))
 
         fila = QHBoxLayout()
         fila.setSpacing(10)
-        fila.addWidget(QLabel("Esquema:"))
+        fila.addWidget(QLabel(tr("Esquema:")))
         self.cmb_esquema = QComboBox()
         self.cmb_esquema.setCursor(Qt.PointingHandCursor)
         self.cmb_esquema.setMinimumWidth(240)
         self.cmb_esquema.currentIndexChanged.connect(self._on_esquema_elegido)
         fila.addWidget(self.cmb_esquema)
-        self.btn_esq_guardar = QPushButton("Guardar como…")
+        self.btn_esq_guardar = QPushButton(tr("Guardar como…"))
         self.btn_esq_guardar.setCursor(Qt.PointingHandCursor)
         self.btn_esq_guardar.setStyleSheet(self._btn_ss())
         self.btn_esq_guardar.clicked.connect(self._esquema_guardar_como)
         fila.addWidget(self.btn_esq_guardar)
-        self.btn_esq_eliminar = QPushButton("Eliminar")
+        self.btn_esq_eliminar = QPushButton(tr("Eliminar"))
         self.btn_esq_eliminar.setCursor(Qt.PointingHandCursor)
         self.btn_esq_eliminar.setStyleSheet(self._btn_ss(danger=True))
         self.btn_esq_eliminar.clicked.connect(self._esquema_eliminar)
@@ -414,7 +421,7 @@ class FormatoReporteDialog(QDialog):
         n_filas = (len(self.NIVEL_ROTULO) + 1) // 2
         for i in range(len(self.NIVEL_ROTULO)):
             fila, col0 = i % n_filas, (i // n_filas) * 5
-            grid.addWidget(QLabel(self.NIVEL_ROTULO[i]), fila, col0)
+            grid.addWidget(QLabel(self._rotulo_nivel(i)), fila, col0)
             sw = QFrame()
             sw.setFixedSize(28, 22)
             grid.addWidget(sw, fila, col0 + 1)
@@ -424,7 +431,7 @@ class FormatoReporteDialog(QDialog):
             inp.setStyleSheet(self._le_ss())
             inp.editingFinished.connect(lambda i=i: self._on_nivel_texto(i))
             grid.addWidget(inp, fila, col0 + 2)
-            b = QPushButton("Elegir…")
+            b = QPushButton(tr("Elegir…"))
             b.setCursor(Qt.PointingHandCursor)
             b.setStyleSheet(self._btn_ss())
             b.clicked.connect(lambda _=False, i=i: self._on_nivel_elegir(i))
@@ -446,13 +453,13 @@ class FormatoReporteDialog(QDialog):
         cuerpo.addWidget(self.lbl_previa)
         lay.addLayout(cuerpo)
 
-        lay.addWidget(self._hint(
+        lay.addWidget(self._hint(tr(
             "«Clásico» son los colores de siempre. Los esquemas de fábrica no "
             "se modifican: al cambiar un color se crea el esquema "
             "«Personalizado», que puedes guardar con otro nombre. En pantalla, "
             "el árbol del presupuesto y el Gantt conservan sus colores; el "
             "esquema aplica al PDF y al Excel. Word no usa colores de nivel."
-        ))
+        )))
         lay.addStretch(1)
         return pagina
 
@@ -471,7 +478,8 @@ class FormatoReporteDialog(QDialog):
         self.cmb_esquema.clear()
         for k, v in self._esquemas.items():
             self.cmb_esquema.addItem(
-                v['nombre'] if v['fabrica'] else f"{v['nombre']}  (propio)", k)
+                tr(v['nombre']) if v['fabrica']
+                else tr("{nombre}  (propio)").format(nombre=v['nombre']), k)
         self.cmb_esquema.setCurrentIndex(max(0, self.cmb_esquema.findData(self._esq_activo)))
         self.cmb_esquema.blockSignals(False)
         self._esquemas_pintar()
@@ -534,14 +542,15 @@ class FormatoReporteDialog(QDialog):
     def _on_nivel_elegir(self, i: int):
         esq = self._esquemas[self._esq_activo]
         actual = QColor(esq['sub'] if i == 0 else esq['colores'][i - 1])
-        c = QColorDialog.getColor(actual, self, "Color de " + self.NIVEL_ROTULO[i].rstrip(':').lower())
+        c = QColorDialog.getColor(actual, self, tr("Color de {nivel}").format(
+            nivel=self._rotulo_nivel(i).rstrip(':').lower()))
         if c.isValid():
             self._poner_color_nivel(i, c.name())
 
     def _esquema_guardar_como(self):
         from PySide6.QtWidgets import QInputDialog
         nombre, ok = QInputDialog.getText(
-            self, "Guardar esquema", "Nombre del esquema:",
+            self, tr("Guardar esquema"), tr("Nombre del esquema:"),
             text=self._esquemas[self._esq_activo]['nombre'] if not
             self._esquemas[self._esq_activo]['fabrica'] else "")
         nombre = (nombre or '').strip()
@@ -563,8 +572,8 @@ class FormatoReporteDialog(QDialog):
         if esq['fabrica']:
             return
         if QMessageBox.question(
-                self, "Eliminar esquema",
-                f"¿Eliminar el esquema «{esq['nombre']}»?") != QMessageBox.Yes:
+                self, tr("Eliminar esquema"),
+                tr("¿Eliminar el esquema «{nombre}»?").format(nombre=esq['nombre'])) != QMessageBox.Yes:
             return
         del self._esquemas[self._esq_activo]
         self._esq_activo = pdf_reports.ESQUEMA_DEFECTO
@@ -579,37 +588,37 @@ class FormatoReporteDialog(QDialog):
     # ── Sección: Página y texto ──
     def _pagina_pagina(self) -> QWidget:
         pagina, lay = self._pagina_base(
-            "Página y texto",
-            "Cuánto texto entra en cada hoja del PDF: el tamaño del cuerpo y "
-            "los márgenes del papel.")
+            tr("Página y texto"),
+            tr("Cuánto texto entra en cada hoja del PDF: el tamaño del cuerpo y "
+               "los márgenes del papel."))
 
         # Tamaño del texto del cuerpo — pasos fijos
         # (pdf_reports.ESCALAS_TEXTO), no un slider: cada paso está verificado
         # en los 13 tipos de reporte.
-        lay.addWidget(self._section_title("Tamaño del texto"))
+        lay.addWidget(self._section_title(tr("Tamaño del texto")))
         txt_row = QHBoxLayout()
         txt_row.setSpacing(10)
-        txt_row.addWidget(QLabel("Tamaño del texto:"))
+        txt_row.addWidget(QLabel(tr("Tamaño del texto:")))
         self.cmb_escala_texto = QComboBox()
         self.cmb_escala_texto.setCursor(Qt.PointingHandCursor)
         self.cmb_escala_texto.setFixedWidth(220)
-        _rotulos = {100: "Normal", 90: "Compacto", 80: "Muy compacto"}
+        _rotulos = {100: tr("Normal"), 90: tr("Compacto"), 80: tr("Muy compacto")}
         for pct in pdf_reports.ESCALAS_TEXTO:
             self.cmb_escala_texto.addItem(
-                f"{_rotulos.get(pct, 'Escala')} ({pct} %)", pct)
+                f"{_rotulos.get(pct) or tr('Escala')} ({pct} %)", pct)
         txt_row.addWidget(self.cmb_escala_texto)
         txt_row.addStretch(1)
         lay.addLayout(txt_row)
-        lay.addWidget(self._hint(
+        lay.addWidget(self._hint(tr(
             "Reduce el texto del cuerpo para que entren más filas por página "
             "y el reporte ocupe menos hojas. Encabezado, pie y portada no "
             "cambian. Solo afecta al PDF: en Word y Excel el tamaño se cambia "
             "en el propio programa."
-        ))
+        )))
 
         # Márgenes — en milímetros, dispuestos como en la hoja: arriba,
         # izquierda/derecha, abajo.
-        lay.addWidget(self._section_title("Márgenes del papel"))
+        lay.addWidget(self._section_title(tr("Márgenes del papel")))
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
         grid.setVerticalSpacing(4)
@@ -617,11 +626,11 @@ class FormatoReporteDialog(QDialog):
         self.spn_margen_inf = self._spin_margen()
         self.spn_margen_izq = self._spin_margen()
         self.spn_margen_der = self._spin_margen()
-        grid.addWidget(self._etiqueta_margen("Superior"), 0, 1, Qt.AlignHCenter)
+        grid.addWidget(self._etiqueta_margen(tr("Superior")), 0, 1, Qt.AlignHCenter)
         grid.addWidget(self.spn_margen_sup, 1, 1, Qt.AlignHCenter)
-        grid.addWidget(self._etiqueta_margen("Izquierdo"), 2, 0, Qt.AlignHCenter)
+        grid.addWidget(self._etiqueta_margen(tr("Izquierdo")), 2, 0, Qt.AlignHCenter)
         grid.addWidget(self.spn_margen_izq, 3, 0, Qt.AlignHCenter)
-        hoja = QLabel("cuerpo del\nreporte")
+        hoja = QLabel(tr("cuerpo del\nreporte"))
         hoja.setAlignment(Qt.AlignCenter)
         hoja.setFixedSize(96, 56)
         hoja.setStyleSheet(
@@ -630,14 +639,14 @@ class FormatoReporteDialog(QDialog):
             f" font-style:italic;"
         )
         grid.addWidget(hoja, 2, 1, 2, 1, Qt.AlignCenter)
-        grid.addWidget(self._etiqueta_margen("Derecho"), 2, 2, Qt.AlignHCenter)
+        grid.addWidget(self._etiqueta_margen(tr("Derecho")), 2, 2, Qt.AlignHCenter)
         grid.addWidget(self.spn_margen_der, 3, 2, Qt.AlignHCenter)
-        grid.addWidget(self._etiqueta_margen("Inferior"), 4, 1, Qt.AlignHCenter)
+        grid.addWidget(self._etiqueta_margen(tr("Inferior")), 4, 1, Qt.AlignHCenter)
         grid.addWidget(self.spn_margen_inf, 5, 1, Qt.AlignHCenter)
         grid_wrap = QHBoxLayout()
         grid_wrap.addLayout(grid)
         self.btn_margenes_reset = QToolButton()
-        self.btn_margenes_reset.setText("Restablecer márgenes")
+        self.btn_margenes_reset.setText(tr("Restablecer márgenes"))
         self.btn_margenes_reset.setCursor(Qt.PointingHandCursor)
         self.btn_margenes_reset.clicked.connect(self._reset_margenes)
         grid_wrap.addSpacing(18)
@@ -648,15 +657,17 @@ class FormatoReporteDialog(QDialog):
                     self.spn_margen_izq, self.spn_margen_der):
             spn.valueChanged.connect(self._on_margen)
         _d = {k: pdf_reports.FORMATO_CLAVES[k] for k in pdf_reports.MARGENES_CLAVES}
-        lay.addWidget(self._hint(
-            f"En milímetros, de {pdf_reports.MARGEN_MIN_MM} a "
-            f"{pdf_reports.MARGEN_MAX_MM}. Los de siempre son "
-            f"{_d['rep_margen_sup']} arriba, {_d['rep_margen_inf']} abajo y "
-            f"{_d['rep_margen_izq']} a cada lado. El superior mueve el "
+        lay.addWidget(self._hint(tr(
+            "En milímetros, de {min} a "
+            "{max}. Los de siempre son "
+            "{sup} arriba, {inf} abajo y "
+            "{izq} a cada lado. El superior mueve el "
             "encabezado junto con el cuerpo y el inferior mueve el pie; la "
             "portada no cambia. Solo afecta al PDF de los reportes — el "
             "cronograma Gantt tiene sus propios márgenes."
-        ))
+        ).format(min=pdf_reports.MARGEN_MIN_MM, max=pdf_reports.MARGEN_MAX_MM,
+                 sup=_d['rep_margen_sup'], inf=_d['rep_margen_inf'],
+                 izq=_d['rep_margen_izq'])))
         lay.addStretch(1)
         return pagina
 
@@ -682,22 +693,22 @@ class FormatoReporteDialog(QDialog):
     # ── Sección: Encabezado y pie ──
     def _pagina_encabezado_pie(self) -> QWidget:
         pagina, lay = self._pagina_base(
-            "Encabezado y pie",
-            "Qué se imprime arriba y abajo de cada página. La portada no lleva "
-            "ninguno de los dos.")
+            tr("Encabezado y pie"),
+            tr("Qué se imprime arriba y abajo de cada página. La portada no lleva "
+               "ninguno de los dos."))
 
-        lay.addWidget(self._section_title("Encabezado de las páginas"))
+        lay.addWidget(self._section_title(tr("Encabezado de las páginas")))
         self.chk_encabezado = QCheckBox(
-            "Imprimir el encabezado en cada página")
+            tr("Imprimir el encabezado en cada página"))
         self.chk_encabezado.setCursor(Qt.PointingHandCursor)
         lay.addWidget(self.chk_encabezado)
-        lay.addWidget(self._hint(
+        lay.addWidget(self._hint(tr(
             "Es la franja con el logo, la razón social y el título del reporte. "
             "Al quitarla el cuerpo sube y entran más filas por hoja."
-        ))
+        )))
 
-        lay.addWidget(self._section_title("Pie de página"))
-        self.chk_pie = QCheckBox("Imprimir el pie en cada página")
+        lay.addWidget(self._section_title(tr("Pie de página")))
+        self.chk_pie = QCheckBox(tr("Imprimir el pie en cada página"))
         self.chk_pie.setCursor(Qt.PointingHandCursor)
         self.chk_pie.toggled.connect(self._on_pie_toggled)
         lay.addWidget(self.chk_pie)
@@ -705,34 +716,34 @@ class FormatoReporteDialog(QDialog):
         form.setSpacing(10)
         form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.inp_pie_izq, self.chk_pie_izq = self._fila_pie(
-            form, "Texto izquierdo:", "Por defecto: Cliente del proyecto")
+            form, tr("Texto izquierdo:"), tr("Por defecto: Cliente del proyecto"))
         self.inp_pie_cen, self.chk_pie_cen = self._fila_pie(
-            form, "Texto central:", "Por defecto: fecha de generación")
+            form, tr("Texto central:"), tr("Por defecto: fecha de generación"))
         self.inp_pie_der, self.chk_pie_der = self._fila_pie(
-            form, "Texto derecho:", "Por defecto: Página X de N")
+            form, tr("Texto derecho:"), tr("Por defecto: Página X de N"))
         lay.addLayout(form)
-        self.chk_pie_linea = QCheckBox("Imprimir la línea que separa el pie del cuerpo")
+        self.chk_pie_linea = QCheckBox(tr("Imprimir la línea que separa el pie del cuerpo"))
         self.chk_pie_linea.setCursor(Qt.PointingHandCursor)
-        self.chk_pie_linea.setToolTip(
+        self.chk_pie_linea.setToolTip(tr(
             "Quítala si necesitas ese espacio limpio para sellos y firmas; "
-            "los textos del pie se imprimen igual.")
+            "los textos del pie se imprimen igual."))
         lay.addWidget(self.chk_pie_linea)
-        lay.addWidget(self._hint(
+        lay.addWidget(self._hint(tr(
             "Dejar el texto en blanco usa el valor por defecto. Marca «Vacío» "
             "para que ese hueco no se imprima — por ejemplo, vacío a la "
             "izquierda y al centro deja solo el número de página. Con el pie "
             "apagado no se imprime nada abajo, ni la línea."
-        ))
-        lay.addWidget(self._section_title("Diagrama de Gantt"))
+        )))
+        lay.addWidget(self._section_title(tr("Diagrama de Gantt")))
         self.chk_gantt_leyenda = QCheckBox(
-            "Imprimir la leyenda del Gantt al pie (Tarea, Crítica, Hito, Dependencia, Hoy, Fin plazo)")
+            tr("Imprimir la leyenda del Gantt al pie (Tarea, Crítica, Hito, Dependencia, Hoy, Fin plazo)"))
         self.chk_gantt_leyenda.setCursor(Qt.PointingHandCursor)
         lay.addWidget(self.chk_gantt_leyenda)
-        lay.addWidget(self._hint(
+        lay.addWidget(self._hint(tr(
             "El encabezado y el pie del Gantt siguen las casillas de arriba, "
             "como el resto de reportes. La leyenda va aparte: quítala si ya "
             "conoces los colores y quieres ganar espacio."
-        ))
+        )))
         lay.addStretch(1)
         return pagina
 
@@ -857,9 +868,9 @@ class FormatoReporteDialog(QDialog):
         campo.setPlaceholderText(placeholder)
         campo.setStyleSheet(self._le_ss())
         h.addWidget(campo, 1)
-        casilla = QCheckBox("Vacío")
+        casilla = QCheckBox(tr("Vacío"))
         casilla.setCursor(Qt.PointingHandCursor)
-        casilla.setToolTip("No imprimir nada en esta parte del pie.")
+        casilla.setToolTip(tr("No imprimir nada en esta parte del pie."))
         casilla.toggled.connect(lambda on, c=campo: c.setEnabled(not on))
         h.addWidget(casilla)
         form.addRow(etiqueta, fila)
@@ -969,9 +980,9 @@ class FormatoReporteDialog(QDialog):
 
     def _choose_logo(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar logo",
+            self, tr("Seleccionar logo"),
             os.path.expanduser("~"),
-            "Imágenes (*.png *.jpg *.jpeg *.svg *.bmp)"
+            tr("Imágenes (*.png *.jpg *.jpeg *.svg *.bmp)")
         )
         if not path:
             return
@@ -991,7 +1002,7 @@ class FormatoReporteDialog(QDialog):
             self._formato['rep_logo_b64'] = b64
             self._update_logo_preview(b64)
         except Exception as e:
-            QMessageBox.critical(self, "Logo", f"No se pudo cargar la imagen:\n{e}")
+            QMessageBox.critical(self, tr("Logo"), tr("No se pudo cargar la imagen:\n{e}").format(e=e))
 
     def _on_logo_escala(self, val: int):
         self.lbl_logo_esc.setText(f"{int(val)} %")
@@ -1004,7 +1015,7 @@ class FormatoReporteDialog(QDialog):
     def _update_logo_preview(self, b64: str):
         if not b64:
             self._lbl_logo.setPixmap(QPixmap())
-            self._lbl_logo.setText("Sin logo")
+            self._lbl_logo.setText(tr("Sin logo"))
             self.btn_clear_logo.setEnabled(False)
             return
         try:
@@ -1021,7 +1032,7 @@ class FormatoReporteDialog(QDialog):
         except Exception:
             pass
         self._lbl_logo.setPixmap(QPixmap())
-        self._lbl_logo.setText("Logo inválido")
+        self._lbl_logo.setText(tr("Logo inválido"))
 
     # ─── Márgenes ────────────────────────────────────────────────────────────
 
@@ -1051,7 +1062,7 @@ class FormatoReporteDialog(QDialog):
 
     def _pick_color(self):
         actual = QColor(self.inp_color.text() or ORANGE)
-        c = QColorDialog.getColor(actual, self, "Color de marca")
+        c = QColorDialog.getColor(actual, self, tr("Color de marca"))
         if c.isValid():
             self.inp_color.setText(c.name().upper())
 
@@ -1078,8 +1089,8 @@ class FormatoReporteDialog(QDialog):
         color = (self.inp_color.text() or '').strip().upper()
         if color and not (color.startswith('#') and len(color) == 7):
             self._menu.setCurrentRow(2)
-            QMessageBox.warning(self, "Color",
-                                "Ingresa un color HEX válido (ej. #F37329).")
+            QMessageBox.warning(self, tr("Color"),
+                                tr("Ingresa un color HEX válido (ej. #F37329)."))
             return
 
         self._formato['rep_empresa_nombre']    = self.inp_empresa.text().strip()

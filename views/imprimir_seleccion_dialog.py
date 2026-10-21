@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
 from utils.theme import BTN_PRIMARY_SS
+from utils.i18n import tr, N_
 
 SLATE_700 = "#273445"
 SLATE_500 = "#485A6C"
@@ -35,10 +36,10 @@ WHITE = "#FFFFFF"
 
 #: (clave del reporte, etiqueta, marcado por defecto)
 REPORTES = [
-    ('acus',             "Análisis de Costos Unitarios", True),
-    ('metrados',         "Hoja de Metrados",             False),
-    ('especificaciones', "Especificaciones Técnicas",    False),
-    ('presupuesto',      "Presupuesto (extracto)",       False),
+    ('acus',             N_("Análisis de Costos Unitarios"), True),
+    ('metrados',         N_("Hoja de Metrados"),             False),
+    ('especificaciones', N_("Especificaciones Técnicas"),    False),
+    ('presupuesto',      N_("Presupuesto (extracto)"),       False),
 ]
 
 BTN_GHOST_SS = (
@@ -54,7 +55,7 @@ class ImprimirSeleccionDialog(QDialog):
 
     def __init__(self, parent, n_partidas: int):
         super().__init__(parent)
-        self.setWindowTitle("Imprimir partidas seleccionadas")
+        self.setWindowTitle(tr("Imprimir partidas seleccionadas"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumWidth(420)
         self.setStyleSheet(
@@ -70,13 +71,14 @@ class ImprimirSeleccionDialog(QDialog):
         v.setSpacing(12)
 
         titulo = QLabel(
-            f"{n} partida{'s' if n != 1 else ''} seleccionada{'s' if n != 1 else ''}"
+            (tr("{n} partida seleccionada") if n == 1
+             else tr("{n} partidas seleccionadas")).format(n=n)
         )
         titulo.setStyleSheet(
             f"color:{SLATE_700}; font-size:15px; font-weight:700;")
         v.addWidget(titulo)
 
-        sub = QLabel("¿Qué quieres incluir en la impresión?")
+        sub = QLabel(tr("¿Qué quieres incluir en la impresión?"))
         sub.setStyleSheet(f"color:{SLATE_500}; font-size:12px;")
         v.addWidget(sub)
 
@@ -85,7 +87,7 @@ class ImprimirSeleccionDialog(QDialog):
         v.addWidget(sep)
 
         for clave, etiqueta, por_defecto in REPORTES:
-            chk = QCheckBox(etiqueta)
+            chk = QCheckBox(tr(etiqueta))
             chk.setChecked(por_defecto)
             chk.setCursor(Qt.PointingHandCursor)
             chk.setStyleSheet(f"color:{SLATE_700}; font-size:13px; padding:3px 0;")
@@ -93,10 +95,10 @@ class ImprimirSeleccionDialog(QDialog):
             self._checks[clave] = chk
             v.addWidget(chk)
 
-        self.lbl_aviso = QLabel(
+        self.lbl_aviso = QLabel(tr(
             "El extracto del presupuesto no lleva gastos generales, utilidad "
             "ni IGV: esos porcentajes son del proyecto completo."
-        )
+        ))
         self.lbl_aviso.setWordWrap(True)
         self.lbl_aviso.setStyleSheet(
             f"color:{SLATE_300}; font-size:11px; font-style:italic;"
@@ -108,13 +110,13 @@ class ImprimirSeleccionDialog(QDialog):
         h = QHBoxLayout(); h.setSpacing(8)
         h.addStretch(1)
 
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setCursor(Qt.PointingHandCursor)
         btn_cancel.setStyleSheet(BTN_GHOST_SS)
         btn_cancel.clicked.connect(self.reject)
         h.addWidget(btn_cancel)
 
-        self.btn_ok = QPushButton("Vista previa")
+        self.btn_ok = QPushButton(tr("Vista previa"))
         self.btn_ok.setCursor(Qt.PointingHandCursor)
         self.btn_ok.setStyleSheet(BTN_PRIMARY_SS)
         self.btn_ok.setDefault(True)
@@ -159,7 +161,7 @@ class VistaPreviaDialog(QDialog):
         super().__init__(parent)
         self._pdf_path = pdf_path
         self._nombre_archivo = nombre_archivo
-        self.setWindowTitle(f"Vista previa — {titulo}")
+        self.setWindowTitle(tr("Vista previa — {titulo}").format(titulo=titulo))
         self.setWindowModality(Qt.WindowModal)
         self.resize(880, 720)
         self.setStyleSheet(f"QDialog {{ background:{WHITE}; }}")
@@ -188,24 +190,24 @@ class VistaPreviaDialog(QDialog):
         h.setSpacing(8)
 
         n = self._doc.pageCount()
-        lbl = QLabel(f"{n} página{'s' if n != 1 else ''}")
+        lbl = QLabel((tr("{n} página") if n == 1 else tr("{n} páginas")).format(n=n))
         lbl.setStyleSheet(f"color:{SLATE_300}; font-size:11px; border:none;")
         h.addWidget(lbl)
         h.addStretch(1)
 
-        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar = QPushButton(tr("Cerrar"))
         btn_cerrar.setCursor(Qt.PointingHandCursor)
         btn_cerrar.setStyleSheet(BTN_GHOST_SS)
         btn_cerrar.clicked.connect(self.reject)
         h.addWidget(btn_cerrar)
 
-        btn_pdf = QPushButton("Guardar PDF…")
+        btn_pdf = QPushButton(tr("Guardar PDF…"))
         btn_pdf.setCursor(Qt.PointingHandCursor)
         btn_pdf.setStyleSheet(BTN_GHOST_SS)
         btn_pdf.clicked.connect(self._guardar)
         h.addWidget(btn_pdf)
 
-        btn_imp = QPushButton("Imprimir…")
+        btn_imp = QPushButton(tr("Imprimir…"))
         btn_imp.setCursor(Qt.PointingHandCursor)
         btn_imp.setStyleSheet(BTN_PRIMARY_SS)
         btn_imp.setDefault(True)
@@ -216,7 +218,7 @@ class VistaPreviaDialog(QDialog):
 
     def _guardar(self):
         destino, _ = QFileDialog.getSaveFileName(
-            self, "Guardar PDF", self._nombre_archivo, "PDF (*.pdf)")
+            self, tr("Guardar PDF"), self._nombre_archivo, "PDF (*.pdf)")
         if not destino:
             return
         if not destino.lower().endswith('.pdf'):
@@ -225,9 +227,9 @@ class VistaPreviaDialog(QDialog):
             import shutil
             shutil.copy(self._pdf_path, destino)
         except OSError as e:
-            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo guardar:\n{e}").format(e=e))
             return
-        QMessageBox.information(self, "Guardado", f"Archivo guardado:\n{destino}")
+        QMessageBox.information(self, tr("Guardado"), tr("Archivo guardado:\n{destino}").format(destino=destino))
 
     def _imprimir(self):
         printer = QPrinter(QPrinter.HighResolution)
@@ -235,7 +237,7 @@ class VistaPreviaDialog(QDialog):
         from utils.impresion import ajustar_printer_al_pdf
         ajustar_printer_al_pdf(printer, self._pdf_path)
         dlg = QPrintDialog(printer, self)
-        dlg.setWindowTitle("Imprimir")
+        dlg.setWindowTitle(tr("Imprimir"))
         if dlg.exec() != QDialog.Accepted:
             return
         QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -243,7 +245,7 @@ class VistaPreviaDialog(QDialog):
             from utils.impresion import pintar_pdf_en_printer
             pintar_pdf_en_printer(printer, self._pdf_path)
         except Exception as e:                      # noqa: BLE001
-            QMessageBox.warning(self, "Error de impresión", str(e))
+            QMessageBox.warning(self, tr("Error de impresión"), str(e))
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -266,8 +268,8 @@ def imprimir_seleccion(parent, pid: int, pids: list[int]) -> None:
     """Punto de entrada desde el menú contextual del árbol de partidas."""
     if not pids:
         QMessageBox.information(
-            parent, "Sin selección",
-            "Selecciona al menos una partida (los títulos no cuentan).")
+            parent, tr("Sin selección"),
+            tr("Selecciona al menos una partida (los títulos no cuentan)."))
         return
 
     dlg = ImprimirSeleccionDialog(parent, len(pids))
@@ -299,18 +301,18 @@ def imprimir_seleccion(parent, pid: int, pids: list[int]) -> None:
             if not _unir_pdfs(temporales, unido.name):
                 QApplication.restoreOverrideCursor()
                 QMessageBox.warning(
-                    parent, "Falta pypdf",
-                    "Para combinar varios reportes en un solo PDF se necesita "
-                    "el paquete «pypdf».\n\nInstálalo con:\n  pip install pypdf"
-                    "\n\nMientras tanto, imprime un reporte a la vez.")
+                    parent, tr("Falta pypdf"),
+                    tr("Para combinar varios reportes en un solo PDF se necesita "
+                       "el paquete «pypdf».\n\nInstálalo con:\n  pip install pypdf"
+                       "\n\nMientras tanto, imprime un reporte a la vez."))
                 return
             final = unido.name
             temporales.append(unido.name)
     except Exception as e:                          # noqa: BLE001
         QApplication.restoreOverrideCursor()
         import traceback; traceback.print_exc()
-        QMessageBox.critical(parent, "Error",
-                             f"No se pudo generar la impresión:\n{e}")
+        QMessageBox.critical(parent, tr("Error"),
+                             tr("No se pudo generar la impresión:\n{e}").format(e=e))
         for r in temporales:
             try: os.unlink(r)
             except OSError: pass
@@ -319,7 +321,7 @@ def imprimir_seleccion(parent, pid: int, pids: list[int]) -> None:
         QApplication.restoreOverrideCursor()
 
     try:
-        VistaPreviaDialog(parent, final, "partidas seleccionadas").exec()
+        VistaPreviaDialog(parent, final, tr("partidas seleccionadas")).exec()
     finally:
         # El QPdfDocument ya cerró el archivo al destruirse el diálogo.
         for r in temporales:

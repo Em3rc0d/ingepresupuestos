@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 
 from core import pdf_reports, word_reports, odt_reports, ods_reports
 from utils.icons import icon
+from utils.i18n import tr, N_
 
 # Tipos soportados por cada exportador (PDF y Print aplican siempre).
 _EXCEL_TIPOS = {'presupuesto', 'acus', 'insumos', 'insumos_sub', 'metrados',
@@ -48,19 +49,19 @@ _MPP_TIPOS = {'cronograma'}
 # las 'cron_*' usan los renderizadores ricos de cronograma (papel auto).
 # El orden de esta lista ES el orden del documento final.
 _SECCIONES_COMPLETO = [
-    ('memoria_descriptiva',  'Memoria'),
-    ('resumen',              'Resumen'),
-    ('presupuesto',          'Presupuesto'),
-    ('gastos_generales',     'Pie'),
-    ('insumos',              'Insumos'),
-    ('insumos_sub',          'Insumos x Sub'),
-    ('acus',                 'ACU'),
-    ('metrados',             'Metrados'),
-    ('especificaciones',     'Especif.'),
-    ('cron_gantt',           'Gantt'),
-    ('cron_valorizado',      'Valorizado'),
-    ('cron_adquisiciones',   'Adquisic.'),
-    ('cron_curva',           'Curva S'),
+    ('memoria_descriptiva',  N_('Memoria')),
+    ('resumen',              N_('Resumen')),
+    ('presupuesto',          N_('Presupuesto')),
+    ('gastos_generales',     N_('Pie')),
+    ('insumos',              N_('Insumos')),
+    ('insumos_sub',          N_('Insumos x Sub')),
+    ('acus',                 N_('ACU')),
+    ('metrados',             N_('Metrados')),
+    ('especificaciones',     N_('Especif.')),
+    ('cron_gantt',           N_('Gantt')),
+    ('cron_valorizado',      N_('Valorizado')),
+    ('cron_adquisiciones',   N_('Adquisic.')),
+    ('cron_curva',           N_('Curva S')),
 ]
 _SECCIONES_NUCLEO = {c for c, _ in _SECCIONES_COMPLETO[:9]}
 
@@ -130,9 +131,9 @@ class _ReportCard(QPushButton):
         col = QVBoxLayout()
         col.setSpacing(2)
         col.setContentsMargins(0, 0, 0, 0)
-        self._lbl_t = QLabel(titulo)
+        self._lbl_t = QLabel(tr(titulo))
         self._lbl_t.setStyleSheet(f"color:{SLATE_900}; font-size:13px; font-weight:600;")
-        self._lbl_d = QLabel(descripcion)
+        self._lbl_d = QLabel(tr(descripcion))
         self._lbl_d.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         self._lbl_d.setWordWrap(True)
         col.addWidget(self._lbl_t)
@@ -144,7 +145,6 @@ class _ReportCard(QPushButton):
         # Pista de descubrimiento: la tarjeta se puede arrastrar para
         # reordenar (y ese orden gobierna el Reporte Completo).
         from utils.tooltip import set_tooltip
-        from utils.i18n import tr
         set_tooltip(self, tr("Clic para ver el reporte.") + "\n↕ "
                     + tr("Arrastra para cambiar el orden — también define "
                          "el orden de las secciones del Reporte Completo."))
@@ -463,7 +463,6 @@ class ReportesView(QWidget):
         hl.setSpacing(10)
 
         # Botón Atrás
-        from utils.i18n import tr
         btn_back = QPushButton(tr("Presupuesto"))
         btn_back.setIcon(icon("atras"))
         btn_back.setIconSize(QSize(18, 18))
@@ -498,7 +497,6 @@ class ReportesView(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        from utils.i18n import tr
         hdr = QLabel("  " + tr("Tipos de reporte"))
         hdr.setFixedHeight(38)
         hdr.setStyleSheet(
@@ -581,7 +579,6 @@ class ReportesView(QWidget):
         sl.setContentsMargins(14, 0, 14, 0)
         sl.setSpacing(8)
 
-        from utils.i18n import tr
         self._lbl_titulo = QLabel(tr("Vista previa"))
         self._lbl_titulo.setStyleSheet(f"color:{SLATE_900}; font-size:13px; font-weight:600;")
         sl.addWidget(self._lbl_titulo)
@@ -594,10 +591,11 @@ class ReportesView(QWidget):
         op_hl.setContentsMargins(16, 0, 0, 0); op_hl.setSpacing(6)
         # Período
         lbl_per = QLabel(tr("Período") + ":")
+        self._lbl_per = lbl_per
         lbl_per.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         op_hl.addWidget(lbl_per)
         self._cmb_periodo = QComboBox()
-        self._cmb_periodo.addItems(["Auto", tr("Semanal"), tr("Mensual")])
+        self._cmb_periodo.addItems([tr("Auto"), tr("Semanal"), tr("Mensual")])
         self._cmb_periodo.setCurrentIndex(2)  # default Mensual (Marco)
         # Popup styling cubierto por `install_global_popup_styles(app)`.
         combo_qss = (
@@ -613,10 +611,11 @@ class ReportesView(QWidget):
         op_hl.addWidget(self._cmb_periodo)
         # Tamaño de papel
         lbl_pap = QLabel(tr("Papel") + ":")
+        self._lbl_pap = lbl_pap
         lbl_pap.setStyleSheet(f"color:{SLATE_500}; font-size:11px; padding-left:8px;")
         op_hl.addWidget(lbl_pap)
         self._cmb_papel = QComboBox()
-        self._cmb_papel.addItems(["Auto", "A4", "A3", "A2", "A1", "A0"])
+        self._cmb_papel.addItems([tr("Auto"), "A4", "A3", "A2", "A1", "A0"])
         self._cmb_papel.setCurrentIndex(1)   # A4 por defecto (Gantt usa su propio gran formato)
         self._cmb_papel.setStyleSheet(combo_qss)
         self._cmb_papel.currentIndexChanged.connect(
@@ -637,7 +636,7 @@ class ReportesView(QWidget):
         sl.addStretch(1)
 
         # Zoom
-        self._btn_zoom_out = self._mk_subtbtn("−", "Reducir zoom")
+        self._btn_zoom_out = self._mk_subtbtn("−", tr("Reducir zoom"))
         self._btn_zoom_out.clicked.connect(lambda: self._cambiar_zoom(-0.1))
         sl.addWidget(self._btn_zoom_out)
         self._lbl_zoom = QLabel("100%")
@@ -645,10 +644,10 @@ class ReportesView(QWidget):
         self._lbl_zoom.setAlignment(Qt.AlignCenter)
         self._lbl_zoom.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         sl.addWidget(self._lbl_zoom)
-        self._btn_zoom_in = self._mk_subtbtn("+", "Aumentar zoom")
+        self._btn_zoom_in = self._mk_subtbtn("+", tr("Aumentar zoom"))
         self._btn_zoom_in.clicked.connect(lambda: self._cambiar_zoom(+0.1))
         sl.addWidget(self._btn_zoom_in)
-        self._btn_fit = self._mk_subtbtn("", "Ajustar al ancho")
+        self._btn_fit = self._mk_subtbtn("", tr("Ajustar al ancho"))
         self._btn_fit.setIcon(icon("ajustar"))
         self._btn_fit.setIconSize(QSize(18, 18))
         self._btn_fit.clicked.connect(self._fit_width)
@@ -664,9 +663,10 @@ class ReportesView(QWidget):
         # selector de cols (Marco: "el botón está de más, solo el desplegable").
         # "📄 Página" = vista de página; "▦ N cols" = mosaico con N columnas.
         self._cmb_vista = QComboBox()
-        self._cmb_vista.addItem("📄  Página", userData=('pagina', None))
+        self._cmb_vista.addItem(tr("📄  Página"), userData=('pagina', None))
         for n in (1, 2, 3, 4, 5, 6):
-            etiqueta = f"▦  {n} col" if n == 1 else f"▦  {n} cols"
+            etiqueta = (tr("▦  {n} col").format(n=n) if n == 1
+                        else tr("▦  {n} cols").format(n=n))
             self._cmb_vista.addItem(etiqueta, userData=('mosaico', n))
         self._cmb_vista.setCurrentIndex(0)
         self._mosaico_cols = 2
@@ -680,7 +680,7 @@ class ReportesView(QWidget):
         )
         self._cmb_vista.currentIndexChanged.connect(self._on_vista_cambiada)
         from utils.tooltip import set_tooltip
-        set_tooltip(self._cmb_vista, "Modo de vista del PDF")
+        set_tooltip(self._cmb_vista, tr("Modo de vista del PDF"))
         sl.addWidget(self._cmb_vista)
 
         vl.addWidget(sub)
@@ -712,7 +712,7 @@ class ReportesView(QWidget):
         self._sec_hl = sec_hl
         _etiqueta_sec = dict(_SECCIONES_COMPLETO)
         for cod_s in self._orden_secciones():
-            chk = QCheckBox(_etiqueta_sec.get(cod_s, cod_s))
+            chk = QCheckBox(tr(_etiqueta_sec.get(cod_s, cod_s)))
             chk.setChecked(_marcadas is None or cod_s in _marcadas)
             chk.setStyleSheet(
                 f"QCheckBox {{ color:{SLATE_700}; font-size:11px; }}")
@@ -833,7 +833,6 @@ class ReportesView(QWidget):
         hl.setSpacing(10)
 
         # Botón "Configurar formato…" — abre diálogo para editar logo, color, encabezados
-        from utils.i18n import tr
         btn_fmt = QPushButton(tr("Configurar formato") + "…")
         btn_fmt.setIcon(icon("palette"))
         btn_fmt.setIconSize(QSize(18, 18))
@@ -879,31 +878,31 @@ class ReportesView(QWidget):
         self._btn_odt = mk("ODT", False, self._guardar_odt)
         hl.addWidget(self._btn_odt)
         self._btn_mpp = mk("MPP", False, self._guardar_mpp)
-        self._btn_mpp.setToolTip(
+        self._btn_mpp.setToolTip(tr(
             "Exportar a Microsoft Project (XML). Incluye plazo, calendario "
             "peruano, dependencias y colores."
-        )
+        ))
         hl.addWidget(self._btn_mpp)
         self._btn_png = mk("PNG", False, self._guardar_png)
-        self._btn_png.setToolTip(
+        self._btn_png.setToolTip(tr(
             "Exportar la vista previa como imagen PNG (fondo blanco, sin "
             "transparencias). Si el reporte tiene varias páginas se guarda "
             "una PNG por página."
-        )
+        ))
         hl.addWidget(self._btn_png)
         # Packs (solo visibles en Reporte Completo)
         self._btn_pack_office = mk("📦 Pack Office", False, self._guardar_pack_office)
-        self._btn_pack_office.setToolTip(
+        self._btn_pack_office.setToolTip(tr(
             "Descarga TODOS los archivos editables Office en una sola carpeta:\n"
             "Word (.docx) + Excel (.xlsx) + MPP (.xml)"
-        )
+        ))
         hl.addWidget(self._btn_pack_office)
         self._btn_pack_libre = mk("📦 Pack LibreOffice", False,
                                      self._guardar_pack_libre)
-        self._btn_pack_libre.setToolTip(
+        self._btn_pack_libre.setToolTip(tr(
             "Descarga TODOS los archivos editables ODF en una sola carpeta:\n"
             "ODT (.odt) + ODS (.ods). Requiere LibreOffice instalado."
-        )
+        ))
         hl.addWidget(self._btn_pack_libre)
         self._btn_print = mk(tr("Imprimir") + "…", False, self._imprimir)
         hl.addWidget(self._btn_print)
@@ -928,7 +927,7 @@ class ReportesView(QWidget):
             card.setChecked(c == codigo)
         self._tipo_actual = codigo
         titulo = next((t[1] for t in pdf_reports.REPORT_TYPES if t[0] == codigo), codigo)
-        self._lbl_titulo.setText(titulo)
+        self._lbl_titulo.setText(tr(titulo))
         self._regenerar_preview()
         self._actualizar_visibilidad_export(codigo)
 
@@ -973,17 +972,13 @@ class ReportesView(QWidget):
                 self._cmb_periodo.setVisible(
                     en_cron_tabular or en_cron_curva or es_completo
                 )
-                for child in self._opts_frame.findChildren(QLabel):
-                    if child.text() == "Período:":
-                        child.setVisible(
-                            en_cron_tabular or en_cron_curva or es_completo
-                        )
+                self._lbl_per.setVisible(
+                    en_cron_tabular or en_cron_curva or es_completo
+                )
                 # Papel y "Una sola hoja" no aplican en completo (cada
                 # sección se auto-ajusta).
                 self._cmb_papel.setVisible(en_cron_tabular or en_cron_curva)
-                for child in self._opts_frame.findChildren(QLabel):
-                    if child.text() == "Papel:":
-                        child.setVisible(en_cron_tabular or en_cron_curva)
+                self._lbl_pap.setVisible(en_cron_tabular or en_cron_curva)
                 self._chk_unahoja.setVisible(en_cron_tabular)
             except Exception:
                 pass
@@ -1099,7 +1094,7 @@ class ReportesView(QWidget):
                 if path:
                     self._on_pdf_listo(path)
                 else:
-                    self._on_pdf_falla("No se pudo cargar el proyecto.")
+                    self._on_pdf_falla(tr("No se pudo cargar el proyecto."))
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._on_pdf_falla(f"{type(e).__name__}: {e}")
@@ -1112,7 +1107,7 @@ class ReportesView(QWidget):
                 if path:
                     self._on_pdf_listo(path)
                 else:
-                    self._on_pdf_falla("No se pudo cargar el proyecto.")
+                    self._on_pdf_falla(tr("No se pudo cargar el proyecto."))
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._on_pdf_falla(f"{type(e).__name__}: {e}")
@@ -1125,7 +1120,7 @@ class ReportesView(QWidget):
                 if path:
                     self._on_pdf_listo(path)
                 else:
-                    self._on_pdf_falla("No se pudo cargar el proyecto.")
+                    self._on_pdf_falla(tr("No se pudo cargar el proyecto."))
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._on_pdf_falla(f"{type(e).__name__}: {e}")
@@ -1138,7 +1133,7 @@ class ReportesView(QWidget):
                 if path:
                     self._on_pdf_listo(path)
                 else:
-                    self._on_pdf_falla("No se pudo generar el reporte.")
+                    self._on_pdf_falla(tr("No se pudo generar el reporte."))
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._on_pdf_falla(f"{type(e).__name__}: {e}")
@@ -1412,7 +1407,7 @@ class ReportesView(QWidget):
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet("background:white; border:none;")
             cv.addWidget(lbl)
-            cap = QLabel(f"Página {i + 1} de {n}")
+            cap = QLabel(tr("Página {p} de {n}").format(p=i + 1, n=n))
             cap.setAlignment(Qt.AlignCenter)
             cap.setStyleSheet(
                 f"color:{SLATE_500}; font-size:10px; padding:2px 0;"
@@ -1441,7 +1436,7 @@ class ReportesView(QWidget):
         self._generando = False
         self._progress.setVisible(False)
         self._set_busy_cursor(False)
-        self._lbl_state.setText(f"Error al generar el reporte:\n\n{msg}")
+        self._lbl_state.setText(tr("Error al generar el reporte:\n\n{msg}").format(msg=msg))
         self._preview_stack.setCurrentIndex(0)
         for b in (self._btn_pdf, self._btn_print):
             b.setEnabled(True)
@@ -1501,7 +1496,7 @@ class ReportesView(QWidget):
     def _fit_width(self):
         self._pdf_view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
         # Estimar zoom para mostrar en label (aproximado)
-        self._lbl_zoom.setText("Ajus.")
+        self._lbl_zoom.setText(tr("Ajus."))
 
     # ─── Acciones ────────────────────────────────────────────────────────────
 
@@ -1554,10 +1549,10 @@ class ReportesView(QWidget):
 
     def _guardar_pdf(self):
         if not self._tmp_pdf or not os.path.exists(self._tmp_pdf):
-            QMessageBox.warning(self, "Reportes", "Aún no hay un PDF generado.")
+            QMessageBox.warning(self, tr("Reportes"), tr("Aún no hay un PDF generado."))
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar PDF", self._ruta_default('pdf'), "PDF (*.pdf)"
+            self, tr("Guardar PDF"), self._ruta_default('pdf'), "PDF (*.pdf)"
         )
         if not path:
             return
@@ -1565,9 +1560,9 @@ class ReportesView(QWidget):
         try:
             import shutil
             shutil.copyfile(self._tmp_pdf, path)
-            QMessageBox.information(self, "Reportes", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reportes"), tr("Guardado en:\n{path}").format(path=path))
         except Exception as e:
-            QMessageBox.critical(self, "Reportes", f"No se pudo guardar:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"), tr("No se pudo guardar:\n{e}").format(e=e))
 
     def _render_pdf_pagina_a_png(self, page: int, path: str, dpi: int = 200):
         """Renderiza una página del PDF temporal a PNG sin transparencia.
@@ -1590,14 +1585,14 @@ class ReportesView(QWidget):
 
     def _guardar_png(self):
         if not self._tmp_pdf or not os.path.exists(self._tmp_pdf):
-            QMessageBox.warning(self, "Reportes", "Aún no hay un PDF generado.")
+            QMessageBox.warning(self, tr("Reportes"), tr("Aún no hay un PDF generado."))
             return
         n = self._pdf_doc.pageCount()
         if n <= 0:
-            QMessageBox.warning(self, "Reportes", "El PDF no tiene páginas.")
+            QMessageBox.warning(self, tr("Reportes"), tr("El PDF no tiene páginas."))
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar PNG", self._ruta_default('png'), "PNG (*.png)"
+            self, tr("Guardar PNG"), self._ruta_default('png'), "PNG (*.png)"
         )
         if not path:
             return
@@ -1605,8 +1600,8 @@ class ReportesView(QWidget):
         try:
             if n == 1:
                 self._render_pdf_pagina_a_png(0, path)
-                QMessageBox.information(self, "Reportes",
-                                            f"Guardado en:\n{path}")
+                QMessageBox.information(self, tr("Reportes"),
+                                            tr("Guardado en:\n{path}").format(path=path))
                 return
             # Varias páginas → sufijo _pNN al stem elegido por el usuario.
             base, ext = os.path.splitext(path)
@@ -1618,22 +1613,25 @@ class ReportesView(QWidget):
                 out = f"{base}_p{str(i + 1).zfill(ancho)}{ext}"
                 self._render_pdf_pagina_a_png(i, out)
                 archivos.append(out)
-            QMessageBox.information(self, "Reportes",
-                f"Guardadas {n} imágenes en:\n{os.path.dirname(path)}\n\n"
-                f"Primera: {os.path.basename(archivos[0])}\n"
-                f"Última:  {os.path.basename(archivos[-1])}"
+            QMessageBox.information(self, tr("Reportes"),
+                tr("Guardadas {n} imágenes en:\n{carpeta}\n\n"
+                   "Primera: {primera}\n"
+                   "Última:  {ultima}").format(
+                    n=n, carpeta=os.path.dirname(path),
+                    primera=os.path.basename(archivos[0]),
+                    ultima=os.path.basename(archivos[-1]))
             )
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self, "Reportes",
-                f"No se pudo exportar a PNG:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"),
+                tr("No se pudo exportar a PNG:\n{e}").format(e=e))
 
     def _guardar_excel(self):
         if not self._tipo_actual:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar Excel", self._ruta_default('xlsx'), "Excel (*.xlsx)"
+            self, tr("Guardar Excel"), self._ruta_default('xlsx'), "Excel (*.xlsx)"
         )
         if not path:
             return
@@ -1648,8 +1646,8 @@ class ReportesView(QWidget):
                     self._cron_helper._valorz_w._build_xlsx_valorizado(path)
                 else:
                     self._cron_helper._insumos_w._build_xlsx(path)
-                QMessageBox.information(self, "Reportes",
-                                            f"Guardado en:\n{path}")
+                QMessageBox.information(self, tr("Reportes"),
+                                            tr("Guardado en:\n{path}").format(path=path))
                 return
             from core.exporter import (
                 exportar_presupuesto, exportar_acus,
@@ -1666,23 +1664,23 @@ class ReportesView(QWidget):
                 'completo':         exportar_reporte_completo,
             }.get(self._tipo_actual)
             if not fn:
-                QMessageBox.warning(self, "Reportes",
-                                    "Excel no disponible para este tipo de reporte.")
+                QMessageBox.warning(self, tr("Reportes"),
+                                    tr("Excel no disponible para este tipo de reporte."))
                 return
             buf = fn(self.pid)
             with open(path, 'wb') as f:
                 f.write(buf.getvalue())
-            QMessageBox.information(self, "Reportes", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reportes"), tr("Guardado en:\n{path}").format(path=path))
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self, "Reportes", f"No se pudo exportar a Excel:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"), tr("No se pudo exportar a Excel:\n{e}").format(e=e))
 
     def _guardar_word(self):
         if not self._tipo_actual:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar Word", self._ruta_default('docx'),
+            self, tr("Guardar Word"), self._ruta_default('docx'),
             "Word (*.docx)"
         )
         if not path:
@@ -1696,27 +1694,27 @@ class ReportesView(QWidget):
                 self._aplicar_periodo_curva(curva)
                 curva.cargar()
                 curva._build_docx(path)
-                QMessageBox.information(self, "Reportes",
-                                            f"Guardado en:\n{path}")
+                QMessageBox.information(self, tr("Reportes"),
+                                            tr("Guardado en:\n{path}").format(path=path))
                 return
             from core import word_reports
             word_reports.generar_word(self._tipo_actual, self.pid, path)
-            QMessageBox.information(self, "Reportes", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reportes"), tr("Guardado en:\n{path}").format(path=path))
         except NotImplementedError as e:
-            QMessageBox.warning(self, "Reportes",
-                f"Este reporte aún no tiene export a Word.\n\n{e}\n\n"
-                "Usa PDF mientras tanto.")
+            QMessageBox.warning(self, tr("Reportes"),
+                tr("Este reporte aún no tiene export a Word.\n\n{e}\n\n"
+                   "Usa PDF mientras tanto.").format(e=e))
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self, "Reportes",
-                f"No se pudo exportar a Word:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"),
+                tr("No se pudo exportar a Word:\n{e}").format(e=e))
 
     def _guardar_odt(self):
         if not self._tipo_actual:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar ODT", self._ruta_default('odt'),
+            self, tr("Guardar ODT"), self._ruta_default('odt'),
             "OpenDocument Text (*.odt)"
         )
         if not path:
@@ -1729,7 +1727,7 @@ class ReportesView(QWidget):
                 from core.soffice import find_soffice, mensaje_instalacion
                 soffice = find_soffice()
                 if not soffice:
-                    QMessageBox.warning(self, "Exportar ODT",
+                    QMessageBox.warning(self, tr("Exportar ODT"),
                                           mensaje_instalacion())
                     return
                 self._ensure_cron_helper()
@@ -1758,27 +1756,27 @@ class ReportesView(QWidget):
                 finally:
                     try: os.unlink(tmp_docx)
                     except Exception: pass
-                QMessageBox.information(self, "Reportes",
-                                            f"Guardado en:\n{path}")
+                QMessageBox.information(self, tr("Reportes"),
+                                            tr("Guardado en:\n{path}").format(path=path))
                 return
             from core import odt_reports
             odt_reports.generar_odt(self._tipo_actual, self.pid, path)
-            QMessageBox.information(self, "Reportes", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reportes"), tr("Guardado en:\n{path}").format(path=path))
         except NotImplementedError as e:
-            QMessageBox.warning(self, "Reportes",
-                f"Este reporte aún no tiene export a ODT.\n\n{e}\n\n"
-                "Usa PDF mientras tanto.")
+            QMessageBox.warning(self, tr("Reportes"),
+                tr("Este reporte aún no tiene export a ODT.\n\n{e}\n\n"
+                   "Usa PDF mientras tanto.").format(e=e))
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self, "Reportes",
-                f"No se pudo exportar a ODT:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"),
+                tr("No se pudo exportar a ODT:\n{e}").format(e=e))
 
     def _guardar_ods(self):
         if not self._tipo_actual:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar ODS", self._ruta_default('ods'),
+            self, tr("Guardar ODS"), self._ruta_default('ods'),
             "OpenDocument Spreadsheet (*.ods)"
         )
         if not path:
@@ -1793,7 +1791,7 @@ class ReportesView(QWidget):
                 from core.soffice import find_soffice, mensaje_instalacion
                 soffice = find_soffice()
                 if not soffice:
-                    QMessageBox.warning(self, "Exportar ODS",
+                    QMessageBox.warning(self, tr("Exportar ODS"),
                                           mensaje_instalacion())
                     return
                 self._ensure_cron_helper()
@@ -1822,21 +1820,21 @@ class ReportesView(QWidget):
                 finally:
                     try: os.unlink(tmp_xlsx)
                     except Exception: pass
-                QMessageBox.information(self, "Reportes",
-                                            f"Guardado en:\n{path}")
+                QMessageBox.information(self, tr("Reportes"),
+                                            tr("Guardado en:\n{path}").format(path=path))
                 return
             from core import ods_reports
             ods_reports.generar_ods(self._tipo_actual, self.pid, path)
-            QMessageBox.information(self, "Reportes", f"Guardado en:\n{path}")
+            QMessageBox.information(self, tr("Reportes"), tr("Guardado en:\n{path}").format(path=path))
         except NotImplementedError as e:
-            QMessageBox.warning(self, "Reportes",
-                f"Este reporte aún no tiene export a ODS.\n\n{e}\n\n"
-                "Usa Excel mientras tanto.")
+            QMessageBox.warning(self, tr("Reportes"),
+                tr("Este reporte aún no tiene export a ODS.\n\n{e}\n\n"
+                   "Usa Excel mientras tanto.").format(e=e))
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self, "Reportes",
-                f"No se pudo exportar a ODS:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"),
+                tr("No se pudo exportar a ODS:\n{e}").format(e=e))
 
     def _guardar_mpp(self):
         """Exporta el cronograma actual a Microsoft Project XML (.xml)."""
@@ -1846,7 +1844,7 @@ class ReportesView(QWidget):
         sugerido = os.path.join(self._dir_descargas(),
                                   f"gantt_{self.pid}.xml")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Guardar como MS Project (.xml)",
+            self, tr("Guardar como MS Project (.xml)"),
             sugerido, "MS Project XML (*.xml)"
         )
         if not path:
@@ -1860,12 +1858,12 @@ class ReportesView(QWidget):
             from PySide6.QtCore import QSettings
             QSettings("ingePresupuestos", "exports").setValue("last_dir_gantt", os.path.dirname(path))
             self._mpp_a_path(gantt, path)
-            QMessageBox.information(self, "Reportes",
-                                       f"Cronograma exportado a:\n{path}")
+            QMessageBox.information(self, tr("Reportes"),
+                                       tr("Cronograma exportado a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Reportes",
-                f"No se pudo exportar a MPP:\n{e}")
+            QMessageBox.critical(self, tr("Reportes"),
+                tr("No se pudo exportar a MPP:\n{e}").format(e=e))
 
     def _render_section_divider_pdf(self, n: int, nombre: str,
                                        descripcion: str = '') -> str:
@@ -1941,9 +1939,9 @@ class ReportesView(QWidget):
         try:
             from pypdf import PdfWriter, PdfReader
         except ImportError:
-            QMessageBox.warning(self, "Reporte Completo",
-                "Se necesita el paquete `pypdf`. Instálalo con:\n"
-                "  pip install pypdf")
+            QMessageBox.warning(self, tr("Reporte Completo"),
+                tr("Se necesita el paquete `pypdf`. Instálalo con:\n"
+                   "  pip install pypdf"))
             return None
 
         from core import pdf_reports as _pr
@@ -2087,8 +2085,8 @@ class ReportesView(QWidget):
         # igual que la numeración global de páginas.
         sel = self._secciones_completo_sel()
         if not sel:
-            QMessageBox.information(self, "Reporte Completo",
-                "Marca al menos una sección en la fila «Secciones:».")
+            QMessageBox.information(self, tr("Reporte Completo"),
+                tr("Marca al menos una sección en la fila «Secciones:»."))
             return None
         etiqueta_de = dict(_SECCIONES_COMPLETO)
         # Título de la carátula: todo seleccionado → «Expediente Técnico»;
@@ -2135,7 +2133,7 @@ class ReportesView(QWidget):
                 if not sin_sep:
                     secciones.append(('divider',
                         lambda n=num, tt=titulo_c, dd=desc_c: _r_divider(n, tt, dd)))
-                    nombres.append('preparando')
+                    nombres.append(N_('preparando'))
                 secciones.append(('paged', fn_c))
                 nombres.append(etiqueta_de[code])
         # Progreso: PASS 1 + PASS 2 + merge.
@@ -2145,7 +2143,8 @@ class ReportesView(QWidget):
             _paso[0] += 1
             if progress:
                 progress(_paso[0] / _total_pasos,
-                         f"Generando reporte completo… ({nombre})")
+                         tr("Generando reporte completo… ({nombre})").format(
+                             nombre=tr(nombre)))
 
         all_paths: list[str] = []
         try:
@@ -2155,7 +2154,7 @@ class ReportesView(QWidget):
             counts: list[int] = []
             tmp_p1: list[Optional[str]] = []
             for _i, (kind, fn) in enumerate(secciones):
-                _avanzar(nombres[_i] if _i < len(nombres) else 'sección')
+                _avanzar(nombres[_i] if _i < len(nombres) else N_('sección'))
                 if kind == 'divider':
                     p = fn()
                 else:
@@ -2186,7 +2185,7 @@ class ReportesView(QWidget):
 
             # ── PASS 2: regenerar con offset/total para numeración continua
             for idx, (kind, fn) in enumerate(secciones):
-                _avanzar(nombres[idx] if idx < len(nombres) else 'sección')
+                _avanzar(nombres[idx] if idx < len(nombres) else N_('sección'))
                 if kind == 'divider':
                     p = fn()
                 else:
@@ -2195,7 +2194,7 @@ class ReportesView(QWidget):
                     all_paths.append(p)
 
             # ── Merge final ──
-            _avanzar('uniendo')
+            _avanzar(N_('uniendo'))
             writer = PdfWriter()
             for p in all_paths:
                 try:
@@ -2260,7 +2259,7 @@ class ReportesView(QWidget):
     def _guardar_pack_office(self):
         """Descarga todos los archivos editables Office (Word/Excel/MPP) en
         una carpeta. Reporta al final qué se generó y qué falló."""
-        carpeta = self._pedir_carpeta("Carpeta para Pack Office")
+        carpeta = self._pedir_carpeta(tr("Carpeta para Pack Office"))
         if not carpeta:
             return
         base = self._safe_name(self._proyecto_nombre())
@@ -2339,9 +2338,9 @@ class ReportesView(QWidget):
                               os.path.join(carpeta, f"gantt_msproject_{base}.xml"))
         _try("gantt_msproject.xml", _gantt_mpp)
 
-        nota = ("El Gantt se exporta como XML de Microsoft Project (MSPDI), no como "
-                ".mpp binario. Ábrelo en MS Project con Archivo → Abrir; una vez "
-                "abierto, si quieres el binario, usa Guardar como → .mpp."
+        nota = (tr("El Gantt se exporta como XML de Microsoft Project (MSPDI), no como "
+                   ".mpp binario. Ábrelo en MS Project con Archivo → Abrir; una vez "
+                   "abierto, si quieres el binario, usa Guardar como → .mpp.")
                 if any(o.startswith('gantt') for o in ok) else None)
         self._mostrar_pack_resultado("Pack Office", carpeta, ok, fallos, nota=nota)
 
@@ -2355,7 +2354,7 @@ class ReportesView(QWidget):
             QMessageBox.warning(self, "Pack LibreOffice",
                                   mensaje_instalacion())
             return
-        carpeta = self._pedir_carpeta("Carpeta para Pack LibreOffice")
+        carpeta = self._pedir_carpeta(tr("Carpeta para Pack LibreOffice"))
         if not carpeta:
             return
         base = self._safe_name(self._proyecto_nombre())
@@ -2475,16 +2474,16 @@ class ReportesView(QWidget):
 
     def _mostrar_pack_resultado(self, titulo: str, carpeta: str,
                                    ok: list, fallos: list, nota: str = None):
-        ok_txt = ('\n  • ' + '\n  • '.join(ok)) if ok else "\n  (ninguno)"
-        msg = (
-            f"Carpeta destino:\n{carpeta}\n\n"
-            f"Generados ({len(ok)}):{ok_txt}"
-        )
+        ok_txt = ('\n  • ' + '\n  • '.join(ok)) if ok else "\n  " + tr("(ninguno)")
+        msg = tr(
+            "Carpeta destino:\n{carpeta}\n\n"
+            "Generados ({n}):{lista}"
+        ).format(carpeta=carpeta, n=len(ok), lista=ok_txt)
         if fallos:
             fl_txt = '\n  • ' + '\n  • '.join(fallos[:8])
             if len(fallos) > 8:
-                fl_txt += f"\n  • … {len(fallos) - 8} más"
-            msg += f"\n\nFallaron ({len(fallos)}):{fl_txt}"
+                fl_txt += "\n  • … " + tr("{n} más").format(n=len(fallos) - 8)
+            msg += "\n\n" + tr("Fallaron ({n}):{lista}").format(n=len(fallos), lista=fl_txt)
         if nota:
             msg += f"\n\nℹ {nota}"
         QMessageBox.information(self, titulo, msg)
@@ -2532,7 +2531,7 @@ class ReportesView(QWidget):
 
     def _imprimir(self):
         if not self._tmp_pdf or not os.path.exists(self._tmp_pdf):
-            QMessageBox.warning(self, "Reportes", "Aún no hay un PDF generado.")
+            QMessageBox.warning(self, tr("Reportes"), tr("Aún no hay un PDF generado."))
             return
         # El PDF ya está a la vista en el propio Centro: se va directo al
         # diálogo de impresión, con el papel y la orientación de la primera
@@ -2542,14 +2541,14 @@ class ReportesView(QWidget):
         from utils.impresion import ajustar_printer_al_pdf, pintar_pdf_en_printer
         ajustar_printer_al_pdf(printer, self._tmp_pdf)
         dlg = QPrintDialog(printer, self)
-        dlg.setWindowTitle("Imprimir")
+        dlg.setWindowTitle(tr("Imprimir"))
         if dlg.exec() != QPrintDialog.Accepted:
             return
         QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
             pintar_pdf_en_printer(printer, self._tmp_pdf)
         except Exception as e:                      # noqa: BLE001
-            QMessageBox.warning(self, "Error de impresión", str(e))
+            QMessageBox.warning(self, tr("Error de impresión"), str(e))
         finally:
             QApplication.restoreOverrideCursor()
 
