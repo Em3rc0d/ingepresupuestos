@@ -26,6 +26,7 @@ from core.update_manager import (
     get_skipped_version, debe_chequear_silencioso,
     cached_version_info, is_newer, es_msix,
 )
+from utils.i18n import tr
 
 
 # ── Paleta (alineada con el resto de la app) ──────────────────────────────────
@@ -52,7 +53,7 @@ class UpdateDialog(QDialog):
     def __init__(self, result: CheckResult, parent: QWidget | None = None):
         super().__init__(parent)
         self.result = result
-        self.setWindowTitle("Actualización disponible")
+        self.setWindowTitle(tr("Actualización disponible"))
         self.setMinimumSize(540, 480)
         self.setStyleSheet(
             f"QDialog {{ background:{WHITE}; }}"
@@ -76,14 +77,15 @@ class UpdateDialog(QDialog):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        title = QLabel(f"Versión {info.version} disponible")
+        title = QLabel(tr("Versión {version} disponible").format(version=info.version))
         f = QFont(); f.setPointSize(16); f.setBold(True)
         title.setFont(f)
         title.setStyleSheet(f"color:{SLATE_700};")
         title_col.addWidget(title)
 
         sub = QLabel(
-            f"Estás usando v{CURRENT_VERSION}  ·  Publicada {info.release_date}"
+            tr("Estás usando v{version}  ·  Publicada {fecha}").format(
+                version=CURRENT_VERSION, fecha=info.release_date)
         )
         sub.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         title_col.addWidget(sub)
@@ -96,13 +98,13 @@ class UpdateDialog(QDialog):
         v.addWidget(sep)
 
         # Changelog
-        lbl = QLabel("Novedades en esta versión:")
+        lbl = QLabel(tr("Novedades en esta versión:"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-weight:600; font-size:12px;")
         v.addWidget(lbl)
 
         txt = QTextEdit()
         txt.setReadOnly(True)
-        txt.setPlainText(info.changelog or "(sin notas de versión)")
+        txt.setPlainText(info.changelog or tr("(sin notas de versión)"))
         txt.setStyleSheet(
             f"QTextEdit {{ background:{SILVER_50}; color:{SLATE_700};"
             f" border:1px solid {SILVER_300}; border-radius:6px;"
@@ -114,7 +116,7 @@ class UpdateDialog(QDialog):
         ftr = QHBoxLayout()
         ftr.setSpacing(8)
 
-        btn_skip = QPushButton("Omitir esta versión")
+        btn_skip = QPushButton(tr("Omitir esta versión"))
         btn_skip.setCursor(Qt.PointingHandCursor)
         btn_skip.setStyleSheet(
             f"QPushButton {{ background:transparent; color:{SLATE_500};"
@@ -126,7 +128,7 @@ class UpdateDialog(QDialog):
 
         ftr.addStretch(1)
 
-        btn_later = QPushButton("Recordarme luego")
+        btn_later = QPushButton(tr("Recordarme luego"))
         btn_later.setCursor(Qt.PointingHandCursor)
         btn_later.setStyleSheet(
             f"QPushButton {{ background:{WHITE}; color:{SLATE_500};"
@@ -137,7 +139,7 @@ class UpdateDialog(QDialog):
         btn_later.clicked.connect(self.reject)
         ftr.addWidget(btn_later)
 
-        btn_dl = QPushButton("⬇  Descargar ahora")
+        btn_dl = QPushButton("⬇  " + tr("Descargar ahora"))
         btn_dl.setCursor(Qt.PointingHandCursor)
         from utils.theme import BTN_PRIMARY_SS
         btn_dl.setStyleSheet(BTN_PRIMARY_SS)
@@ -164,7 +166,7 @@ class NoUpdateDialog(QDialog):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Sin actualizaciones")
+        self.setWindowTitle(tr("Sin actualizaciones"))
         self.setMinimumWidth(360)
         self.setStyleSheet(
             f"QDialog {{ background:{WHITE}; }}"
@@ -182,14 +184,14 @@ class NoUpdateDialog(QDialog):
         )
         v.addWidget(ico)
 
-        lbl = QLabel(f"Estás usando la última versión\n(v{CURRENT_VERSION})")
+        lbl = QLabel(tr("Estás usando la última versión\n(v{version})").format(version=CURRENT_VERSION))
         lbl.setAlignment(Qt.AlignCenter)
         fnt = QFont(); fnt.setPointSize(13); fnt.setBold(True)
         lbl.setFont(fnt)
         lbl.setStyleSheet(f"color:{SLATE_700};")
         v.addWidget(lbl)
 
-        btn = QPushButton("Cerrar")
+        btn = QPushButton(tr("Cerrar"))
         btn.setCursor(Qt.PointingHandCursor)
         from utils.theme import BTN_PRIMARY_SS
         btn.setStyleSheet(BTN_PRIMARY_SS)
@@ -231,10 +233,10 @@ def lanzar_check(parent: QWidget | None, silencioso: bool = False) -> None:
     if es_msix():
         if not silencioso:
             QMessageBox.information(
-                parent, "Actualizaciones",
-                "Esta versión se instaló desde la Microsoft Store. "
-                "Las actualizaciones se gestionan automáticamente desde la "
-                "Store (Biblioteca → Obtener actualizaciones).")
+                parent, tr("Actualizaciones"),
+                tr("Esta versión se instaló desde la Microsoft Store. "
+                   "Las actualizaciones se gestionan automáticamente desde la "
+                   "Store (Biblioteca → Obtener actualizaciones)."))
         return
 
     # Si es silencioso, evitar martillar el servidor: máximo 1 re-fetch / 24 h.
@@ -252,7 +254,7 @@ def lanzar_check(parent: QWidget | None, silencioso: bool = False) -> None:
     def _on_resultado(result: CheckResult):
         if result.error:
             if not silencioso:
-                QMessageBox.warning(parent, "Actualizaciones", result.error)
+                QMessageBox.warning(parent, tr("Actualizaciones"), result.error)
             return
         if not result.es_nueva:
             if not silencioso:

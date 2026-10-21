@@ -21,6 +21,7 @@ from PySide6.QtGui import QIcon, QPixmap, QFont, QColor, QPainter, QPen, QCursor
 from models.usuario import Usuario
 from utils.auth import logout
 from utils.icons import icon, icon_colored
+from utils.i18n import tr
 from core.config import BASE_DIR
 
 # ── Paleta Elementary OS ──────────────────────────────────────────────────────
@@ -560,7 +561,7 @@ class MainWindow(QMainWindow):
         # (evita la "ventana negra" cuando hay 100+ proyectos y la
         # construcción del DashboardView tarda).
         from PySide6.QtWidgets import QLabel
-        placeholder = QLabel("Cargando proyectos…")
+        placeholder = QLabel(tr("Cargando proyectos…"))
         placeholder.setAlignment(Qt.AlignCenter)
         placeholder.setStyleSheet(
             f"color:{SLATE_300}; font-size:14px; background:{SILVER_100};"
@@ -701,7 +702,7 @@ class MainWindow(QMainWindow):
             [("home",       tr("Inicio"),      self._ir_a_dashboard),
              ("nuevo",      tr("Nuevo"),       self._nuevo_proyecto)],
             # Grupo 2 — Datos / Catálogos (popover)
-            [("catalogos",  "Catálogos",       self._mostrar_menu_catalogos)],
+            [("catalogos",  tr("Catálogos"),   self._mostrar_menu_catalogos)],
             # Grupo 3 — Transferencia entre instalaciones
             [("importar",   tr("Importar"),    self._ir_a_importar),
              ("exportar",   tr("Exportar"),    self._ir_a_exportar)],
@@ -725,9 +726,9 @@ class MainWindow(QMainWindow):
         bot_items = [
             # Nota: el acceso a IA/Tuxia ya vive dentro de Configuración
             # (pestaña «IA»), así que no se duplica aquí en el sidebar.
-            ("configuracion", "Config",       self._ir_a_configuracion, "#E8EDF2"),
+            ("configuracion", tr("Config"),   self._ir_a_configuracion, "#E8EDF2"),
             ("acerca",        tr("Acerca de"), self._ir_a_acerca,       "#E8EDF2"),
-            ("salir",         "Salir",        self._logout,             "#e74c3c"),
+            ("salir",         tr("Salir"),    self._logout,             "#e74c3c"),
         ]
         for icon_name, label, handler, color in bot_items:
             btn = _NavBtn(icon_name, label, inactive_color=color)
@@ -839,7 +840,7 @@ class MainWindow(QMainWindow):
         hl = QHBoxLayout(bar)
         hl.setContentsMargins(14, 0, 14, 0)
         hl.setSpacing(8)
-        self._btn_volver_proy = QPushButton("←  Volver al proyecto")
+        self._btn_volver_proy = QPushButton("←  " + tr("Volver al proyecto"))
         self._btn_volver_proy.setCursor(Qt.PointingHandCursor)
         self._btn_volver_proy.setStyleSheet(
             "QPushButton { background:transparent; color:white; border:none;"
@@ -868,13 +869,13 @@ class MainWindow(QMainWindow):
                 "SELECT nombre FROM proyectos WHERE id=?", (pid,)
             ).fetchone()
             conn.close()
-            nombre = row['nombre'] if row else f"Proyecto {pid}"
+            nombre = row['nombre'] if row else tr("Proyecto {pid}").format(pid=pid)
         except Exception:
-            nombre = f"Proyecto {pid}"
+            nombre = tr("Proyecto {pid}").format(pid=pid)
 
         nombre_corto = nombre[:50] + "…" if len(nombre) > 50 else nombre
-        self._btn_volver_proy.setText(f"←  Volver al proyecto «{nombre_corto}»")
-        self._lbl_volver_meta.setText("  ·  sigue abierto")
+        self._btn_volver_proy.setText("←  " + tr("Volver al proyecto «{nombre}»").format(nombre=nombre_corto))
+        self._lbl_volver_meta.setText("  ·  " + tr("sigue abierto"))
         self._volver_a_pid = pid
         self._banner_volver.setVisible(True)
 
@@ -923,7 +924,7 @@ class MainWindow(QMainWindow):
         conn = get_db()
         row = conn.execute("SELECT nombre FROM proyectos WHERE id=?", (proyecto_id,)).fetchone()
         conn.close()
-        nombre_proy = row['nombre'] if row else f"Proyecto {proyecto_id}"
+        nombre_proy = row['nombre'] if row else tr("Proyecto {pid}").format(pid=proyecto_id)
         if sys.platform == 'win32':
             nombre_corto = nombre_proy[:120] + "…" if len(nombre_proy) > 120 else nombre_proy
             self.setWindowTitle(f"{nombre_corto}  —  IngePresupuestos")
@@ -958,7 +959,7 @@ class MainWindow(QMainWindow):
         ph = QWidget()
         ph.setProperty("vista_nombre", nombre_vista)
         _lay = QVBoxLayout(ph)
-        _lbl = QLabel(f"Abriendo «{nombre_proy[:60]}»…")
+        _lbl = QLabel(tr("Abriendo «{nombre}»…").format(nombre=nombre_proy[:60]))
         _lbl.setAlignment(Qt.AlignCenter)
         _lbl.setStyleSheet("color:#9aa5b4; font-size:14px; background:transparent; border:none;")
         _lay.addStretch(); _lay.addWidget(_lbl); _lay.addStretch()
@@ -1233,9 +1234,9 @@ class MainWindow(QMainWindow):
                 w.limpiar()
                 self.stack.setCurrentIndex(i)
                 if sys.platform == 'win32':
-                    self.setWindowTitle("Nuevo Proyecto  —  IngePresupuestos")
+                    self.setWindowTitle(tr("Nuevo Proyecto") + "  —  IngePresupuestos")
                 else:
-                    self.setWindowTitle("IngePresupuestos  -  Nuevo Proyecto")
+                    self.setWindowTitle("IngePresupuestos  -  " + tr("Nuevo Proyecto"))
                 return
 
         from views.nuevo_proyecto_view import NuevoProyectoView
@@ -1248,9 +1249,9 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(vista)
         self.stack.setCurrentWidget(vista)
         if sys.platform == 'win32':
-            self.setWindowTitle("Nuevo Proyecto  —  IngePresupuestos")
+            self.setWindowTitle(tr("Nuevo Proyecto") + "  —  IngePresupuestos")
         else:
-            self.setWindowTitle("IngePresupuestos  -  Nuevo Proyecto")
+            self.setWindowTitle("IngePresupuestos  -  " + tr("Nuevo Proyecto"))
 
     def _abrir_editar_proyecto(self, proyecto_id: int):
         """Abre NuevoProyectoView en modo edición para el proyecto dado."""
@@ -1341,19 +1342,19 @@ class MainWindow(QMainWindow):
 
         menu = QMenu(self)
         # Estilo coherente con el resto (heredado del QSS global de QMenu)
-        a_ins = QAction(icon("insumos"), "Catálogo de Insumos", self)
-        a_ins.setStatusTip("6950 recursos con precios e índices INEI")
+        a_ins = QAction(icon("insumos"), tr("Catálogo de Insumos"), self)
+        a_ins.setStatusTip(tr("6950 recursos con precios e índices INEI"))
         a_ins.triggered.connect(self._ir_a_recursos)
         menu.addAction(a_ins)
 
-        a_bib = QAction(icon("biblioteca"), "Biblioteca de Costos Unitarios", self)
-        a_bib.setStatusTip("Partidas-tipo reutilizables entre proyectos")
+        a_bib = QAction(icon("biblioteca"), tr("Biblioteca de Costos Unitarios"), self)
+        a_bib.setStatusTip(tr("Partidas-tipo reutilizables entre proyectos"))
         a_bib.triggered.connect(self._ir_a_biblioteca)
         menu.addAction(a_bib)
 
         menu.addSeparator()
-        a_inei = QAction(icon("rep-resumen"), "Índices Unificados INEI", self)
-        a_inei.setStatusTip("Histórico mensual de los 72 índices oficiales")
+        a_inei = QAction(icon("rep-resumen"), tr("Índices Unificados INEI"), self)
+        a_inei.setStatusTip(tr("Histórico mensual de los 72 índices oficiales"))
         a_inei.triggered.connect(self._ir_a_indices_inei)
         menu.addAction(a_inei)
 

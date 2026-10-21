@@ -19,6 +19,7 @@ from PySide6.QtGui import QPixmap, QFont, QColor, QPainter, QBrush, QPen, QPaint
 
 from utils.auth import login, hay_usuarios, crear_admin, login_invitado
 from core.config import BASE_DIR
+from utils.i18n import tr
 
 # Paleta Elementary OS
 NARANJA  = "#F37329"   # Blueberry — acento principal
@@ -136,7 +137,7 @@ class LoginDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Iniciar sesión — ingePresupuestos")
+        self.setWindowTitle(tr("Iniciar sesión") + " — ingePresupuestos")
         self.setFixedWidth(400)
         self.setModal(True)
         # Sin marco estándar de diálogo; bordes redondeados por stylesheet
@@ -193,7 +194,7 @@ class LoginDialog(QDialog):
         )
         vl.addWidget(lbl_titulo)
 
-        lbl_sub = QLabel("Software de Presupuestos de Obra")
+        lbl_sub = QLabel(tr("Software de Presupuestos de Obra"))
         lbl_sub.setAlignment(Qt.AlignCenter)
         lbl_sub.setStyleSheet("color:#8da0b3; font-size:11px; background:transparent;")
         vl.addWidget(lbl_sub)
@@ -208,7 +209,7 @@ class LoginDialog(QDialog):
         vl.setSpacing(0)
 
         # Tabs
-        self._tabs = _TabBar(["🔐  Ingresar", "👤  Crear cuenta"])
+        self._tabs = _TabBar(["🔐  " + tr("Ingresar"), "👤  " + tr("Crear cuenta")])
         self._tabs.tab_changed.connect(self._on_tab)
         vl.addWidget(self._tabs)
 
@@ -233,16 +234,16 @@ class LoginDialog(QDialog):
         vl.setContentsMargins(28, 20, 28, 0)
         vl.setSpacing(10)
 
-        vl.addWidget(_label("Usuario o correo electrónico", size=12))
-        self.inp_user = _inp("hombre o correo@dominio.com")
+        vl.addWidget(_label(tr("Usuario o correo electrónico"), size=12))
+        self.inp_user = _inp(tr("hombre o correo@dominio.com"))
         vl.addWidget(self.inp_user)
 
-        vl.addWidget(_label("Contraseña", size=12))
+        vl.addWidget(_label(tr("Contraseña"), size=12))
         self.inp_pass = _inp("••••••••", echo=True)
         self.inp_pass.returnPressed.connect(self._do_login)
         vl.addWidget(self.inp_pass)
 
-        self.chk_recordar = QCheckBox("Mantener sesión iniciada")
+        self.chk_recordar = QCheckBox(tr("Mantener sesión iniciada"))
         self.chk_recordar.setStyleSheet(f"color:#555; font-size:12px;")
         vl.addWidget(self.chk_recordar)
 
@@ -251,15 +252,15 @@ class LoginDialog(QDialog):
         self.lbl_err_login.setAlignment(Qt.AlignCenter)
         vl.addWidget(self.lbl_err_login)
 
-        btn_ing = _btn_naranja("🔐  Ingresar")
+        btn_ing = _btn_naranja("🔐  " + tr("Ingresar"))
         btn_ing.clicked.connect(self._do_login)
         vl.addWidget(btn_ing)
 
         # Separador "o continuar sin cuenta"
-        sep = self._make_sep("o continuar sin cuenta")
+        sep = self._make_sep(tr("o continuar sin cuenta"))
         vl.addWidget(sep)
 
-        btn_inv = QPushButton("👤  Entrar como invitado  (solo lectura)")
+        btn_inv = QPushButton("👤  " + tr("Entrar como invitado  (solo lectura)"))
         btn_inv.setFixedHeight(40)
         btn_inv.setStyleSheet(
             "QPushButton { border:1.5px solid #d0d8e4; border-radius:8px;"
@@ -281,29 +282,29 @@ class LoginDialog(QDialog):
         vl.setContentsMargins(28, 20, 28, 0)
         vl.setSpacing(8)
 
-        vl.addWidget(_label("Nombre completo", size=12))
-        self.inp_nombre = _inp("Nombre y apellidos")
+        vl.addWidget(_label(tr("Nombre completo"), size=12))
+        self.inp_nombre = _inp(tr("Nombre y apellidos"))
         vl.addWidget(self.inp_nombre)
 
         hl = QHBoxLayout()
         hl.setSpacing(4)
-        lbl_u = _label("Usuario", size=12)
-        lbl_u2 = _label("(para iniciar sesión)", size=11, color="#9aa5b4")
+        lbl_u = _label(tr("Usuario"), size=12)
+        lbl_u2 = _label(tr("(para iniciar sesión)"), size=11, color="#9aa5b4")
         hl.addWidget(lbl_u)
         hl.addWidget(lbl_u2)
         hl.addStretch()
         vl.addLayout(hl)
-        self.inp_reg_user = _inp("ej: primer nombre")
+        self.inp_reg_user = _inp(tr("ej: primer nombre"))
         vl.addWidget(self.inp_reg_user)
 
-        vl.addWidget(_label("Correo electrónico", size=12))
+        vl.addWidget(_label(tr("Correo electrónico"), size=12))
         self.inp_email = _inp("correo@dominio.com")
         vl.addWidget(self.inp_email)
 
         hl2 = QHBoxLayout()
         hl2.setSpacing(4)
-        lbl_p = _label("Contraseña", size=12)
-        lbl_p2 = _label("(mín. 6 caracteres)", size=11, color="#9aa5b4")
+        lbl_p = _label(tr("Contraseña"), size=12)
+        lbl_p2 = _label(tr("(mín. 6 caracteres)"), size=11, color="#9aa5b4")
         hl2.addWidget(lbl_p)
         hl2.addWidget(lbl_p2)
         hl2.addStretch()
@@ -311,7 +312,7 @@ class LoginDialog(QDialog):
         self.inp_reg_pass = _inp("••••••••", echo=True)
         vl.addWidget(self.inp_reg_pass)
 
-        vl.addWidget(_label("Confirmar contraseña", size=12))
+        vl.addWidget(_label(tr("Confirmar contraseña"), size=12))
         self.inp_reg_pass2 = _inp("••••••••", echo=True)
         self.inp_reg_pass2.returnPressed.connect(self._do_registro)
         vl.addWidget(self.inp_reg_pass2)
@@ -321,7 +322,7 @@ class LoginDialog(QDialog):
         self.lbl_err_reg.setAlignment(Qt.AlignCenter)
         vl.addWidget(self.lbl_err_reg)
 
-        btn_reg = _btn_naranja("👤  Crear cuenta e ingresar")
+        btn_reg = _btn_naranja("👤  " + tr("Crear cuenta e ingresar"))
         btn_reg.clicked.connect(self._do_registro)
         vl.addWidget(btn_reg)
 
@@ -361,7 +362,7 @@ class LoginDialog(QDialog):
         username = self.inp_user.text().strip()
         password = self.inp_pass.text()
         if not username or not password:
-            self.lbl_err_login.setText("Complete usuario y contraseña")
+            self.lbl_err_login.setText(tr("Complete usuario y contraseña"))
             return
         ok, msg = login(username, password)
         if ok:
@@ -392,13 +393,13 @@ class LoginDialog(QDialog):
         p2      = self.inp_reg_pass2.text()
 
         if not all([nombre, usuario, p1, p2]):
-            self.lbl_err_reg.setText("Complete todos los campos obligatorios")
+            self.lbl_err_reg.setText(tr("Complete todos los campos obligatorios"))
             return
         if p1 != p2:
-            self.lbl_err_reg.setText("Las contraseñas no coinciden")
+            self.lbl_err_reg.setText(tr("Las contraseñas no coinciden"))
             return
         if len(p1) < 6:
-            self.lbl_err_reg.setText("La contraseña debe tener al menos 6 caracteres")
+            self.lbl_err_reg.setText(tr("La contraseña debe tener al menos 6 caracteres"))
             return
 
         ok, msg = crear_admin(nombre, usuario, p1, email=email)

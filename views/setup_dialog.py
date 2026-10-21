@@ -9,12 +9,13 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from utils.auth import crear_admin
+from utils.i18n import tr
 
 
 class SetupDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Configuración inicial")
+        self.setWindowTitle(tr("Configuración inicial"))
         self.setFixedSize(380, 360)
         self.setModal(True)
         self._build_ui()
@@ -24,17 +25,17 @@ class SetupDialog(QDialog):
         layout.setContentsMargins(36, 36, 36, 36)
         layout.setSpacing(12)
 
-        lbl = QLabel("Crear cuenta de administrador")
+        lbl = QLabel(tr("Crear cuenta de administrador"))
         lbl.setStyleSheet("font-size: 16px; font-weight: bold; color: #485a6c;")
         lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(lbl)
 
         layout.addSpacing(8)
 
-        self.inp_nombre   = QLineEdit(); self.inp_nombre.setPlaceholderText("Nombre completo")
-        self.inp_username = QLineEdit(); self.inp_username.setPlaceholderText("Nombre de usuario")
-        self.inp_pass1    = QLineEdit(); self.inp_pass1.setPlaceholderText("Contraseña"); self.inp_pass1.setEchoMode(QLineEdit.Password)
-        self.inp_pass2    = QLineEdit(); self.inp_pass2.setPlaceholderText("Repetir contraseña"); self.inp_pass2.setEchoMode(QLineEdit.Password)
+        self.inp_nombre   = QLineEdit(); self.inp_nombre.setPlaceholderText(tr("Nombre completo"))
+        self.inp_username = QLineEdit(); self.inp_username.setPlaceholderText(tr("Nombre de usuario"))
+        self.inp_pass1    = QLineEdit(); self.inp_pass1.setPlaceholderText(tr("Contraseña")); self.inp_pass1.setEchoMode(QLineEdit.Password)
+        self.inp_pass2    = QLineEdit(); self.inp_pass2.setPlaceholderText(tr("Repetir contraseña")); self.inp_pass2.setEchoMode(QLineEdit.Password)
 
         for w in (self.inp_nombre, self.inp_username, self.inp_pass1, self.inp_pass2):
             w.setMinimumHeight(36)
@@ -45,7 +46,7 @@ class SetupDialog(QDialog):
         self.lbl_error.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.lbl_error)
 
-        btn = QPushButton("Crear administrador")
+        btn = QPushButton(tr("Crear administrador"))
         btn.setMinimumHeight(40)
         btn.setStyleSheet("background:#485a6c; color:white; border-radius:6px; font-size:13px;")
         btn.clicked.connect(self._crear)
@@ -58,18 +59,18 @@ class SetupDialog(QDialog):
         pass2    = self.inp_pass2.text()
 
         if not all([nombre, username, pass1, pass2]):
-            self.lbl_error.setText("Complete todos los campos")
+            self.lbl_error.setText(tr("Complete todos los campos"))
             return
         if pass1 != pass2:
-            self.lbl_error.setText("Las contraseñas no coinciden")
+            self.lbl_error.setText(tr("Las contraseñas no coinciden"))
             return
         if len(pass1) < 6:
-            self.lbl_error.setText("La contraseña debe tener al menos 6 caracteres")
+            self.lbl_error.setText(tr("La contraseña debe tener al menos 6 caracteres"))
             return
 
         ok, msg = crear_admin(nombre, username, pass1)
         if ok:
-            QMessageBox.information(self, "Listo", "Administrador creado. Puede iniciar sesión.")
+            QMessageBox.information(self, tr("Listo"), tr("Administrador creado. Puede iniciar sesión."))
             self.accept()
         else:
             self.lbl_error.setText(msg)

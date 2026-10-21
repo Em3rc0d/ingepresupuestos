@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from core.config import monedas
 from core import paises
+from utils.i18n import tr
 from utils.theme import BTN_PRIMARY_SS, SLATE_500, SLATE_700
 
 
@@ -39,7 +40,7 @@ class PaisForm(QWidget):
         for code, p in sorted(paises.PAISES.items(), key=lambda kv: kv[1]['nombre']):
             self.cmb_pais.addItem(p['nombre'], code)
         self.cmb_pais.setMinimumHeight(34)
-        form.addRow("País:", self.cmb_pais)
+        form.addRow(tr("País:"), self.cmb_pais)
 
         self.cmb_moneda = QComboBox()
         self.cmb_moneda.addItems(list(monedas().keys()))
@@ -47,17 +48,17 @@ class PaisForm(QWidget):
         fila_mon = QHBoxLayout()
         fila_mon.addWidget(self.cmb_moneda, 1)
         # Monedas propias (issue #13): la lista de fábrica no tiene todas.
-        btn_monedas = QPushButton("Monedas…")
+        btn_monedas = QPushButton(tr("Monedas…"))
         btn_monedas.setMinimumHeight(34)
-        btn_monedas.setToolTip("Añadir o editar monedas (nombre, símbolo y separadores)")
+        btn_monedas.setToolTip(tr("Añadir o editar monedas (nombre, símbolo y separadores)"))
         btn_monedas.clicked.connect(self._editar_monedas)
         fila_mon.addWidget(btn_monedas)
-        form.addRow("Moneda:", fila_mon)
+        form.addRow(tr("Moneda:"), fila_mon)
 
         self.inp_etiqueta = QLineEdit()
         self.inp_etiqueta.setMinimumHeight(34)
         self.inp_etiqueta.setMaximumWidth(160)
-        form.addRow("Identificación tributaria:", self.inp_etiqueta)
+        form.addRow(tr("Identificación tributaria:"), self.inp_etiqueta)
 
         fila_imp = QHBoxLayout()
         self.inp_imp_nombre = QLineEdit()
@@ -71,7 +72,7 @@ class PaisForm(QWidget):
         fila_imp.addWidget(self.inp_imp_nombre)
         fila_imp.addWidget(self.spn_imp_pct)
         fila_imp.addStretch()
-        form.addRow("Impuesto:", fila_imp)
+        form.addRow(tr("Impuesto:"), fila_imp)
 
         # Estado inicial: lo guardado; si no hay nada, el país propuesto.
         guardado = paises.pais_configurado()
@@ -131,24 +132,24 @@ class PaisBienvenidaDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("¿Desde qué país trabajas?")
+        self.setWindowTitle(tr("¿Desde qué país trabajas?"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumWidth(460)
         vl = QVBoxLayout(self)
         vl.setContentsMargins(24, 20, 24, 20)
         vl.setSpacing(12)
 
-        titulo = QLabel("¿Desde qué país trabajas?")
+        titulo = QLabel(tr("¿Desde qué país trabajas?"))
         titulo.setStyleSheet(f"color:{SLATE_700}; font-size:16px; font-weight:700;")
         vl.addWidget(titulo)
-        nota = QLabel(
+        nota = QLabel(tr(
             "Con esto IngePresupuestos ajusta la moneda, el nombre de la "
             "identificación tributaria (RUC, NIT, RUT…) y el impuesto de los "
             "proyectos nuevos. Puedes cambiarlo cuando quieras en "
             "Configuración → País.\n\n"
             "Cambiar la moneda solo cambia el símbolo y los separadores: los "
             "precios no se convierten, y los de la biblioteca de ejemplo son "
-            "referenciales del Perú.")
+            "referenciales del Perú."))
         nota.setWordWrap(True)
         nota.setStyleSheet(f"color:{SLATE_500}; font-size:12px;")
         vl.addWidget(nota)
@@ -158,7 +159,7 @@ class PaisBienvenidaDialog(QDialog):
 
         botones = QHBoxLayout()
         botones.addStretch()
-        btn = QPushButton("Guardar")
+        btn = QPushButton(tr("Guardar"))
         btn.setStyleSheet(BTN_PRIMARY_SS)
         btn.setMinimumHeight(34)
         btn.clicked.connect(self._aceptar)

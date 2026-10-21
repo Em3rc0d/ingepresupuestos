@@ -187,13 +187,38 @@ def main():
     # Issue #17; lo mismo en IngeCAD (77ca931) e IngeTrazo (cb9e86f).
     app.setDesktopFileName(os.environ.get("FLATPAK_ID") or "ingepresupuestos")
 
-    # Traducir todos los textos Qt internos al español
+    # Traducir los textos Qt internos (botones estándar de QMessageBox,
+    # QFileDialog…) al idioma de la interfaz: 'es' → español (lo de siempre),
+    # 'pt_BR' → portugués de Brasil, 'en' → ninguno (Qt ya es inglés).
+    # Si faltan los .qm de pt_BR, se cae al español sin romper.
     _translations_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
-    _locale = QLocale(QLocale.Language.Spanish)
-    for _qm in ("qtbase_es", "qt_es"):
+    try:
+        from utils.i18n import idioma_actual
+        _idioma_ui = idioma_actual()
+    except Exception:
+        _idioma_ui = 'es'
+    _qms_es = ("qtbase_es", "qt_es")
+    if _idioma_ui == 'en':
+        _qms = ()
+    elif _idioma_ui == 'pt_BR':
+        _qms = ("qtbase_pt_BR", "qt_pt_BR")
+        _locale = QLocale(QLocale.Language.Portuguese, QLocale.Country.Brazil)
+    else:
+        _qms = _qms_es
+    if _qms is _qms_es:
+        _locale = QLocale(QLocale.Language.Spanish)
+    _instalados = 0
+    for _qm in _qms:
         _t = QTranslator(app)
         if _t.load(_qm, _translations_path):
             app.installTranslator(_t)
+            _instalados += 1
+    if _qms and _qms is not _qms_es and not _instalados:
+        _locale = QLocale(QLocale.Language.Spanish)
+        for _qm in _qms_es:
+            _t = QTranslator(app)
+            if _t.load(_qm, _translations_path):
+                app.installTranslator(_t)
 
     # Ícono del PRODUCTO (ventana + barra de tareas) — NO es Tuxia.
     # Tuxia es el asistente IA dentro de la app, ingePresupuestos es el

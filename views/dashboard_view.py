@@ -28,6 +28,7 @@ from models.usuario import Usuario
 from widgets.num_item import NumItem
 from utils.formatting import fmt
 from utils.session import get_ultimo_proyecto, set_ultimo_proyecto
+from utils.i18n import tr, N_
 
 # ── Label con elipsis en múltiples líneas ────────────────────────────────────
 
@@ -149,10 +150,10 @@ GRID_MARG = 20
 # Solo el color de fondo distingue el estado; el texto es uniforme.
 # Referencia: https://elementary.io/brand
 ESTADO_COLOR = {
-    "elaboracion": ("#FFC27D", "#273445", "En elaboración"),  # Orange 100
-    "revision":    ("#8CD5FF", "#273445", "En revisión"),     # BlueBerry 100
-    "aprobado":    ("#9BDB4D", "#273445", "Aprobado"),        # Lime 300
-    "ejecutado":   ("#FF8C82", "#273445", "En ejecución"),    # Strawberry 100
+    "elaboracion": ("#FFC27D", "#273445", N_("En elaboración")),  # Orange 100
+    "revision":    ("#8CD5FF", "#273445", N_("En revisión")),     # BlueBerry 100
+    "aprobado":    ("#9BDB4D", "#273445", N_("Aprobado")),        # Lime 300
+    "ejecutado":   ("#FF8C82", "#273445", N_("En ejecución")),    # Strawberry 100
 }
 # (CARD_BORDER_COLORS eliminado: repartía 8 colores por índice de card y el
 #  valor se pasaba al constructor sin que nadie lo usara. Ese parámetro ahora
@@ -162,15 +163,15 @@ ESTADO_COLOR = {
 # ── Menú contextual compartido ───────────────────────────────────────────────
 
 def _confirmar(parent, titulo: str, mensaje: str,
-               btn_ok: str = "Eliminar", btn_cancel: str = "Cancelar") -> bool:
+               btn_ok: str = N_("Eliminar"), btn_cancel: str = N_("Cancelar")) -> bool:
     """Cuadro de confirmación con botones en español."""
     from PySide6.QtWidgets import QMessageBox
     msg = QMessageBox(parent)
     msg.setWindowTitle(titulo)
     msg.setText(mensaje)
     msg.setIcon(QMessageBox.Icon.Warning)
-    b_ok  = msg.addButton(btn_ok,     QMessageBox.ButtonRole.AcceptRole)
-    msg.addButton(btn_cancel, QMessageBox.ButtonRole.RejectRole)
+    b_ok  = msg.addButton(tr(btn_ok),     QMessageBox.ButtonRole.AcceptRole)
+    msg.addButton(tr(btn_cancel), QMessageBox.ButtonRole.RejectRole)
     msg.setDefaultButton(b_ok)
     msg.exec()
     return msg.clickedButton() == b_ok
@@ -186,24 +187,24 @@ class _CopiarProyectoDialog(QDialog):
         from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QCheckBox,
                                         QHBoxLayout, QPushButton, QFrame)
         from utils.theme import BTN_PRIMARY_SS
-        self.setWindowTitle("Copiar proyecto")
+        self.setWindowTitle(tr("Copiar proyecto"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumWidth(420)
         vl = QVBoxLayout(self)
         vl.setContentsMargins(20, 18, 20, 16)
         vl.setSpacing(10)
 
-        titulo = QLabel(f"Copiar «{nombre}»")
+        titulo = QLabel(tr("Copiar «{nombre}»").format(nombre=nombre))
         titulo.setStyleSheet("font-size:13px; font-weight:700; background:transparent; border:none;")
         titulo.setWordWrap(True)
         vl.addWidget(titulo)
 
-        sub = QLabel("Se creará una copia. Elige qué incluir:")
+        sub = QLabel(tr("Se creará una copia. Elige qué incluir:"))
         sub.setStyleSheet("font-size:11px; color:#5A6775; background:transparent; border:none;")
         vl.addWidget(sub)
 
         # Presupuesto: siempre (casilla marcada y deshabilitada).
-        chk_pres = QCheckBox("Presupuesto (partidas, ACU y subpresupuestos)")
+        chk_pres = QCheckBox(tr("Presupuesto (partidas, ACU y subpresupuestos)"))
         chk_pres.setChecked(True)
         chk_pres.setEnabled(False)
         chk_pres.setStyleSheet("font-size:12px;")
@@ -211,11 +212,11 @@ class _CopiarProyectoDialog(QDialog):
 
         self._checks = {}
         for clave, etiqueta in (
-            ('metrados',   "Metrados (planilla y acero)"),
-            ('specs',      "Especificaciones técnicas (texto e imágenes)"),
-            ('cronograma', "Cronograma (duraciones y dependencias)"),
-            ('formula',    "Fórmula polinómica"),
-            ('pie',        "Pie de presupuesto (gastos generales)"),
+            ('metrados',   tr("Metrados (planilla y acero)")),
+            ('specs',      tr("Especificaciones técnicas (texto e imágenes)")),
+            ('cronograma', tr("Cronograma (duraciones y dependencias)")),
+            ('formula',    tr("Fórmula polinómica")),
+            ('pie',        tr("Pie de presupuesto (gastos generales)")),
         ):
             chk = QCheckBox(etiqueta)
             chk.setChecked(True)   # por defecto copia todo; el usuario destilda
@@ -226,11 +227,11 @@ class _CopiarProyectoDialog(QDialog):
         vl.addSpacing(6)
         botones = QHBoxLayout()
         botones.addStretch()
-        b_cancel = QPushButton("Cancelar")
+        b_cancel = QPushButton(tr("Cancelar"))
         b_cancel.setCursor(Qt.PointingHandCursor)
         b_cancel.clicked.connect(self.reject)
         botones.addWidget(b_cancel)
-        b_ok = QPushButton("Copiar")
+        b_ok = QPushButton(tr("Copiar"))
         b_ok.setCursor(Qt.PointingHandCursor)
         b_ok.setStyleSheet(BTN_PRIMARY_SS)
         b_ok.setDefault(True)
@@ -393,7 +394,7 @@ def _mostrar_menu_proyecto(pid: int, pos, parent,
     if not row:
         return
 
-    nombre  = row['nombre'] or f"Proyecto {pid}"
+    nombre  = row['nombre'] or tr("Proyecto {pid}").format(pid=pid)
     es_fav  = bool(row['favorito'])
     estado  = row['estado'] or 'elaboracion'
     moneda  = row['moneda'] or 'Soles'
@@ -420,10 +421,10 @@ def _mostrar_menu_proyecto(pid: int, pos, parent,
     # ── Estado (submenu) ───────────────────────────────────────────────────
     sub_estado = menu.addMenu("  " + tr("Cambiar estado"))
     estados_items = {
-        "elaboracion": ("🔧  En elaboración", "elaboracion"),
-        "revision":    ("🔍  En revisión",    "revision"),
-        "aprobado":    ("✅  Aprobado",        "aprobado"),
-        "ejecutado":   ("🏗  En ejecución",    "ejecutado"),
+        "elaboracion": ("🔧  " + tr("En elaboración"), "elaboracion"),
+        "revision":    ("🔍  " + tr("En revisión"),    "revision"),
+        "aprobado":    ("✅  " + tr("Aprobado"),        "aprobado"),
+        "ejecutado":   ("🏗  " + tr("En ejecución"),    "ejecutado"),
     }
     act_estados = {}
     for key, (lbl, _) in estados_items.items():
@@ -483,12 +484,12 @@ def _mostrar_menu_proyecto(pid: int, pos, parent,
     # ── Exportar (submenu) ─────────────────────────────────────────────────
     sub_exp = menu.addMenu("  " + tr("Exportar"))
     exp_opts = [
-        ("Excel — Presupuesto",      "presupuesto"),
-        ("Excel — ACUs",             "acus"),
-        ("Excel — Insumos",          "insumos"),
-        ("Excel — Reporte completo", "completo"),
+        ("Excel — " + tr("Presupuesto"),      "presupuesto"),
+        ("Excel — " + tr("ACUs"),             "acus"),
+        ("Excel — " + tr("Insumos"),          "insumos"),
+        ("Excel — " + tr("Reporte completo"), "completo"),
         ("PDF",                      "pdf"),
-        ("Base de datos (.db)",      "db"),
+        (tr("Base de datos (.db)"),      "db"),
     ]
     act_exp = {sub_exp.addAction(lbl): tipo for lbl, tipo in exp_opts}
     menu.addSeparator()
@@ -577,10 +578,10 @@ def _mostrar_menu_proyecto(pid: int, pos, parent,
     # Eliminar
     if chosen == act_del:
         if not _confirmar(
-            parent, "Eliminar proyecto",
-            f"¿Eliminar «{nombre}»?\n"
-            "Se eliminarán todas sus partidas y datos.\n"
-            "Esta acción no se puede deshacer."
+            parent, tr("Eliminar proyecto"),
+            tr("¿Eliminar «{nombre}»?\n"
+               "Se eliminarán todas sus partidas y datos.\n"
+               "Esta acción no se puede deshacer.").format(nombre=nombre)
         ):
             return
         conn = sqlite3.connect(DB_PATH)
@@ -595,9 +596,9 @@ def _exportar_proyecto(pid: int, nombre: str, moneda: str, tipo: str, parent):
     from PySide6.QtWidgets import QFileDialog, QMessageBox
     ext   = {"pdf": "pdf", "db": "db"}.get(tipo, "xlsx")
     filtro = {"pdf": "PDF (*.pdf)",
-              "db":  "Base de datos ingePresupuestos (*.db)"}.get(tipo, "Excel (*.xlsx)")
+              "db":  tr("Base de datos ingePresupuestos (*.db)")}.get(tipo, "Excel (*.xlsx)")
     path, _ = QFileDialog.getSaveFileName(
-        parent, "Exportar proyecto", f"{nombre}_{tipo}.{ext}", filtro
+        parent, tr("Exportar proyecto"), f"{nombre}_{tipo}.{ext}", filtro
     )
     if not path:
         return
@@ -621,9 +622,9 @@ def _exportar_proyecto(pid: int, nombre: str, moneda: str, tipo: str, parent):
             buf = funcs[tipo](pid)
             with open(path, "wb") as f:
                 f.write(buf.getvalue())
-        QMessageBox.information(parent, "Exportar", f"Guardado en:\n{path}")
+        QMessageBox.information(parent, tr("Exportar"), tr("Guardado en:\n{path}").format(path=path))
     except Exception as e:
-        QMessageBox.critical(parent, "Error al exportar", str(e))
+        QMessageBox.critical(parent, tr("Error al exportar"), str(e))
 
 
 # ── Tarjeta individual ────────────────────────────────────────────────────────
@@ -666,7 +667,7 @@ class _ProjectCard(QWidget):
         self._selected  = False
         self._total_str = total_str
 
-        self._nombre    = row.get('nombre') or 'Sin nombre'
+        self._nombre    = row.get('nombre') or tr('Sin nombre')
         self._estado_actual = row.get('estado') or 'elaboracion'
         self._portafolio = row.get('portafolio_nombre') or ''
         self._portafolio_color = row.get('portafolio_color') or SLATE_500
@@ -675,7 +676,8 @@ class _ProjectCard(QWidget):
         self._meta1 = '  ·  '.join(filter(None, [cliente, ubicacion]))
         fecha = (row.get('modificado_en') or row.get('creado_en') or '')[:10]
         m2 = [fecha] if fecha else []
-        m2.append(f"{n_part} partida{'s' if n_part != 1 else ''}")
+        m2.append((tr("{n} partida") if n_part == 1
+                   else tr("{n} partidas")).format(n=n_part))
         self._meta2 = '  ·  '.join(m2)
 
         fam = self.font().family()
@@ -760,6 +762,7 @@ class _ProjectCard(QWidget):
         # Barra superior con el color del estado (clip al path redondeado)
         bg_e, fg_e, lbl_e = ESTADO_COLOR.get(
             self._estado_actual, ('#F0F1F2', SLATE_300, self._estado_actual))
+        lbl_e = tr(lbl_e)
         p.save()
         p.setClipPath(path)
         p.fillRect(QRect(0, 0, w, 4), QColor(bg_e))
@@ -806,12 +809,13 @@ class _ProjectCard(QWidget):
             # Único portador de la señal «Reciente» desde que el fondo de la
             # card pasó a ser el color del proyecto. Lleva borde para no
             # desaparecer sobre un post-it amarillo.
-            r_rec = QRect(x, y + 1, fm_chip.horizontalAdvance('Reciente') + 14, 17)
+            txt_rec = tr('Reciente')
+            r_rec = QRect(x, y + 1, fm_chip.horizontalAdvance(txt_rec) + 14, 17)
             p.setBrush(QColor('#FFF9C4'))
             p.setPen(QPen(QColor('#D9B44A'), 1))
             p.drawRoundedRect(r_rec, 8, 8)
             p.setPen(QColor('#854D0E'))
-            p.drawText(r_rec, Qt.AlignCenter, 'Reciente')
+            p.drawText(r_rec, Qt.AlignCenter, txt_rec)
 
         # Estrella favorito (derecha)
         r_fav = QRect(w - M - 20, y, 20, 20)
@@ -910,9 +914,9 @@ class _ProjectCard(QWidget):
         self.update()
         super().leaveEvent(event)
 
-    _TOOLTIPS = {'abrir': 'Abrir', 'copiar': 'Copiar', 'editar': 'Editar',
-                 'eliminar': 'Eliminar', 'fav': 'Favorito',
-                 'badge': 'Cambiar estado'}
+    _TOOLTIPS = {'abrir': N_('Abrir'), 'copiar': N_('Copiar'), 'editar': N_('Editar'),
+                 'eliminar': N_('Eliminar'), 'fav': N_('Favorito'),
+                 'badge': N_('Cambiar estado')}
 
     def mouseMoveEvent(self, event):
         z = self._zona_at(event.position().toPoint())
@@ -924,7 +928,7 @@ class _ProjectCard(QWidget):
             # tooltips (utils/tooltip._GlobalTooltipFilter) lo renderiza con
             # el estilo blanco al posarse el cursor. NO usar QToolTip.showText
             # ni un tooltip base: el filtro global lee toolTip() del widget.
-            txt = self._TOOLTIPS.get(z, '')
+            txt = tr(self._TOOLTIPS.get(z, ''))
             if not txt and len(self._nombre) > 60:
                 txt = self._nombre
             self.setToolTip(txt)
@@ -966,10 +970,10 @@ class _ProjectCard(QWidget):
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
         estados = [
-            ("elaboracion", "🔧  En elaboración"),
-            ("revision",    "🔍  En revisión"),
-            ("aprobado",    "✅  Aprobado"),
-            ("ejecutado",   "🏗  En ejecución"),
+            ("elaboracion", "🔧  " + tr("En elaboración")),
+            ("revision",    "🔍  " + tr("En revisión")),
+            ("aprobado",    "✅  " + tr("Aprobado")),
+            ("ejecutado",   "🏗  " + tr("En ejecución")),
         ]
         for estado_key, label in estados:
             act = menu.addAction(label + ("  ✓" if estado_key == self._estado_actual else ""))
@@ -1058,7 +1062,7 @@ class _PillDropdown(QPushButton):
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
         # Opción "todos"
-        act_all = menu.addAction(f"Todos ({self._placeholder})")
+        act_all = menu.addAction(tr("Todos ({filtro})").format(filtro=self._placeholder))
         act_all.setCheckable(True)
         act_all.setChecked(self._data is None)
         act_all.triggered.connect(lambda: self._select(None, 0))
@@ -1537,6 +1541,7 @@ class _ListView(QWidget):
             moneda = row.get('moneda', 'Soles')
             estado = row.get('estado') or 'elaboracion'
             bg_e, fg_e, lbl_e = ESTADO_COLOR.get(estado, ("#F0F1F2", SLATE_300, estado))
+            lbl_e = tr(lbl_e)
 
             # El total llega del caché del dashboard; los que faltan se
             # calculan en segundo plano y entran vía set_total(pid, …).
@@ -1578,7 +1583,7 @@ class _ListView(QWidget):
             # al re-orden por sort.
             nombre_txt = row.get('nombre') or "—"
             if pid == ultimo_pid:
-                nombre_txt += "  ·  Reciente"
+                nombre_txt += "  ·  " + tr("Reciente")
             it_nombre = QTableWidgetItem(nombre_txt)
             it_nombre.setToolTip(nombre_txt)
             it_nombre.setData(Qt.UserRole, pid)
@@ -1869,8 +1874,8 @@ class DashboardView(QWidget):
 
         nombre = self.usuario.nombre if self.usuario else ""
         rol    = self.usuario.rol    if self.usuario else ""
-        rol_label = {"admin": "Administrador", "usuario": "Usuario",
-                     "invitado": "Invitado"}.get(rol, rol)
+        rol_label = {"admin": tr("Administrador"), "usuario": tr("Usuario"),
+                     "invitado": tr("Invitado")}.get(rol, rol)
         self.lbl_usuario_pie = QLabel(f"👤  {nombre}  ·  {rol_label}")
         self.lbl_usuario_pie.setStyleSheet(
             "color:#485a6c; font-size:11px; font-weight:600;"
@@ -1909,7 +1914,7 @@ class DashboardView(QWidget):
         ico.setStyleSheet("background:transparent; border:none;")
         cv.addWidget(ico)
 
-        titulo = QLabel("Empieza trayendo tu base de datos")
+        titulo = QLabel(tr("Empieza trayendo tu base de datos"))
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet(
             f"color:{SLATE_700}; font-size:18px; font-weight:700;"
@@ -1917,11 +1922,11 @@ class DashboardView(QWidget):
         )
         cv.addWidget(titulo)
 
-        sub = QLabel(
+        sub = QLabel(tr(
             "¿Vienes de <b>PowerCost</b>, <b>Delphin Express</b> o <b>S10</b>? "
             "Importa tu base de datos y arma tu presupuesto sin partir de cero. "
             "También puedes empezar un proyecto nuevo desde aquí."
-        )
+        ))
         sub.setAlignment(Qt.AlignCenter)
         sub.setWordWrap(True)
         sub.setTextFormat(Qt.RichText)
@@ -1934,7 +1939,7 @@ class DashboardView(QWidget):
         btns = QHBoxLayout()
         btns.setSpacing(10)
         btns.addStretch(1)
-        btn_migrar = QPushButton("  Migrar mi base de datos")
+        btn_migrar = QPushButton("  " + tr("Migrar mi base de datos"))
         btn_migrar.setIcon(icon("paquete"))
         btn_migrar.setIconSize(QSize(18, 18))
         btn_migrar.setMinimumHeight(40)
@@ -1943,7 +1948,7 @@ class DashboardView(QWidget):
         btn_migrar.clicked.connect(self.ir_a_importar.emit)
         btns.addWidget(btn_migrar)
 
-        btn_nuevo = QPushButton("Crear proyecto nuevo")
+        btn_nuevo = QPushButton(tr("Crear proyecto nuevo"))
         btn_nuevo.setMinimumHeight(40)
         btn_nuevo.setCursor(Qt.PointingHandCursor)
         btn_nuevo.setStyleSheet(
@@ -1957,10 +1962,10 @@ class DashboardView(QWidget):
         btns.addStretch(1)
         cv.addLayout(btns)
 
-        fmts = QLabel(
+        fmts = QLabel(tr(
             "Formatos: PowerCost (.prs · Excel · PDF) · Delphin (.sqlite · Excel) · "
             "S10 (.S2K · Excel) · IFC/BIM · base ingePresupuestos (.db)"
-        )
+        ))
         fmts.setAlignment(Qt.AlignCenter)
         fmts.setWordWrap(True)
         fmts.setStyleSheet(
@@ -1986,7 +1991,7 @@ class DashboardView(QWidget):
         hl.setSpacing(10)
 
         # Título
-        lbl = QLabel("PROYECTOS")
+        lbl = QLabel(tr("PROYECTOS"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-size:13px; font-weight:700; letter-spacing:0.5px;")
         hl.addWidget(lbl)
 
@@ -2007,7 +2012,7 @@ class DashboardView(QWidget):
 
         # Pill dropdown Estado
         estado_opts = [
-            (ESTADO_COLOR.get(e, ("#", "#", e))[2], e)
+            (tr(ESTADO_COLOR.get(e, ("#", "#", e))[2]), e)
             for e in ESTADOS_PROYECTO
         ]
         self.cmb_estado = _PillDropdown(_tr("Estado"), estado_opts)
@@ -2093,7 +2098,7 @@ class DashboardView(QWidget):
 
         # Tag "Todos"
         self._portafolios_hl.addWidget(self._mk_tag_portafolio(
-            None, "Todos", SLATE_500,
+            None, tr("Todos"), SLATE_500,
             sum(p['n_proyectos'] for p in portafolios) +
             self._contar_sin_clasificar(portafolios),
         ))
@@ -2106,12 +2111,12 @@ class DashboardView(QWidget):
         sin_clas = self._contar_sin_clasificar(portafolios)
         if sin_clas > 0 or not portafolios:
             self._portafolios_hl.addWidget(self._mk_tag_portafolio(
-                0, "Sin clasificar", SLATE_300, sin_clas
+                0, tr("Sin clasificar"), SLATE_300, sin_clas
             ))
 
         # Botón "+ Nuevo"
         from utils.icons import icon as _ico
-        btn_new = QPushButton("  Nuevo portafolio")
+        btn_new = QPushButton("  " + tr("Nuevo portafolio"))
         btn_new.setCursor(QCursor(Qt.PointingHandCursor))
         btn_new.setFixedHeight(28)
         btn_new.setIcon(_ico("add"))
@@ -2195,21 +2200,21 @@ class DashboardView(QWidget):
             return
         if chosen == a_ren:
             nuevo, ok = QInputDialog.getText(
-                self, "Renombrar portafolio",
-                "Nuevo nombre:", text=actual['nombre']
+                self, tr("Renombrar portafolio"),
+                tr("Nuevo nombre:"), text=actual['nombre']
             )
             if ok and nuevo.strip():
                 try:
                     _upd(pf_id, nombre=nuevo.strip())
                 except Exception as e:
-                    QMessageBox.warning(self, "Error", str(e))
+                    QMessageBox.warning(self, tr("Error"), str(e))
                     return
                 self._recargar_portafolios_bar()
                 self.cargar_proyectos()
         elif chosen == a_col:
             color = QColorDialog.getColor(
                 QColor(actual['color'] or SLATE_500), self,
-                f"Color de «{actual['nombre']}»"
+                tr("Color de «{nombre}»").format(nombre=actual['nombre'])
             )
             if color.isValid():
                 _upd(pf_id, color=color.name())
@@ -2217,10 +2222,11 @@ class DashboardView(QWidget):
                 self.cargar_proyectos()
         elif chosen == a_del:
             res = QMessageBox.question(
-                self, "Eliminar portafolio",
-                f"¿Eliminar el portafolio «{actual['nombre']}»?\n\n"
-                f"Sus {actual['n_proyectos']} proyecto(s) quedarán sin "
-                f"clasificar, no se eliminarán.",
+                self, tr("Eliminar portafolio"),
+                tr("¿Eliminar el portafolio «{nombre}»?\n\n"
+                   "Sus {n} proyecto(s) quedarán sin "
+                   "clasificar, no se eliminarán.").format(
+                    nombre=actual['nombre'], n=actual['n_proyectos']),
                 QMessageBox.Yes | QMessageBox.No
             )
             if res == QMessageBox.Yes:
@@ -2234,8 +2240,8 @@ class DashboardView(QWidget):
         from PySide6.QtWidgets import QInputDialog, QMessageBox
         from core.database import crear_portafolio as _crear
         nombre, ok = QInputDialog.getText(
-            self, "Nuevo portafolio",
-            "Nombre del portafolio:\n(p.ej. Obras 2026, Cliente X, Proyectos públicos…)"
+            self, tr("Nuevo portafolio"),
+            tr("Nombre del portafolio:\n(p.ej. Obras 2026, Cliente X, Proyectos públicos…)")
         )
         if not ok or not nombre.strip():
             return
@@ -2247,9 +2253,9 @@ class DashboardView(QWidget):
             _crear(nombre.strip(), color=choice(paleta))
         except Exception as e:
             QMessageBox.warning(
-                self, "Error",
-                f"No se pudo crear el portafolio:\n{e}\n\n"
-                f"Probablemente ya existe un portafolio con ese nombre."
+                self, tr("Error"),
+                tr("No se pudo crear el portafolio:\n{e}\n\n"
+                   "Probablemente ya existe un portafolio con ese nombre.").format(e=e)
             )
             return
         self._recargar_portafolios_bar()
@@ -2340,7 +2346,8 @@ class DashboardView(QWidget):
             self._stack.setCurrentIndex(0 if self._modo == "mosaico" else 1)
             self._renderizar(self._rows_cache)
         n = len(rows)
-        self.lbl_count.setText(f"{n} proyecto{'s' if n != 1 else ''}")
+        self.lbl_count.setText((tr("{n} proyecto") if n == 1
+                                else tr("{n} proyectos")).format(n=n))
 
     def _renderizar(self, rows: list, solo_modo: str | None = None):
         """Renderiza el modo activo (o el indicado con ``solo_modo``).
@@ -2403,7 +2410,7 @@ class DashboardView(QWidget):
 
         if modo == "mosaico":
             if not rows:
-                lbl = QLabel("No hay proyectos" if not buscar else f"Sin resultados para «{buscar}»")
+                lbl = QLabel(tr("No hay proyectos") if not buscar else tr("Sin resultados para «{buscar}»").format(buscar=buscar))
                 lbl.setAlignment(Qt.AlignCenter)
                 lbl.setStyleSheet("color:#9aa5b4; font-size:14px; padding:40px;")
                 self._grid.set_cards([lbl])
@@ -2623,10 +2630,10 @@ class DashboardView(QWidget):
         nombre = row['nombre'] if row else str(pid)
 
         if not _confirmar(
-            self, "Eliminar proyecto",
-            f"¿Eliminar el proyecto «{nombre}»?\n"
-            "Se eliminarán todas sus partidas, ACUs y metrados.\n"
-            "Esta acción no se puede deshacer."
+            self, tr("Eliminar proyecto"),
+            tr("¿Eliminar el proyecto «{nombre}»?\n"
+               "Se eliminarán todas sus partidas, ACUs y metrados.\n"
+               "Esta acción no se puede deshacer.").format(nombre=nombre)
         ):
             return
 

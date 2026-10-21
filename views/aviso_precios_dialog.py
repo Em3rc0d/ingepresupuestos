@@ -15,6 +15,8 @@ from __future__ import annotations
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QCheckBox, QMessageBox
 
+from utils.i18n import tr
+
 CON_PRECIOS = 'con_precios'
 SOLO_ESTRUCTURA = 'solo_estructura'
 
@@ -46,22 +48,22 @@ def preguntar_precios(parent, moneda: str) -> str | None:
 
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Warning)
-    box.setWindowTitle("Precios de referencia del Perú")
-    box.setText(
+    box.setWindowTitle(tr("Precios de referencia del Perú"))
+    box.setText(tr(
         "<b>Los ACU de la biblioteca traen precios de referencia del Perú, "
-        "en soles.</b>")
-    box.setInformativeText(
-        f"Este proyecto está en {moneda}. Los rendimientos y las cantidades "
+        "en soles.</b>"))
+    box.setInformativeText(tr(
+        "Este proyecto está en {moneda}. Los rendimientos y las cantidades "
         "sirven en cualquier país; los precios no.<br><br>"
         "<b>Solo la estructura</b> trae rendimientos y cantidades, y cada "
         "insumo toma el precio que ya tiene en este proyecto (o 0 si es "
         "nuevo). Después puedes cargar tus precios en la pestaña Insumos o "
-        "importar tu propio catálogo de insumos.")
-    b_estr = box.addButton("Solo la estructura", QMessageBox.AcceptRole)
-    b_con = box.addButton("Con los precios del Perú", QMessageBox.AcceptRole)
-    box.addButton("Cancelar", QMessageBox.RejectRole)
+        "importar tu propio catálogo de insumos.").format(moneda=moneda))
+    b_estr = box.addButton(tr("Solo la estructura"), QMessageBox.AcceptRole)
+    b_con = box.addButton(tr("Con los precios del Perú"), QMessageBox.AcceptRole)
+    box.addButton(tr("Cancelar"), QMessageBox.RejectRole)
     box.setDefaultButton(b_estr)
-    chk = QCheckBox("No volver a preguntar")
+    chk = QCheckBox(tr("No volver a preguntar"))
     box.setCheckBox(chk)
     box.exec()
 
