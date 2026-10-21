@@ -30,6 +30,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (QWidget, QFrame, QMenu, QPushButton,
                                QStyledItemDelegate)
 
+from utils.i18n import tr
 from utils.icons import icon
 from utils.theme import SLATE_700, SILVER_300, BTN_PRIMARY_SS
 
@@ -231,19 +232,19 @@ class CatalogoTablaMixin:
         ids_sel = self._ids_seleccionados()
 
         m = QMenu(self)
-        a_edit = QAction(icon("editar"), "Editar", self)
+        a_edit = QAction(icon("editar"), tr("Editar"), self)
         a_edit.triggered.connect(lambda: self._editar_id(rid))
         m.addAction(a_edit)
-        a_dup = QAction(icon("duplicar"), "Duplicar", self)
+        a_dup = QAction(icon("duplicar"), tr("Duplicar"), self)
         a_dup.triggered.connect(lambda: self._duplicar_id(rid))
         m.addAction(a_dup)
         m.addSeparator()
         if len(ids_sel) > 1:
             a_del = QAction(icon("eliminar"),
-                            f"Eliminar {len(ids_sel)} seleccionados", self)
+                            tr("Eliminar {n} seleccionados").format(n=len(ids_sel)), self)
             a_del.triggered.connect(lambda: self._eliminar_ids(ids_sel))
         else:
-            a_del = QAction(icon("eliminar"), "Eliminar", self)
+            a_del = QAction(icon("eliminar"), tr("Eliminar"), self)
             a_del.triggered.connect(lambda: self._eliminar_id(rid))
         m.addAction(a_del)
         m.exec(self.tbl.viewport().mapToGlobal(pos))

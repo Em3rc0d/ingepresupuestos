@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from core import diccionario_iu as DIC
 from core.indices_inei import catalogo
+from utils.i18n import tr
 from utils.icons import icon
 
 SLATE_700 = "#273445"
@@ -45,7 +46,7 @@ class DiccionarioIUDialog(QDialog):
     def __init__(self, parent=None, proyecto_id: int | None = None,
                  proyecto_nombre: str = ''):
         super().__init__(parent)
-        self.setWindowTitle("Diccionario de índices unificados")
+        self.setWindowTitle(tr("Diccionario de índices unificados"))
         self.resize(1000, 620)
         # Cuando se llega desde un proyecto, lo que interesa son SUS insumos:
         # la biblioteca global trae miles que no tienen que ver con la obra.
@@ -62,7 +63,7 @@ class DiccionarioIUDialog(QDialog):
         v.setContentsMargins(16, 14, 16, 12)
         v.setSpacing(10)
 
-        tit = QLabel("Diccionario de índices unificados")
+        tit = QLabel(tr("Diccionario de índices unificados"))
         f = QFont(); f.setPointSize(14); f.setWeight(QFont.DemiBold)
         tit.setFont(f)
         tit.setStyleSheet(f"color:{SLATE_700};")
@@ -77,48 +78,48 @@ class DiccionarioIUDialog(QDialog):
         barra = QHBoxLayout()
         barra.setSpacing(8)
 
-        self.chk_proyecto = QCheckBox("Solo los insumos de este proyecto")
+        self.chk_proyecto = QCheckBox(tr("Solo los insumos de este proyecto"))
         self.chk_proyecto.setChecked(bool(self._pid))
         self.chk_proyecto.setVisible(bool(self._pid))
         self.chk_proyecto.setToolTip(
-            "Acota la lista a los insumos que el proyecto usa en sus análisis "
-            "de costos" + (f": {self._proyecto_nombre}"
+            tr("Acota la lista a los insumos que el proyecto usa en sus análisis "
+               "de costos") + (f": {self._proyecto_nombre}"
                            if self._proyecto_nombre else ""))
         self.chk_proyecto.toggled.connect(self._refrescar_cabecera)
         barra.addWidget(self.chk_proyecto)
 
-        barra.addWidget(QLabel("Parecido mínimo:"))
+        barra.addWidget(QLabel(tr("Parecido mínimo:")))
         self.spin_umbral = QSpinBox()
         self.spin_umbral.setRange(60, 100)
         self.spin_umbral.setValue(85)
         self.spin_umbral.setSuffix(" %")
         self.spin_umbral.setToolTip(
-            "Cuánto se debe parecer la descripción a la de un insumo ya "
-            "clasificado para proponerle su índice"
+            tr("Cuánto se debe parecer la descripción a la de un insumo ya "
+               "clasificado para proponerle su índice")
         )
         barra.addWidget(self.spin_umbral)
 
-        self.btn_sugerir = self._btn("Buscar propuestas", "buscar", primary=True)
+        self.btn_sugerir = self._btn(tr("Buscar propuestas"), "buscar", primary=True)
         self.btn_sugerir.clicked.connect(self._buscar)
         barra.addWidget(self.btn_sugerir)
 
-        self.btn_seguras = self._btn("Marcar solo las seguras")
+        self.btn_seguras = self._btn(tr("Marcar solo las seguras"))
         self.btn_seguras.clicked.connect(lambda: self._marcar(solo_seguras=True))
         barra.addWidget(self.btn_seguras)
 
-        self.btn_ninguna = self._btn("Desmarcar todas")
+        self.btn_ninguna = self._btn(tr("Desmarcar todas"))
         self.btn_ninguna.clicked.connect(lambda: self._marcar(ninguna=True))
         barra.addWidget(self.btn_ninguna)
 
         barra.addStretch(1)
 
-        self.btn_exp = self._btn("Exportar", "exportar")
-        self.btn_exp.setToolTip("Guardar el diccionario como JSON")
+        self.btn_exp = self._btn(tr("Exportar"), "exportar")
+        self.btn_exp.setToolTip(tr("Guardar el diccionario como JSON"))
         self.btn_exp.clicked.connect(self._exportar)
         barra.addWidget(self.btn_exp)
 
-        self.btn_imp = self._btn("Importar", "importar")
-        self.btn_imp.setToolTip("Aplicar un diccionario JSON")
+        self.btn_imp = self._btn(tr("Importar"), "importar")
+        self.btn_imp.setToolTip(tr("Aplicar un diccionario JSON"))
         self.btn_imp.clicked.connect(self._importar)
         barra.addWidget(self.btn_imp)
         v.addLayout(barra)
@@ -126,8 +127,8 @@ class DiccionarioIUDialog(QDialog):
         # ── Tabla de propuestas ──
         self.tbl = QTableWidget(0, 7)
         self.tbl.setHorizontalHeaderLabels(
-            ["", "Insumo", "Tipo", "Índice propuesto", "Parecido", "Fuente",
-             "Se parece a"])
+            ["", tr("Insumo"), tr("Tipo"), tr("Índice propuesto"), tr("Parecido"), tr("Fuente"),
+             tr("Se parece a")])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setAlternatingRowColors(True)
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -151,11 +152,11 @@ class DiccionarioIUDialog(QDialog):
         h.setSectionResizeMode(6, QHeaderView.Stretch)
         v.addWidget(self.tbl, 1)
 
-        self.lbl_pie = QLabel(
+        self.lbl_pie = QLabel(tr(
             "Las propuestas en ámbar tienen otro índice casi igual de parecido: "
             "revísalas una por una. Puedes cambiar el índice de cualquier fila "
             "antes de aplicar."
-        )
+        ))
         self.lbl_pie.setWordWrap(True)
         self.lbl_pie.setStyleSheet(f"color:{SLATE_300}; font-size:11px;")
         v.addWidget(self.lbl_pie)
@@ -163,11 +164,11 @@ class DiccionarioIUDialog(QDialog):
         # ── Pie de botones ──
         pie = QHBoxLayout()
         pie.addStretch(1)
-        self.btn_aplicar = self._btn("Aplicar seleccionadas", "guardar",
+        self.btn_aplicar = self._btn(tr("Aplicar seleccionadas"), "guardar",
                                      primary=True)
         self.btn_aplicar.clicked.connect(self._aplicar)
         pie.addWidget(self.btn_aplicar)
-        btn_cerrar = self._btn("Cerrar")
+        btn_cerrar = self._btn(tr("Cerrar"))
         btn_cerrar.clicked.connect(self.accept)
         pie.addWidget(btn_cerrar)
         v.addLayout(pie)
@@ -197,37 +198,39 @@ class DiccionarioIUDialog(QDialog):
         if total:
             from core.indices_inei import diccionario_oficial
             self.lbl_estado.setText(
-                f"<b>{total}</b> insumo(s) "
-                + ("del proyecto " if self._pid_filtro() else "")
-                + "sin índice unificado válido. "
-                f"La fórmula polinómica los reparte por el índice de su tipo, "
-                f"que es un supuesto — clasificarlos la vuelve exacta.<br>"
-                f"Las propuestas se apoyan primero en el <b>Diccionario de "
-                f"Elementos de la Construcción</b> del INEI "
-                f"({len(diccionario_oficial())} elementos, Anexo 2 de la "
-                f"RJ 016-2026-INEI) y después en tu propia biblioteca."
+                (tr("<b>{total}</b> insumo(s) del proyecto sin índice unificado válido. ")
+                 if self._pid_filtro() else
+                 tr("<b>{total}</b> insumo(s) sin índice unificado válido. ")
+                 ).format(total=total)
+                + tr("La fórmula polinómica los reparte por el índice de su tipo, "
+                     "que es un supuesto — clasificarlos la vuelve exacta.<br>"
+                     "Las propuestas se apoyan primero en el <b>Diccionario de "
+                     "Elementos de la Construcción</b> del INEI "
+                     "({n} elementos, Anexo 2 de la "
+                     "RJ 016-2026-INEI) y después en tu propia biblioteca."
+                     ).format(n=len(diccionario_oficial()))
             )
         else:
             self.lbl_estado.setText(
-                "Todos los insumos tienen índice unificado asignado."
+                tr("Todos los insumos tienen índice unificado asignado.")
             )
 
     def _buscar(self):
         self.btn_sugerir.setEnabled(False)
-        self.btn_sugerir.setText("Buscando…")
+        self.btn_sugerir.setText(tr("Buscando…"))
         try:
             self._sugerencias = DIC.sugerencias(
                 umbral=self.spin_umbral.value(),
                 proyecto_id=self._pid_filtro())
         finally:
             self.btn_sugerir.setEnabled(True)
-            self.btn_sugerir.setText("Buscar propuestas")
+            self.btn_sugerir.setText(tr("Buscar propuestas"))
         self._render()
         if not self._sugerencias:
             QMessageBox.information(
-                self, "Sin propuestas",
-                "No hay insumos sin clasificar que se parezcan lo suficiente "
-                "a uno ya clasificado. Prueba bajando el parecido mínimo."
+                self, tr("Sin propuestas"),
+                tr("No hay insumos sin clasificar que se parezcan lo suficiente "
+                   "a uno ya clasificado. Prueba bajando el parecido mínimo.")
             )
 
     def _render(self):
@@ -256,7 +259,7 @@ class DiccionarioIUDialog(QDialog):
                 cmb.addItem(f"{cod} — {nom}", cod)
             ix = cmb.findData(s['codigo'])
             if ix < 0:
-                cmb.insertItem(0, f"{s['codigo']} — (fuera del catálogo)",
+                cmb.insertItem(0, tr("{codigo} — (fuera del catálogo)").format(codigo=s['codigo']),
                                s['codigo'])
                 ix = 0
             cmb.setCurrentIndex(ix)
@@ -269,12 +272,12 @@ class DiccionarioIUDialog(QDialog):
             self.tbl.setItem(r, 4, it_p)
 
             es_oficial = s.get('fuente') == 'oficial'
-            it_f = QTableWidgetItem("INEI" if es_oficial else "biblioteca")
+            it_f = QTableWidgetItem("INEI" if es_oficial else tr("biblioteca"))
             it_f.setTextAlignment(Qt.AlignCenter)
             it_f.setToolTip(
-                "Diccionario de Elementos de la Construcción del INEI "
-                "(Anexo 2 de la RJ 016-2026-INEI)" if es_oficial else
-                "Parecido con un insumo de tu biblioteca que ya tiene índice"
+                tr("Diccionario de Elementos de la Construcción del INEI "
+                   "(Anexo 2 de la RJ 016-2026-INEI)") if es_oficial else
+                tr("Parecido con un insumo de tu biblioteca que ya tiene índice")
             )
             if es_oficial:
                 f_b = QFont(); f_b.setBold(True)
@@ -289,9 +292,10 @@ class DiccionarioIUDialog(QDialog):
 
             if s['ambiguo']:
                 ambiguas += 1
-                tip = (f"El índice {s['rival']} se parece casi igual. "
-                       f"Asignar mal el índice mueve costo de un monomio a "
-                       f"otro de la fórmula: confirma este a mano.")
+                tip = tr("El índice {rival} se parece casi igual. "
+                         "Asignar mal el índice mueve costo de un monomio a "
+                         "otro de la fórmula: confirma este a mano.").format(
+                             rival=s['rival'])
                 for c in range(7):
                     it = self.tbl.item(r, c)
                     if it:
@@ -302,11 +306,13 @@ class DiccionarioIUDialog(QDialog):
         n = len(self._sugerencias)
         n_of = sum(1 for s in self._sugerencias if s.get('fuente') == 'oficial')
         self.lbl_pie.setText(
-            f"{n} propuesta(s): {n_of} salen del diccionario del INEI y "
-            f"{n - n_of} del parecido con tu biblioteca. {n - ambiguas} sin "
-            f"rival cercano (marcadas) y {ambiguas} ambigua(s) en ámbar, "
-            f"desmarcadas para que las revises. Puedes cambiar el índice de "
-            f"cualquier fila antes de aplicar."
+            tr("{n} propuesta(s): {n_of} salen del diccionario del INEI y "
+               "{n_bib} del parecido con tu biblioteca. {n_seguras} sin "
+               "rival cercano (marcadas) y {ambiguas} ambigua(s) en ámbar, "
+               "desmarcadas para que las revises. Puedes cambiar el índice de "
+               "cualquier fila antes de aplicar.").format(
+                n=n, n_of=n_of, n_bib=n - n_of, n_seguras=n - ambiguas,
+                ambiguas=ambiguas)
         )
 
     def _cambiar_codigo(self, fila: int, cmb: QComboBox):
@@ -336,16 +342,16 @@ class DiccionarioIUDialog(QDialog):
     def _aplicar(self):
         sel = self._seleccionadas()
         if not sel:
-            QMessageBox.information(self, "Nada seleccionado",
-                                    "Marca al menos una propuesta.")
+            QMessageBox.information(self, tr("Nada seleccionado"),
+                                    tr("Marca al menos una propuesta."))
             return
         ambiguas = sum(1 for s in sel if s['ambiguo'])
-        aviso = (f"\n\n{ambiguas} de ellas están marcadas como ambiguas."
+        aviso = ("\n\n" + tr("{n} de ellas están marcadas como ambiguas.").format(n=ambiguas)
                  if ambiguas else "")
         r = QMessageBox.question(
-            self, "Aplicar",
-            f"Se asignará el índice unificado a {len(sel)} insumo(s).{aviso}\n\n"
-            f"¿Continuar?",
+            self, tr("Aplicar"),
+            tr("Se asignará el índice unificado a {n} insumo(s).").format(n=len(sel))
+            + aviso + "\n\n" + tr("¿Continuar?"),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
         )
         if r != QMessageBox.Yes:
@@ -355,14 +361,14 @@ class DiccionarioIUDialog(QDialog):
         self._render()
         self._refrescar_cabecera()
         QMessageBox.information(
-            self, "Listo",
-            f"{n} insumo(s) clasificados. Vuelve a auto-calcular la fórmula "
-            f"polinómica de tus proyectos para que lo tome."
+            self, tr("Listo"),
+            tr("{n} insumo(s) clasificados. Vuelve a auto-calcular la fórmula "
+               "polinómica de tus proyectos para que lo tome.").format(n=n)
         )
 
     def _exportar(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar diccionario", "diccionario-iu.json",
+            self, tr("Exportar diccionario"), "diccionario-iu.json",
             "JSON (*.json)")
         if not path:
             return
@@ -371,21 +377,21 @@ class DiccionarioIUDialog(QDialog):
         try:
             n = DIC.exportar(path)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo exportar:\n{e}").format(e=e))
             return
-        QMessageBox.information(self, "Exportado",
-                                f"{n} entradas guardadas en:\n{path}")
+        QMessageBox.information(self, tr("Exportado"),
+                                tr("{n} entradas guardadas en:\n{path}").format(n=n, path=path))
 
     def _importar(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar diccionario", "", "JSON (*.json)")
+            self, tr("Importar diccionario"), "", "JSON (*.json)")
         if not path:
             return
         r = QMessageBox.question(
-            self, "Importar diccionario",
-            "¿Completar solo los insumos SIN índice?\n\n"
-            "Sí — no toca lo que ya clasificaste (recomendado).\n"
-            "No — el archivo pisa también las asignaciones existentes.",
+            self, tr("Importar diccionario"),
+            tr("¿Completar solo los insumos SIN índice?\n\n"
+               "Sí — no toca lo que ya clasificaste (recomendado).\n"
+               "No — el archivo pisa también las asignaciones existentes."),
             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
             QMessageBox.Yes
         )
@@ -394,10 +400,10 @@ class DiccionarioIUDialog(QDialog):
         try:
             res = DIC.importar(path, solo_sin_indice=(r == QMessageBox.Yes))
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo importar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo importar:\n{e}").format(e=e))
             return
         self._catalogo = catalogo()
         self._sugerencias = []
         self._render()
         self._refrescar_cabecera()
-        QMessageBox.information(self, "Importado", res['msg'])
+        QMessageBox.information(self, tr("Importado"), res['msg'])

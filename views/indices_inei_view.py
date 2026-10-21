@@ -42,6 +42,7 @@ from core.indices_inei import (
     buscar_ultimo_excel_inei, descargar_ultimo_inei,
 )
 from views._catalogo_base import EditorPlenoDelegate, BTN_ON_DARK_SS, armar_marco_catalogo, crear_kpi_pie
+from utils.i18n import tr, N_
 from utils.icons import icon
 from utils.formatting import parse_num, parse_num_opt
 
@@ -62,8 +63,8 @@ BLUE_700     = "#0D52BF"
 GREEN_700    = "#16A34A"
 GREEN_SOFT   = "#D1FAE5"
 
-MESES_LARGOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+MESES_LARGOS = [N_('Ene'), N_('Feb'), N_('Mar'), N_('Abr'), N_('May'), N_('Jun'),
+                N_('Jul'), N_('Ago'), N_('Sep'), N_('Oct'), N_('Nov'), N_('Dic')]
 
 
 class DialogoIndice(QDialog):
@@ -76,8 +77,8 @@ class DialogoIndice(QDialog):
     def __init__(self, parent=None, codigo: str = "", nombre: str = ""):
         super().__init__(parent)
         self._edicion = bool(codigo)
-        self.setWindowTitle("Editar índice unificado" if self._edicion
-                            else "Nuevo índice unificado")
+        self.setWindowTitle(tr("Editar índice unificado") if self._edicion
+                            else tr("Nuevo índice unificado"))
         self.setMinimumWidth(420)
 
         v = QVBoxLayout(self)
@@ -88,27 +89,27 @@ class DialogoIndice(QDialog):
         form.setSpacing(8)
 
         self.inp_codigo = QLineEdit(codigo)
-        self.inp_codigo.setPlaceholderText("Dos dígitos, ej. 85")
+        self.inp_codigo.setPlaceholderText(tr("Dos dígitos, ej. 85"))
         self.inp_codigo.setMaxLength(2)
         self.inp_codigo.setEnabled(not self._edicion)
-        form.addRow("Código *:", self.inp_codigo)
+        form.addRow(tr("Código *:"), self.inp_codigo)
 
         self.inp_nombre = QLineEdit(nombre)
-        self.inp_nombre.setPlaceholderText("Descripción del índice unificado")
-        form.addRow("Nombre *:", self.inp_nombre)
+        self.inp_nombre.setPlaceholderText(tr("Descripción del índice unificado"))
+        form.addRow(tr("Nombre *:"), self.inp_nombre)
         v.addLayout(form)
 
-        ayuda = QLabel(
+        ayuda = QLabel(tr(
             "El código es el que publica el INEI. Los insumos y los monomios "
             "de la fórmula polinómica lo referencian por ese número."
-        )
+        ))
         ayuda.setWordWrap(True)
         ayuda.setStyleSheet(f"color:{SLATE_300}; font-size:11px;")
         v.addWidget(ayuda)
 
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Save).setText("Guardar")
-        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        bb.button(QDialogButtonBox.Save).setText(tr("Guardar"))
+        bb.button(QDialogButtonBox.Cancel).setText(tr("Cancelar"))
         bb.accepted.connect(self._guardar)
         bb.rejected.connect(self.reject)
         v.addWidget(bb)
@@ -121,12 +122,12 @@ class DialogoIndice(QDialog):
     def _guardar(self):
         codigo, nombre = self.datos()
         if not codigo.isdigit():
-            QMessageBox.warning(self, "Código inválido",
-                                "El código debe ser numérico (01 a 99).")
+            QMessageBox.warning(self, tr("Código inválido"),
+                                tr("El código debe ser numérico (01 a 99)."))
             return
         if not nombre:
-            QMessageBox.warning(self, "Falta el nombre",
-                                "Escribe la descripción del índice.")
+            QMessageBox.warning(self, tr("Falta el nombre"),
+                                tr("Escribe la descripción del índice."))
             return
         self.accept()
 
@@ -166,56 +167,56 @@ class IndicesINEIView(QWidget):
         un menú «Importar ▾» —como en Insumos— y los selectores bajan a la
         barra de filtros, que es donde el programa pone los filtros.
         """
-        root, top, pie = armar_marco_catalogo(self, "rep-resumen", "Índices Unificados de Precios INEI")
+        root, top, pie = armar_marco_catalogo(self, "rep-resumen", tr("Índices Unificados de Precios INEI"))
 
-        self.btn_auto = self._mk_btn("Sincronizar con INEI",
+        self.btn_auto = self._mk_btn(tr("Sincronizar con INEI"),
                                       icon_name="importar", primary=True, on_dark=True)
         self.btn_auto.setToolTip(
-            "Detecta y descarga el último archivo oficial del INEI"
-            " automáticamente")
+            tr("Detecta y descarga el último archivo oficial del INEI"
+               " automáticamente"))
         self.btn_auto.clicked.connect(self._sincronizar_inei)
         top.addWidget(self.btn_auto)
 
         # Todo lo que es traer datos, en un solo menú.
-        self.btn_import = self._mk_btn("Importar ▾", icon_name="importar", on_dark=True)
+        self.btn_import = self._mk_btn(tr("Importar ▾"), icon_name="importar", on_dark=True)
         menu = QMenu(self.btn_import)
         self.btn_imp_excel = menu.addAction(icon("folder"),
-                                            "Archivo del INEI (.xlsx)")
+                                            tr("Archivo del INEI (.xlsx)"))
         self.btn_imp_excel.triggered.connect(self._importar_excel)
-        self.btn_url = menu.addAction(icon("importar"), "Desde una URL…")
+        self.btn_url = menu.addAction(icon("importar"), tr("Desde una URL…"))
         self.btn_url.triggered.connect(self._descargar_url)
         self.btn_pegar = menu.addAction(icon("copiar"),
-                                        "Pegar datos del portapapeles")
+                                        tr("Pegar datos del portapapeles"))
         self.btn_pegar.triggered.connect(self._pegar_datos)
         menu.addSeparator()
         self.btn_imp_delphin = menu.addAction(icon("sqlite"),
-                                              "Base de Delphin Express")
+                                              tr("Base de Delphin Express"))
         self.btn_imp_delphin.triggered.connect(self._importar_delphin_sqlite)
-        self.btn_imp_json = menu.addAction(icon("importar"), "Desde JSON")
+        self.btn_imp_json = menu.addAction(icon("importar"), tr("Desde JSON"))
         self.btn_imp_json.triggered.connect(self._importar_json)
         self.btn_import.setMenu(menu)
         top.addWidget(self.btn_import)
 
-        self.btn_exp_json = self._mk_btn("Exportar", icon_name="exportar", on_dark=True)
-        self.btn_exp_json.setToolTip("Exportar el histórico a JSON")
+        self.btn_exp_json = self._mk_btn(tr("Exportar"), icon_name="exportar", on_dark=True)
+        self.btn_exp_json.setToolTip(tr("Exportar el histórico a JSON"))
         self.btn_exp_json.clicked.connect(self._exportar_json)
         top.addWidget(self.btn_exp_json)
 
-        self.btn_diccionario = self._mk_btn("Diccionario",
+        self.btn_diccionario = self._mk_btn(tr("Diccionario"),
                                             icon_name="rep-insumos", on_dark=True)
         self.btn_diccionario.setToolTip(
-            "Qué índice unificado le corresponde a cada insumo — es lo que usa "
-            "la fórmula polinómica para agrupar el costo")
+            tr("Qué índice unificado le corresponde a cada insumo — es lo que usa "
+               "la fórmula polinómica para agrupar el costo"))
         self.btn_diccionario.clicked.connect(self._abrir_diccionario)
         top.addWidget(self.btn_diccionario)
 
 
         # ── KPIs ──
-        self.kpi_indices = self._mk_kpi("Índices catálogo", "0", SLATE_500)
-        self.kpi_con_datos = self._mk_kpi("Con valores cargados", "0", GREEN_700)
-        self.kpi_valores = self._mk_kpi("Valores totales", "0", BLUE_700)
+        self.kpi_indices = self._mk_kpi(tr("Índices catálogo"), "0", SLATE_500)
+        self.kpi_con_datos = self._mk_kpi(tr("Con valores cargados"), "0", GREEN_700)
+        self.kpi_valores = self._mk_kpi(tr("Valores totales"), "0", BLUE_700)
         from utils.theme import accent_color as _acc
-        self.kpi_ultimo = self._mk_kpi("Último período cargado", "—", _acc())
+        self.kpi_ultimo = self._mk_kpi(tr("Último período cargado"), "—", _acc())
         for k in (self.kpi_indices, self.kpi_con_datos,
                   self.kpi_valores, self.kpi_ultimo):
             pie.addWidget(k)
@@ -235,7 +236,7 @@ class IndicesINEIView(QWidget):
         ico_s.setStyleSheet("background:transparent; border:none;")
         fl.addWidget(ico_s)
         self.inp_q = QLineEdit()
-        self.inp_q.setPlaceholderText("Buscar por código o nombre…")
+        self.inp_q.setPlaceholderText(tr("Buscar por código o nombre…"))
         self.inp_q.setClearButtonEnabled(True)
         self._timer_q = QTimer(self)
         self._timer_q.setSingleShot(True)
@@ -243,22 +244,22 @@ class IndicesINEIView(QWidget):
         self.inp_q.textChanged.connect(lambda _: self._timer_q.start(220))
         fl.addWidget(self.inp_q, 2)
 
-        lbl_s = QLabel("Base:")
+        lbl_s = QLabel(tr("Base:"))
         lbl_s.setStyleSheet(f"color:{SLATE_500}; font-weight:600;"
                             f" background:transparent; border:none;")
         fl.addWidget(lbl_s)
         self.cmb_serie = QComboBox()
         self.cmb_serie.setMinimumWidth(210)
         self.cmb_serie.setToolTip(
-            "El INEI cambió la base en diciembre de 2025 (RJ 016-2026-INEI). "
-            "Los índices de una base no se mezclan con los de la otra."
+            tr("El INEI cambió la base en diciembre de 2025 (RJ 016-2026-INEI). "
+               "Los índices de una base no se mezclan con los de la otra.")
         )
         for clave, nombre in series_disponibles():
             self.cmb_serie.addItem(nombre, clave)
         self.cmb_serie.currentIndexChanged.connect(self._on_serie_change)
         fl.addWidget(self.cmb_serie)
 
-        lbl_a = QLabel("Área:")
+        lbl_a = QLabel(tr("Área:"))
         lbl_a.setStyleSheet(f"color:{SLATE_500}; font-weight:600;"
                             f" background:transparent; border:none;")
         fl.addWidget(lbl_a)
@@ -281,8 +282,8 @@ class IndicesINEIView(QWidget):
         self.btn_huerfanos.setVisible(False)
         fl.addWidget(self.btn_huerfanos)
 
-        self.btn_nuevo = self._mk_btn("Nuevo índice", icon_name="add")
-        self.btn_nuevo.setToolTip("Dar de alta un índice unificado")
+        self.btn_nuevo = self._mk_btn(tr("Nuevo índice"), icon_name="add")
+        self.btn_nuevo.setToolTip(tr("Dar de alta un índice unificado"))
         self.btn_nuevo.clicked.connect(self._nuevo_indice)
         fl.addWidget(self.btn_nuevo)
 
@@ -328,7 +329,7 @@ class IndicesINEIView(QWidget):
         return fr, v, hl, lbl
 
     def _build_panel_izq(self) -> QWidget:
-        fr, v, hl, _ = self._panel("Índices")
+        fr, v, hl, _ = self._panel(tr("Índices"))
 
         self.lst = QListWidget()
         self.lst.setStyleSheet(
@@ -351,10 +352,10 @@ class IndicesINEIView(QWidget):
         return fr
 
     def _build_panel_der(self) -> QWidget:
-        fr, v, hl, lbl = self._panel("Selecciona un índice")
+        fr, v, hl, lbl = self._panel(tr("Selecciona un índice"))
         self.lbl_titulo_matriz = lbl
 
-        btn_add_anio = QPushButton("Agregar año")
+        btn_add_anio = QPushButton(tr("Agregar año"))
         btn_add_anio.setIcon(icon("add"))
         btn_add_anio.setIconSize(QSize(13, 13))
         btn_add_anio.setCursor(Qt.PointingHandCursor)
@@ -370,7 +371,7 @@ class IndicesINEIView(QWidget):
 
         # Tabla pivot: filas = años, cols = Ene..Dic + Promedio
         self.tbl = QTableWidget(0, 13)
-        self.tbl.setHorizontalHeaderLabels(MESES_LARGOS + ["Promedio"])
+        self.tbl.setHorizontalHeaderLabels([tr(m) for m in MESES_LARGOS] + [tr("Promedio")])
         self.tbl.verticalHeader().setVisible(True)
         self.tbl.verticalHeader().setDefaultSectionSize(28)
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectItems)
@@ -463,8 +464,9 @@ class IndicesINEIView(QWidget):
             if ind['ultimo_periodo']:
                 it.setToolTip(
                     f"{ind['nombre']}\n"
-                    f"{ind['n_valores']} valores · último: "
-                    f"{ind['ultimo_periodo']} = {ind['ultimo_valor']:.2f}"
+                    + tr("{n} valores · último: {periodo} = {valor:.2f}").format(
+                        n=ind['n_valores'], periodo=ind['ultimo_periodo'],
+                        valor=ind['ultimo_valor'])
                 )
             self.lst.addItem(it)
         self.lst.blockSignals(False)
@@ -477,7 +479,7 @@ class IndicesINEIView(QWidget):
                     break
         if self.lst.count() and self.lst.currentRow() < 0:
             self.lst.setCurrentRow(0)
-        self.lbl_subt.setText(f"  ·  {cnt} índices")
+        self.lbl_subt.setText("  ·  " + tr("{n} índices").format(n=cnt))
         self._actualizar_huerfanos()
 
     def _actualizar_kpis(self):
@@ -515,14 +517,14 @@ class IndicesINEIView(QWidget):
             return
         codigo = it.data(Qt.UserRole)
         m = QMenu(self)
-        a_edit = QAction(icon("editar"), "Editar", self)
+        a_edit = QAction(icon("editar"), tr("Editar"), self)
         a_edit.triggered.connect(lambda: self._editar_indice(codigo))
         m.addAction(a_edit)
-        a_new = QAction(icon("add"), "Nuevo índice", self)
+        a_new = QAction(icon("add"), tr("Nuevo índice"), self)
         a_new.triggered.connect(self._nuevo_indice)
         m.addAction(a_new)
         m.addSeparator()
-        a_del = QAction(icon("eliminar"), "Eliminar", self)
+        a_del = QAction(icon("eliminar"), tr("Eliminar"), self)
         a_del.triggered.connect(lambda: self._eliminar_indice_ui(codigo))
         m.addAction(a_del)
         m.exec(self.lst.viewport().mapToGlobal(pos))
@@ -535,7 +537,7 @@ class IndicesINEIView(QWidget):
         try:
             codigo = crear_indice(codigo, nombre, serie=self._serie_actual)
         except ValueError as e:
-            QMessageBox.warning(self, "No se pudo crear", str(e))
+            QMessageBox.warning(self, tr("No se pudo crear"), str(e))
             return
         self._codigo_actual = codigo
         self._refrescar_lista()
@@ -565,26 +567,26 @@ class IndicesINEIView(QWidget):
         usos = contar_usos(codigo, serie=self._serie_actual)
         detalle = []
         if usos['recursos']:
-            detalle.append(f"{usos['recursos']} insumo(s) lo tienen asignado")
+            detalle.append(tr("{n} insumo(s) lo tienen asignado").format(n=usos['recursos']))
         if usos['valores']:
-            detalle.append(f"{usos['valores']} valor(es) del histórico")
+            detalle.append(tr("{n} valor(es) del histórico").format(n=usos['valores']))
         if usos['monomios']:
-            detalle.append(f"{usos['monomios']} monomio(s) de fórmulas guardadas")
+            detalle.append(tr("{n} monomio(s) de fórmulas guardadas").format(n=usos['monomios']))
 
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle("Eliminar índice unificado")
-        msg.setText(f"¿Eliminar el índice {codigo} — {nombre}?")
+        msg.setWindowTitle(tr("Eliminar índice unificado"))
+        msg.setText(tr("¿Eliminar el índice {codigo} — {nombre}?").format(codigo=codigo, nombre=nombre))
         if detalle:
             msg.setInformativeText(
-                "Quedarán apuntando a un código que ya no existe:\n· "
+                tr("Quedarán apuntando a un código que ya no existe:") + "\n· "
                 + "\n· ".join(detalle)
-                + "\n\nLos insumos no se modifican."
+                + "\n\n" + tr("Los insumos no se modifican.")
             )
         else:
-            msg.setInformativeText("No lo usa nadie.")
-        btn_si = msg.addButton("Eliminar", QMessageBox.DestructiveRole)
-        msg.addButton("Cancelar", QMessageBox.RejectRole)
+            msg.setInformativeText(tr("No lo usa nadie."))
+        btn_si = msg.addButton(tr("Eliminar"), QMessageBox.DestructiveRole)
+        msg.addButton(tr("Cancelar"), QMessageBox.RejectRole)
         msg.exec()
         if msg.clickedButton() is not btn_si:
             return
@@ -592,8 +594,8 @@ class IndicesINEIView(QWidget):
         borrar_valores = False
         if usos['valores']:
             r = QMessageBox.question(
-                self, "Histórico del índice",
-                f"¿Borrar también sus {usos['valores']} valores del histórico?",
+                self, tr("Histórico del índice"),
+                tr("¿Borrar también sus {n} valores del histórico?").format(n=usos['valores']),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No
             )
             borrar_valores = (r == QMessageBox.Yes)
@@ -616,13 +618,13 @@ class IndicesINEIView(QWidget):
         self.btn_huerfanos.setVisible(bool(n))
         if n:
             desc = sum(1 for h in self._huerfanos if h['descontinuado'])
-            self.btn_huerfanos.setText(f"{n} códigos inválidos")
+            self.btn_huerfanos.setText(tr("{n} códigos inválidos").format(n=n))
             self.btn_huerfanos.setToolTip(
-                f"{n} códigos usados por insumos no están en el catálogo de "
-                f"esta base"
-                + (f" — {desc} los descontinuó el INEI al reagruparlos"
+                tr("{n} códigos usados por insumos no están en el catálogo de "
+                   "esta base").format(n=n)
+                + (tr(" — {desc} los descontinuó el INEI al reagruparlos").format(desc=desc)
                    if desc else "")
-                + ". Clic para ver qué hacer."
+                + tr(". Clic para ver qué hacer.")
             )
 
     def _revisar_huerfanos(self):
@@ -648,39 +650,42 @@ class IndicesINEIView(QWidget):
 
         def _lista(hs, con_nombre):
             return "\n".join(
-                f"· {h['codigo']} — {h['n_recursos']} insumo(s)"
+                "· " + tr("{codigo} — {n} insumo(s)").format(
+                    codigo=h['codigo'], n=h['n_recursos'])
                 + (f"   ({h['nombre_anterior']})" if con_nombre
                    and h['nombre_anterior'] else "")
                 for h in hs
             )
 
         partes = [
-            f"{len(self._huerfanos)} código(s) están en uso pero NO figuran en "
-            f"el catálogo de la base vigente."
+            tr("{n} código(s) están en uso pero NO figuran en "
+               "el catálogo de la base vigente.").format(n=len(self._huerfanos))
         ]
         if desc:
             partes.append(
-                f"\nDESCONTINUADOS por el INEI — existían en la base anterior "
-                f"y se reagruparon ({desc_n} insumos):\n" + _lista(desc, True))
+                "\n" + tr("DESCONTINUADOS por el INEI — existían en la base anterior "
+                   "y se reagruparon ({n} insumos):").format(n=desc_n)
+                + "\n" + _lista(desc, True))
         if otros:
             partes.append(
-                f"\nSIN ORIGEN OFICIAL — no figuran en ninguna relación del "
-                f"INEI; suelen venir de bibliotecas importadas ({otros_n} "
-                f"insumos):\n" + _lista(otros, False))
+                "\n" + tr("SIN ORIGEN OFICIAL — no figuran en ninguna relación del "
+                   "INEI; suelen venir de bibliotecas importadas ({n} "
+                   "insumos):").format(n=otros_n)
+                + "\n" + _lista(otros, False))
         partes.append(
-            "\nLo recomendable es REASIGNAR esos insumos a códigos vigentes "
-            "con el diccionario del INEI. Darlos de alta crearía índices que el "
-            "INEI no publica: nunca tendrán valores y su parte del reajuste no "
-            "se podrá calcular."
+            "\n" + tr("Lo recomendable es REASIGNAR esos insumos a códigos vigentes "
+                     "con el diccionario del INEI. Darlos de alta crearía índices que el "
+                     "INEI no publica: nunca tendrán valores y su parte del reajuste no "
+                     "se podrá calcular.")
         )
 
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle("Códigos que el catálogo no define")
+        msg.setWindowTitle(tr("Códigos que el catálogo no define"))
         msg.setText("\n".join(partes))
-        b_dicc = msg.addButton("Abrir el diccionario", QMessageBox.AcceptRole)
-        b_alta = msg.addButton("Darlos de alta igual", QMessageBox.DestructiveRole)
-        msg.addButton("Cerrar", QMessageBox.RejectRole)
+        b_dicc = msg.addButton(tr("Abrir el diccionario"), QMessageBox.AcceptRole)
+        b_alta = msg.addButton(tr("Darlos de alta igual"), QMessageBox.DestructiveRole)
+        msg.addButton(tr("Cerrar"), QMessageBox.RejectRole)
         msg.setDefaultButton(b_dicc)
         msg.exec()
 
@@ -692,10 +697,10 @@ class IndicesINEIView(QWidget):
             self._refrescar_lista()
             self._actualizar_kpis()
             QMessageBox.information(
-                self, "Listo",
-                f"{n} índice(s) dados de alta con nombre provisional. "
-                f"Edítalos con doble clic; recuerda que el INEI no publica "
-                f"valores para ellos."
+                self, tr("Listo"),
+                tr("{n} índice(s) dados de alta con nombre provisional. "
+                   "Edítalos con doble clic; recuerda que el INEI no publica "
+                   "valores para ellos.").format(n=n)
             )
 
     def _abrir_diccionario(self):
@@ -747,7 +752,7 @@ class IndicesINEIView(QWidget):
         self.tbl.blockSignals(True)
         self.tbl.setRowCount(0)
         self.tbl.blockSignals(False)
-        self.lbl_titulo_matriz.setText("Selecciona un índice")
+        self.lbl_titulo_matriz.setText(tr("Selecciona un índice"))
 
     def _cargar_matriz(self, codigo: str):
         # Recuperar nombre del índice
@@ -923,7 +928,7 @@ class IndicesINEIView(QWidget):
             # bases, ya reconciliado, que una Action mantiene al día dos veces
             # al mes. Las otras fuentes siguen detrás por si no responde o por
             # si el INEI publicó antes de que la Action corriera.
-            self.btn_auto.setText("Buscando el histórico publicado…")
+            self.btn_auto.setText(tr("Buscando el histórico publicado…"))
             QApplication.processEvents()
             pub = descargar_indices_publicados()
             if pub.get('ok') and pub.get('rows'):
@@ -932,19 +937,20 @@ class IndicesINEIView(QWidget):
                 if propias:
                     filas += propias
                     fuentes.append(
-                        f"Histórico publicado del {pub.get('generado', '?')} "
-                        f"({pub.get('tamano_kb', 0)} KB) — "
-                        f"{self._rango_de(propias)}")
+                        tr("Histórico publicado del {fecha} ({kb} KB) — {rango}").format(
+                            fecha=pub.get('generado', '?'),
+                            kb=pub.get('tamano_kb', 0),
+                            rango=self._rango_de(propias)))
             else:
-                problemas.append(pub.get('msg') or "No se pudo leer el histórico.")
+                problemas.append(pub.get('msg') or tr("No se pudo leer el histórico."))
 
             # ── 1) el Excel de la base ──
-            self.btn_auto.setText("Buscando el archivo del INEI…")
+            self.btn_auto.setText(tr("Buscando el archivo del INEI…"))
             QApplication.processEvents()
             busq = buscar_ultimo_excel_inei(self._serie_actual)
             url_excel = busq.get('url')
             if busq['ok']:
-                self.btn_auto.setText("Descargando el archivo…")
+                self.btn_auto.setText(tr("Descargando el archivo…"))
                 QApplication.processEvents()
                 res = descargar_desde_url(
                     busq['url'], area=self._area_actual,
@@ -953,26 +959,27 @@ class IndicesINEIView(QWidget):
                 if res.get('ok') and res.get('rows'):
                     filas += res['rows']
                     fuentes.append(
-                        f"Archivo del INEI ({res.get('tamano_kb', 0)} KB) — "
-                        f"{self._rango_de(res['rows'])}")
+                        tr("Archivo del INEI ({kb} KB) — {rango}").format(
+                            kb=res.get('tamano_kb', 0),
+                            rango=self._rango_de(res['rows'])))
                 else:
-                    problemas.append(res.get('msg') or "El archivo no trajo datos.")
+                    problemas.append(res.get('msg') or tr("El archivo no trajo datos."))
             else:
-                problemas.append(busq.get('msg') or "No se encontró el archivo.")
+                problemas.append(busq.get('msg') or tr("No se encontró el archivo."))
 
             # ── 2) las resoluciones mensuales ──
-            self.btn_auto.setText("Buscando resoluciones del mes…")
+            self.btn_auto.setText(tr("Buscando resoluciones del mes…"))
             QApplication.processEvents()
             try:
                 resoluciones = buscar_resoluciones_gobpe()
             except Exception as e:
                 resoluciones = []
-                problemas.append(f"No se pudo consultar gob.pe: {e}")
+                problemas.append(tr("No se pudo consultar gob.pe: {e}").format(e=e))
             for r in resoluciones:
                 if serie_de(r['anio'], r['mes']) != self._serie_actual:
                     continue
                 self.btn_auto.setText(
-                    f"Descargando R.J. {r['resolucion']}…")
+                    tr("Descargando R.J. {res}…").format(res=r['resolucion']))
                 QApplication.processEvents()
                 dr = descargar_resolucion_gobpe(r['url'],
                                                 serie=self._serie_actual)
@@ -987,8 +994,8 @@ class IndicesINEIView(QWidget):
 
             if not filas:
                 QMessageBox.warning(
-                    self, "Sincronizar con INEI",
-                    "\n".join(problemas) or "No se encontró nada que importar.")
+                    self, tr("Sincronizar con INEI"),
+                    "\n".join(problemas) or tr("No se encontró nada que importar."))
                 return
 
             res_total = {
@@ -1003,7 +1010,7 @@ class IndicesINEIView(QWidget):
             self._procesar_resultado_import(res_total, fuente=fuente)
         finally:
             self.btn_auto.setEnabled(True)
-            self.btn_auto.setText("Sincronizar con INEI")
+            self.btn_auto.setText(tr("Sincronizar con INEI"))
 
     def _meses_faltantes(self, filas: list[dict]) -> list[tuple[int, int]]:
         """Meses sin ningún índice entre el primero y el último que se tendría.
@@ -1035,11 +1042,12 @@ class IndicesINEIView(QWidget):
         per = sorted({(f.get('anio'), f.get('mes')) for f in filas
                       if f.get('anio') and f.get('mes')})
         if not per:
-            return "sin períodos"
+            return tr("sin períodos")
         if len(per) == 1:
             return f"{per[0][0]}-{per[0][1]:02d}"
-        return (f"{per[0][0]}-{per[0][1]:02d} a {per[-1][0]}-{per[-1][1]:02d} "
-                f"({len(per)} meses)")
+        return tr("{desde} a {hasta} ({n} meses)").format(
+            desde=f"{per[0][0]}-{per[0][1]:02d}",
+            hasta=f"{per[-1][0]}-{per[-1][1]:02d}", n=len(per))
 
     # ── Descargar desde URL ─────────────────────────────────────────────────
     def _descargar_url(self):
@@ -1050,13 +1058,13 @@ class IndicesINEIView(QWidget):
 
         # Diálogo personalizado: URL + año override opcional
         dlg = QDialog(self)
-        dlg.setWindowTitle("Descargar Excel desde URL")
+        dlg.setWindowTitle(tr("Descargar Excel desde URL"))
         dlg.setMinimumWidth(520)
         v = _QV(dlg)
         v.setContentsMargins(14, 12, 14, 12)
         v.setSpacing(10)
 
-        intro = _QLabel(
+        intro = _QLabel(tr(
             "Pega aquí el enlace directo al archivo <b>.xlsx</b> publicado por "
             "el INEI (o cualquier fuente).<br><br>"
             "<b>Tip:</b> usa el botón <i>«Sincronizar con INEI»</i> para "
@@ -1069,7 +1077,7 @@ class IndicesINEIView(QWidget):
             "2. <b>Clic derecho</b> sobre el enlace del Excel del mes deseado.<br>"
             "3. <b>«Copiar dirección del enlace»</b>.<br>"
             "4. Pega aquí abajo y pulsa <b>Descargar</b>."
-        )
+        ))
         intro.setOpenExternalLinks(True)
         intro.setWordWrap(True)
         intro.setTextFormat(Qt.RichText)
@@ -1085,17 +1093,17 @@ class IndicesINEIView(QWidget):
         cb = _QApp.clipboard().text().strip()
         if cb.startswith("http://") or cb.startswith("https://"):
             inp_url.setText(cb)
-        form.addRow("URL:", inp_url)
+        form.addRow(tr("URL:"), inp_url)
 
         inp_anio = QSpinBox()
         inp_anio.setRange(0, 2100)
-        inp_anio.setSpecialValueText("(detectar automáticamente)")
+        inp_anio.setSpecialValueText(tr("(detectar automáticamente)"))
         inp_anio.setValue(0)
-        form.addRow("Año (opcional):", inp_anio)
+        form.addRow(tr("Año (opcional):"), inp_anio)
 
         info_area = _QLabel(
-            f"Los datos se cargarán para el área actual: "
-            f"<b>{self.cmb_area.currentText()[:50]}</b>"
+            tr("Los datos se cargarán para el área actual: "
+               "<b>{area}</b>").format(area=self.cmb_area.currentText()[:50])
         )
         info_area.setStyleSheet(f"color:{SLATE_300}; font-size:11px;")
         info_area.setTextFormat(Qt.RichText)
@@ -1104,7 +1112,7 @@ class IndicesINEIView(QWidget):
         v.addWidget(info_area)
 
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        btns.button(QDialogButtonBox.Ok).setText("Descargar e importar")
+        btns.button(QDialogButtonBox.Ok).setText(tr("Descargar e importar"))
         btns.accepted.connect(dlg.accept)
         btns.rejected.connect(dlg.reject)
         v.addWidget(btns)
@@ -1118,16 +1126,16 @@ class IndicesINEIView(QWidget):
 
         # Indicador visual de progreso (cambiar texto del botón)
         self.btn_url.setEnabled(False)
-        self.btn_url.setText("Descargando…")
+        self.btn_url.setText(tr("Descargando…"))
         QApplication.processEvents()
         try:
             res = descargar_desde_url(url, area=self._area_actual,
                                        anio_override=anio_ovr)
         finally:
             self.btn_url.setEnabled(True)
-            self.btn_url.setText("Descargar desde URL")
+            self.btn_url.setText(tr("Descargar desde URL"))
 
-        self._procesar_resultado_import(res, fuente=f"URL ({url[:60]}…)")
+        self._procesar_resultado_import(res, fuente=tr("URL ({url}…)").format(url=url[:60]))
 
     # ── Pegar desde portapapeles ────────────────────────────────────────────
     def _pegar_datos(self):
@@ -1138,32 +1146,32 @@ class IndicesINEIView(QWidget):
         from PySide6.QtWidgets import QApplication as _QApp
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Pegar datos INEI desde portapapeles")
+        dlg.setWindowTitle(tr("Pegar datos INEI desde portapapeles"))
         dlg.setMinimumSize(720, 480)
         v = _QV(dlg)
         v.setContentsMargins(14, 12, 14, 12)
         v.setSpacing(8)
 
-        intro = _QLabel(
+        intro = _QLabel(tr(
             "Pega aquí una tabla de cualquier fuente (Excel, página web, PDF, "
             "etc.).<br>"
             "<b>Formato esperado:</b> primera columna = código INEI, "
             "siguientes columnas = meses (Ene–Dic o 1–12).<br>"
             "El parser detecta automáticamente el separador (tab, coma, "
             "punto y coma)."
-        )
+        ))
         intro.setTextFormat(Qt.RichText)
         intro.setWordWrap(True)
         intro.setStyleSheet(f"color:{SLATE_500}; font-size:12px;")
         v.addWidget(intro)
 
         txt = _QText()
-        txt.setPlaceholderText(
+        txt.setPlaceholderText(tr(
             "Ejemplo:\n"
             "Código\tEne\tFeb\tMar\tAbr\tMay\tJun\tJul\tAgo\tSep\tOct\tNov\tDic\n"
             "47\t1245.32\t1267.81\t1290.55\t1310.20\t1325.40\t...\n"
             "39\t1124.10\t1135.50\t1145.20\t..."
-        )
+        ))
         f_mono = QFont("monospace"); f_mono.setPointSize(10)
         txt.setFont(f_mono)
         # Auto-poblar con el clipboard si tiene texto
@@ -1175,16 +1183,16 @@ class IndicesINEIView(QWidget):
         # Fila inferior: año override
         from PySide6.QtWidgets import QHBoxLayout as _QH
         bottom = _QH()
-        bottom.addWidget(_QLabel("Año:"))
+        bottom.addWidget(_QLabel(tr("Año:")))
         inp_anio = QSpinBox()
         inp_anio.setRange(0, 2100)
-        inp_anio.setSpecialValueText("(detectar automáticamente)")
+        inp_anio.setSpecialValueText(tr("(detectar automáticamente)"))
         inp_anio.setValue(0)
         bottom.addWidget(inp_anio)
         bottom.addStretch(1)
 
         info_area = _QLabel(
-            f"Área destino: <b>{self.cmb_area.currentText()[:50]}</b>"
+            tr("Área destino: <b>{area}</b>").format(area=self.cmb_area.currentText()[:50])
         )
         info_area.setStyleSheet(f"color:{SLATE_300}; font-size:11px;")
         info_area.setTextFormat(Qt.RichText)
@@ -1192,7 +1200,7 @@ class IndicesINEIView(QWidget):
         v.addLayout(bottom)
 
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        btns.button(QDialogButtonBox.Ok).setText("Procesar datos")
+        btns.button(QDialogButtonBox.Ok).setText(tr("Procesar datos"))
         btns.accepted.connect(dlg.accept)
         btns.rejected.connect(dlg.reject)
         v.addWidget(btns)
@@ -1206,28 +1214,28 @@ class IndicesINEIView(QWidget):
 
         res = importar_desde_texto(texto, area=self._area_actual,
                                     anio_override=anio_ovr)
-        self._procesar_resultado_import(res, fuente="Portapapeles")
+        self._procesar_resultado_import(res, fuente=tr("Portapapeles"))
 
     def _procesar_resultado_import(self, res: dict, fuente: str = ""):
         """Aplica el resultado de un importador: confirma y persiste."""
         if not res.get('ok'):
             QMessageBox.warning(
-                self, "Importar",
-                res.get('msg') or "No se pudo procesar."
+                self, tr("Importar"),
+                res.get('msg') or tr("No se pudo procesar.")
             )
             return
 
         if not res['rows']:
             QMessageBox.information(
-                self, "Importar",
-                "No se detectaron valores nuevos."
+                self, tr("Importar"),
+                tr("No se detectaron valores nuevos.")
             )
             return
 
         codigos = sorted(res.get('codigos_encontrados') or set())
         cod_preview = ", ".join(codigos[:8])
         if len(codigos) > 8:
-            cod_preview += f"… (+{len(codigos) - 8} más)"
+            cod_preview += tr("… (+{n} más)").format(n=len(codigos) - 8)
 
         # Qué períodos trae el archivo, para poder contrastarlo con el INEI sin
         # tener que abrirlo: es la pregunta que uno se hace al sincronizar.
@@ -1236,41 +1244,48 @@ class IndicesINEIView(QWidget):
         if periodos:
             rango = (f"{periodos[0][0]}-{periodos[0][1]:02d}"
                      if len(periodos) == 1 else
-                     f"{periodos[0][0]}-{periodos[0][1]:02d} a "
-                     f"{periodos[-1][0]}-{periodos[-1][1]:02d}"
-                     f"  ({len(periodos)} meses)")
+                     tr("{desde} a {hasta}  ({n} meses)").format(
+                         desde=f"{periodos[0][0]}-{periodos[0][1]:02d}",
+                         hasta=f"{periodos[-1][0]}-{periodos[-1][1]:02d}",
+                         n=len(periodos)))
         else:
-            rango = "(no detectados)"
+            rango = tr("(no detectados)")
 
         areas = sorted({r.get('area') for r in res['rows'] if r.get('area')})
-        destino = (f"{len(areas)} áreas del archivo" if len(areas) > 1
-                   else f"área {self._area_actual}")
+        destino = (tr("{n} áreas del archivo").format(n=len(areas)) if len(areas) > 1
+                   else tr("área {area}").format(area=self._area_actual))
 
-        msg = (f"<b>Fuente:</b> {fuente}<br>"
-               f"<b>Períodos en el archivo:</b> {rango}<br>"
-               f"<b>Base:</b> {serie_nombre(res.get('serie', ''))}<br>"
-               f"<b>Destino:</b> {destino}<br>"
-               f"<b>Índices encontrados:</b> {len(codigos)} ({cod_preview})<br>"
-               f"<b>Valores a importar:</b> {len(res['rows'])}<br>"
-               f"<b>Ignorados:</b> {res.get('ignorados', 0)}<br>")
+        msg = tr("<b>Fuente:</b> {fuente}<br>"
+                 "<b>Períodos en el archivo:</b> {rango}<br>"
+                 "<b>Base:</b> {base}<br>"
+                 "<b>Destino:</b> {destino}<br>"
+                 "<b>Índices encontrados:</b> {n_cod} ({cod_preview})<br>"
+                 "<b>Valores a importar:</b> {n_val}<br>"
+                 "<b>Ignorados:</b> {ignorados}<br>").format(
+            fuente=fuente, rango=rango,
+            base=serie_nombre(res.get('serie', '')), destino=destino,
+            n_cod=len(codigos), cod_preview=cod_preview,
+            n_val=len(res['rows']), ignorados=res.get('ignorados', 0))
         if res.get('url'):
-            msg += (f"<b>Archivo:</b> <a href='{res['url']}'>"
+            msg += ("<b>" + tr("Archivo:") + "</b>" + f" <a href='{res['url']}'>"
                     f"{res['url'].rsplit('/', 1)[-1]}</a><br>")
         faltan = self._meses_faltantes(res['rows'])
         if faltan:
             lista = ", ".join(f"{a}-{m:02d}" for a, m in faltan[:8])
             if len(faltan) > 8:
-                lista += f"… (+{len(faltan) - 8} más)"
-            msg += (f"<b>Quedarían sin datos:</b> {lista}<br>"
-                    f"<span style='color:#6B7280'>El INEI deja en gob.pe solo "
-                    f"el PDF del mes vigente; esos meses se cargan con "
-                    f"«Importar ▾ → Pegar datos del portapapeles» desde El "
-                    f"Peruano.</span><br>")
-        msg += "<br>¿Importar? (los valores existentes se reemplazarán.)"
+                lista += tr("… (+{n} más)").format(n=len(faltan) - 8)
+            msg += (tr("<b>Quedarían sin datos:</b> {lista}<br>").format(lista=lista)
+                    + "<span style='color:#6B7280'>"
+                    + tr("El INEI deja en gob.pe solo "
+                         "el PDF del mes vigente; esos meses se cargan con "
+                         "«Importar ▾ → Pegar datos del portapapeles» desde El "
+                         "Peruano.")
+                    + "</span><br>")
+        msg += "<br>" + tr("¿Importar? (los valores existentes se reemplazarán.)")
 
         caja = QMessageBox(self)
         caja.setIcon(QMessageBox.Question)
-        caja.setWindowTitle("Confirmar importación")
+        caja.setWindowTitle(tr("Confirmar importación"))
         caja.setTextFormat(Qt.RichText)
         caja.setText(msg)
         # El enlace abre el archivo en el navegador, para verificar la fuente.
@@ -1288,14 +1303,14 @@ class IndicesINEIView(QWidget):
         if self._codigo_actual:
             self._cargar_matriz(self._codigo_actual)
         QMessageBox.information(
-            self, "Importación completa",
-            f"{ok_n} valores importados, {err_n} ignorados."
+            self, tr("Importación completa"),
+            tr("{ok_n} valores importados, {err_n} ignorados.").format(ok_n=ok_n, err_n=err_n)
         )
 
     # ── Importar Excel INEI ─────────────────────────────────────────────────
     def _importar_excel(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar Excel INEI", "", "Excel (*.xlsx *.xls)"
+            self, tr("Importar Excel INEI"), "", "Excel (*.xlsx *.xls)"
         )
         if not path:
             return
@@ -1304,14 +1319,14 @@ class IndicesINEIView(QWidget):
 
     def _importar_delphin_sqlite(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar histórico INEI desde Delphin Express",
-            "", "Bases de datos Delphin (*.sqlite *.db)"
+            self, tr("Importar histórico INEI desde Delphin Express"),
+            "", tr("Bases de datos Delphin (*.sqlite *.db)")
         )
         if not path:
             return
 
         # Pre-confirmación
-        msg = (
+        msg = tr(
             "Se va a importar el histórico completo de índices INEI desde la "
             "base de datos de Delphin Express.\n\n"
             "Mapeo de regiones Delphin → áreas INEI ingePresupuestos:\n"
@@ -1326,7 +1341,7 @@ class IndicesINEIView(QWidget):
             "¿Continuar?"
         )
         r = QMessageBox.question(
-            self, "Importar histórico INEI desde Delphin", msg,
+            self, tr("Importar histórico INEI desde Delphin"), msg,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
         )
         if r != QMessageBox.Yes:
@@ -1337,54 +1352,59 @@ class IndicesINEIView(QWidget):
             res = import_inei_delphin_sqlite(path)
         except Exception as e:
             QMessageBox.critical(
-                self, "Importar histórico INEI desde Delphin",
-                f"No se pudo leer la base de datos:\n\n{e}"
+                self, tr("Importar histórico INEI desde Delphin"),
+                tr("No se pudo leer la base de datos:\n\n{e}").format(e=e)
             )
             return
 
         anios = res['anios']
-        rango_anios = (f"{anios[0]} – {anios[-1]} ({len(anios)} años)"
+        rango_anios = (tr("{desde} – {hasta} ({n} años)").format(
+                           desde=anios[0], hasta=anios[-1], n=len(anios))
                        if anios else "—")
-        resumen = (
-            f"Importación completada.\n\n"
-            f"  Filas leídas:      {res['n_filas_origen']:,}\n"
-            f"  Valores guardados: {res['n_insertadas']:,}\n"
-            f"  Filas ignoradas:   {res['n_ignoradas']:,}\n\n"
-            f"  Años:              {rango_anios}\n"
-            f"  Códigos INEI:      {len(res['codigos'])}\n"
-            f"  Regiones Delphin:  {len(res['regiones_origen'])}\n"
-            f"  Áreas pobladas:    {', '.join(res['areas_destino'])}"
-        )
+        resumen = tr(
+            "Importación completada.\n\n"
+            "  Filas leídas:      {n_filas:,}\n"
+            "  Valores guardados: {n_ins:,}\n"
+            "  Filas ignoradas:   {n_ign:,}\n\n"
+            "  Años:              {rango_anios}\n"
+            "  Códigos INEI:      {n_cod}\n"
+            "  Regiones Delphin:  {n_reg}\n"
+            "  Áreas pobladas:    {areas}"
+        ).format(
+            n_filas=res['n_filas_origen'], n_ins=res['n_insertadas'],
+            n_ign=res['n_ignoradas'], rango_anios=rango_anios,
+            n_cod=len(res['codigos']), n_reg=len(res['regiones_origen']),
+            areas=', '.join(res['areas_destino']))
         self._actualizar_kpis()
         self._refrescar_lista()
         if self._codigo_actual:
             self._cargar_matriz(self._codigo_actual)
         QMessageBox.information(
-            self, "Importar histórico INEI desde Delphin", resumen
+            self, tr("Importar histórico INEI desde Delphin"), resumen
         )
 
     def _importar_json(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar JSON de índices INEI", "", "JSON (*.json)"
+            self, tr("Importar JSON de índices INEI"), "", "JSON (*.json)"
         )
         if not path:
             return
         res = importar_json(path)
         if not res['ok']:
-            QMessageBox.warning(self, "Importar JSON", res.get('msg'))
+            QMessageBox.warning(self, tr("Importar JSON"), res.get('msg'))
             return
         self._actualizar_kpis()
         self._refrescar_lista()
         if self._codigo_actual:
             self._cargar_matriz(self._codigo_actual)
-        QMessageBox.information(self, "Importar JSON", res['msg'])
+        QMessageBox.information(self, tr("Importar JSON"), res['msg'])
 
     def _exportar_json(self):
         from datetime import datetime as _dt
         fecha = _dt.now().strftime("%Y%m%d_%H%M")
         sugerido = f"indices_inei_{self._area_actual}_{fecha}.json"
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar JSON de índices INEI", sugerido, "JSON (*.json)"
+            self, tr("Exportar JSON de índices INEI"), sugerido, "JSON (*.json)"
         )
         if not path:
             return
@@ -1393,11 +1413,11 @@ class IndicesINEIView(QWidget):
         try:
             n = exportar_json(path, area=self._area_actual)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo exportar:\n{e}").format(e=e))
             return
         QMessageBox.information(
-            self, "Exportado",
-            f"{n} valores exportados a:\n{path}"
+            self, tr("Exportado"),
+            tr("{n} valores exportados a:\n{path}").format(n=n, path=path)
         )
 
 

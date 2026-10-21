@@ -29,6 +29,7 @@ from core.database import get_db
 from views._catalogo_base import CatalogoTablaMixin, UnidadSuperindiceMixin
 from utils.formatting import fmt, parse_num, moneda_defecto
 from widgets.num_item import NumItem
+from utils.i18n import tr
 from utils.icons import icon
 from utils.theme import C
 
@@ -57,7 +58,7 @@ class CUFormDialog(UnidadSuperindiceMixin, QDialog):
         super().__init__(parent)
         self.cu = cu or {}
         self.es_edicion = bool(cu and cu.get('id'))
-        self.setWindowTitle("Editar costo unitario" if self.es_edicion else "Nuevo costo unitario")
+        self.setWindowTitle(tr("Editar costo unitario") if self.es_edicion else tr("Nuevo costo unitario"))
         self.setMinimumWidth(560)
         self._build()
         if self.es_edicion:
@@ -78,7 +79,7 @@ class CUFormDialog(UnidadSuperindiceMixin, QDialog):
         ico = QLabel()
         ico.setPixmap(icon("editar" if self.es_edicion else "add").pixmap(20, 20))
         hl.addWidget(ico)
-        ttl = QLabel("Editar costo unitario" if self.es_edicion else "Nuevo costo unitario")
+        ttl = QLabel(tr("Editar costo unitario") if self.es_edicion else tr("Nuevo costo unitario"))
         ttl.setStyleSheet(
             "color:white; font-weight:600; font-size:13px;"
             " background:transparent; border:none;"
@@ -93,26 +94,26 @@ class CUFormDialog(UnidadSuperindiceMixin, QDialog):
         form.setContentsMargins(0, 4, 0, 4)
 
         self.inp_desc = QLineEdit()
-        self.inp_desc.setPlaceholderText("Descripción de la partida")
-        form.addRow("Descripción *:", self.inp_desc)
+        self.inp_desc.setPlaceholderText(tr("Descripción de la partida"))
+        form.addRow(tr("Descripción *:"), self.inp_desc)
 
         self.inp_unidad = QLineEdit()
         self.inp_unidad.setMaximumWidth(120)
         self.inp_unidad.setPlaceholderText("m, m², m³, kg, hh, glb…")
         self.inp_unidad.textEdited.connect(self._auto_superindice_unidad)
-        form.addRow("Unidad:", self.inp_unidad)
+        form.addRow(tr("Unidad:"), self.inp_unidad)
 
         self.inp_rend = QLineEdit("1.0")
         self.inp_rend.setMaximumWidth(120)
-        form.addRow("Rendimiento:", self.inp_rend)
+        form.addRow(tr("Rendimiento:"), self.inp_rend)
 
         self.inp_costo = QLineEdit("0.00")
         self.inp_costo.setMaximumWidth(140)
-        form.addRow("Costo Unitario:", self.inp_costo)
+        form.addRow(tr("Costo Unitario:"), self.inp_costo)
 
         self.inp_grupo = QLineEdit()
-        self.inp_grupo.setPlaceholderText("Ej: TRABAJOS PRELIMINARES")
-        form.addRow("Grupo:", self.inp_grupo)
+        self.inp_grupo.setPlaceholderText(tr("Ej: TRABAJOS PRELIMINARES"))
+        form.addRow(tr("Grupo:"), self.inp_grupo)
 
         self.txt_specs = QTextEdit()
         self.txt_specs.setMinimumHeight(110)
@@ -120,7 +121,7 @@ class CUFormDialog(UnidadSuperindiceMixin, QDialog):
             "QTextEdit { background:white; border:1px solid #C5CDD3; "
             "border-radius:4px; padding:6px; font-size:12px; }"
         )
-        form.addRow("Especificaciones:", self.txt_specs)
+        form.addRow(tr("Especificaciones:"), self.txt_specs)
 
         v.addLayout(form)
 
@@ -130,7 +131,7 @@ class CUFormDialog(UnidadSuperindiceMixin, QDialog):
 
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         btns.button(QDialogButtonBox.Ok).setText(
-            "Guardar cambios" if self.es_edicion else "Crear CU"
+            tr("Guardar cambios") if self.es_edicion else tr("Crear CU")
         )
         btns.accepted.connect(self._aceptar)
         btns.rejected.connect(self.reject)
@@ -149,7 +150,7 @@ class CUFormDialog(UnidadSuperindiceMixin, QDialog):
     def _aceptar(self):
         desc = self.inp_desc.text().strip()
         if not desc:
-            self.lbl_err.setText("La descripción es obligatoria.")
+            self.lbl_err.setText(tr("La descripción es obligatoria."))
             self.inp_desc.setFocus()
             return
         unidad = self.inp_unidad.text().strip()
@@ -196,22 +197,22 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
 
     # ── construcción UI ─────────────────────────────────────────────────────
     def _build(self):
-        layout, top, pie = self._armar_marco_catalogo("biblioteca", "Biblioteca de Costos Unitarios", "0 CU")
+        layout, top, pie = self._armar_marco_catalogo("biblioteca", tr("Biblioteca de Costos Unitarios"), "0 CU")
 
-        self.btn_nuevo = self._mk_btn("Nuevo CU", primary=True, icon_name="add", on_dark=True)
+        self.btn_nuevo = self._mk_btn(tr("Nuevo CU"), primary=True, icon_name="add", on_dark=True)
         self.btn_nuevo.clicked.connect(self._nuevo)
         top.addWidget(self.btn_nuevo)
 
         # Import / Export JSON (Diccionario de Elementos)
         from PySide6.QtWidgets import QMenu as _QMenu
-        self.btn_import = self._mk_btn("Importar ▾", icon_name="importar", on_dark=True)
-        self.btn_import.setToolTip("Importar Biblioteca CU")
+        self.btn_import = self._mk_btn(tr("Importar ▾"), icon_name="importar", on_dark=True)
+        self.btn_import.setToolTip(tr("Importar Biblioteca CU"))
         menu_imp = _QMenu(self.btn_import)
         a_json = menu_imp.addAction(icon("rep-presupuesto"),
-                                     "Desde JSON (.json)")
+                                     tr("Desde JSON (.json)"))
         a_json.triggered.connect(self._importar_json)
         a_delphin = menu_imp.addAction(icon("sqlite"),
-                                        "Desde Delphin (base .sqlite)")
+                                        tr("Desde Delphin (base .sqlite)"))
         a_delphin.triggered.connect(self._importar_delphin_sqlite)
         a_bc3 = menu_imp.addAction(icon("biblioteca"),
                                    "Desde base de precios BC3 (.bc3)")
@@ -219,16 +220,16 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         self.btn_import.setMenu(menu_imp)
         top.addWidget(self.btn_import)
 
-        self.btn_export_json = self._mk_btn("Exportar JSON", icon_name="exportar", on_dark=True)
+        self.btn_export_json = self._mk_btn(tr("Exportar JSON"), icon_name="exportar", on_dark=True)
         self.btn_export_json.setToolTip(
-            "Exportar toda la Biblioteca CU a archivo JSON"
+            tr("Exportar toda la Biblioteca CU a archivo JSON")
         )
         self.btn_export_json.clicked.connect(self._exportar_json)
         top.addWidget(self.btn_export_json)
         # ── KPIs ──
-        self.kpi_total = self._mk_kpi("Total CU", "0", SLATE_500)
-        self.kpi_grupos = self._mk_kpi("Grupos", "0", TIPO_TEXTO['MAT'])
-        self.kpi_con_acu = self._mk_kpi("Con ACU detallado", "0", TIPO_TEXTO['MO'])
+        self.kpi_total = self._mk_kpi(tr("Total CU"), "0", SLATE_500)
+        self.kpi_grupos = self._mk_kpi(tr("Grupos"), "0", TIPO_TEXTO['MAT'])
+        self.kpi_con_acu = self._mk_kpi(tr("Con ACU detallado"), "0", TIPO_TEXTO['MO'])
         # Sin «Más reutilizado (usos)» ni columna Usos (21-10-2026): el
         # contador `biblioteca_cu.usos` no lo incrementa nada y marcaba 0 en
         # los 8883 CU de una base real (ronda 7 de David Ramos).
@@ -252,7 +253,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         fl.addWidget(ico_search)
 
         self.inp_q = QLineEdit()
-        self.inp_q.setPlaceholderText("Buscar costo unitario por descripción…")
+        self.inp_q.setPlaceholderText(tr("Buscar costo unitario por descripción…"))
         self.inp_q.setClearButtonEnabled(True)
         self._timer_q = QTimer(self)
         self._timer_q.setSingleShot(True)
@@ -266,13 +267,13 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         fl.addWidget(self.cmb_grupo)
 
         self.cmb_acu = QComboBox()
-        self.cmb_acu.addItem("Todos", "")
-        self.cmb_acu.addItem("Con ACU detallado", "con_acu")
-        self.cmb_acu.addItem("Sin ACU detallado", "sin_acu")
+        self.cmb_acu.addItem(tr("Todos"), "")
+        self.cmb_acu.addItem(tr("Con ACU detallado"), "con_acu")
+        self.cmb_acu.addItem(tr("Sin ACU detallado"), "sin_acu")
         self.cmb_acu.currentIndexChanged.connect(self.cargar)
         fl.addWidget(self.cmb_acu)
 
-        self.btn_limpiar = self._mk_btn("Limpiar", icon_name="limpiar")
+        self.btn_limpiar = self._mk_btn(tr("Limpiar"), icon_name="limpiar")
         self.btn_limpiar.clicked.connect(self._limpiar_filtros)
         fl.addWidget(self.btn_limpiar)
 
@@ -290,7 +291,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         # Tabla principal
         self.tbl = QTableWidget(0, 6)
         self.tbl.setHorizontalHeaderLabels(
-            ["Descripción", "Unidad", "Rendimiento", "Costo Unit.", "Grupo", "ACU"]
+            [tr("Descripción"), tr("Unidad"), tr("Rendimiento"), tr("Costo Unit."), tr("Grupo"), tr("ACU")]
         )
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setAlternatingRowColors(True)
@@ -302,7 +303,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         self.tbl.customContextMenuRequested.connect(self._menu_contextual)
         self.tbl.cellDoubleClicked.connect(self._on_double_click)
         self.tbl.itemSelectionChanged.connect(self._on_seleccion)
-        self.tbl.setToolTip("Doble clic: editar  ·  Clic derecho: menú  ·  Selecciona para ver ACU")
+        self.tbl.setToolTip(tr("Doble clic: editar  ·  Clic derecho: menú  ·  Selecciona para ver ACU"))
 
         h = self.tbl.horizontalHeader()
         h.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -350,7 +351,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         ico.setStyleSheet("background:transparent; border:none;")
         hl.addWidget(ico)
 
-        self.lbl_panel_titulo = QLabel("Detalle ACU")
+        self.lbl_panel_titulo = QLabel(tr("Detalle ACU"))
         self.lbl_panel_titulo.setStyleSheet(
             f"color:{SLATE_700}; font-weight:600; font-size:12px;"
             f" background:transparent; border:none;"
@@ -367,7 +368,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         self._stack_detalle = QStackedWidget()
 
         # Página 0 — empty (sin selección)
-        empty = QLabel("Selecciona un CU en la tabla para ver su ACU.")
+        empty = QLabel(tr("Selecciona un CU en la tabla para ver su ACU."))
         empty.setAlignment(Qt.AlignCenter)
         empty.setStyleSheet(f"color:{SLATE_300}; padding:24px; font-style:italic;")
         self._stack_detalle.addWidget(empty)
@@ -375,7 +376,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         # Página 1 — con detalle
         self.tbl_acu = QTableWidget(0, 6)
         self.tbl_acu.setHorizontalHeaderLabels(
-            ["Tipo", "Código", "Descripción", "Unidad", "Cuadrilla", "Cantidad"]
+            [tr("Tipo"), tr("Código"), tr("Descripción"), tr("Unidad"), tr("Cuadrilla"), tr("Cantidad")]
         )
         self.tbl_acu.verticalHeader().setVisible(False)
         self.tbl_acu.setAlternatingRowColors(True)
@@ -391,10 +392,10 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         self._stack_detalle.addWidget(self.tbl_acu)
 
         # Página 2 — sin ACU disponible
-        no_acu = QLabel(
+        no_acu = QLabel(tr(
             "Este CU no tiene ACU detallado en la biblioteca.\n"
             "Solo guarda costo unitario, rendimiento y especificaciones."
-        )
+        ))
         no_acu.setAlignment(Qt.AlignCenter)
         no_acu.setWordWrap(True)
         no_acu.setStyleSheet(f"color:{SLATE_300}; padding:24px;")
@@ -523,12 +524,12 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         if n_filt == n_total:
             self.lbl_subt.setText(f"{n_total} CU")
         else:
-            self.lbl_subt.setText(f"{n_filt} de {n_total} CU")
+            self.lbl_subt.setText(tr("{n_filt} de {n_total} CU").format(n_filt=n_filt, n_total=n_total))
 
         # Resetear panel detalle
         self._cu_id_actual = None
         self._stack_detalle.setCurrentIndex(0)
-        self.lbl_panel_titulo.setText("Detalle ACU")
+        self.lbl_panel_titulo.setText(tr("Detalle ACU"))
         self.lbl_panel_meta.setText("")
 
     def _refrescar_combo_grupos(self):
@@ -545,7 +546,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
 
         self.cmb_grupo.blockSignals(True)
         self.cmb_grupo.clear()
-        self.cmb_grupo.addItem("Todos los grupos", "")
+        self.cmb_grupo.addItem(tr("Todos los grupos"), "")
         idx_actual = 0
         for i, r in enumerate(rows, 1):
             self.cmb_grupo.addItem(r['grupo'], r['grupo'])
@@ -568,7 +569,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
     def _cargar_detalle(self, cu_id: int | None):
         if cu_id is None:
             self._stack_detalle.setCurrentIndex(0)
-            self.lbl_panel_titulo.setText("Detalle ACU")
+            self.lbl_panel_titulo.setText(tr("Detalle ACU"))
             self.lbl_panel_meta.setText("")
             return
         conn = get_db()
@@ -596,7 +597,9 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         rend_txt = f"{rend:.4f}".rstrip('0').rstrip('.') or '1'
         self.lbl_panel_titulo.setText(cu['descripcion'])
         self.lbl_panel_meta.setText(
-            f"  ·  {cu['unidad'] or '?'}  ·  Rend.: {rend_txt}  ·  CU: {fmt(cu['costo_unitario'] or 0, self._moneda)}"
+            tr("  ·  {unidad}  ·  Rend.: {rend}  ·  CU: {cu}").format(
+                unidad=cu['unidad'] or '?', rend=rend_txt,
+                cu=fmt(cu['costo_unitario'] or 0, self._moneda))
         )
 
         if not items:
@@ -707,11 +710,11 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         if not ids:
             return
         n = len(ids)
-        msg = (f"¿Eliminar {n} CU de la biblioteca?" if n > 1
-               else "¿Eliminar este CU de la biblioteca?")
+        msg = (tr("¿Eliminar {n} CU de la biblioteca?").format(n=n) if n > 1
+               else tr("¿Eliminar este CU de la biblioteca?"))
         res = QMessageBox.question(
-            self, "Confirmar eliminación",
-            msg + "\nEsta acción no se puede deshacer.",
+            self, tr("Confirmar eliminación"),
+            msg + "\n" + tr("Esta acción no se puede deshacer."),
             QMessageBox.Yes | QMessageBox.No
         )
         if res != QMessageBox.Yes:
@@ -749,7 +752,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         fecha = _dt.now().strftime("%Y%m%d_%H%M")
         sugerido = f"biblioteca_cu_{fecha}.json"
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Biblioteca CU a JSON", sugerido, "JSON (*.json)"
+            self, tr("Exportar Biblioteca CU a JSON"), sugerido, "JSON (*.json)"
         )
         if not path:
             return
@@ -758,27 +761,27 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         try:
             n = exportar_biblioteca_json(path)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo exportar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo exportar:\n{e}").format(e=e))
             return
         QMessageBox.information(
-            self, "Exportado",
-            f"{n} costos unitarios exportados a:\n{path}\n\n"
-            f"El archivo incluye los ACU items con su recurso "
-            f"identificado por código (no por id local), por lo que se "
-            f"puede importar en otra instalación."
+            self, tr("Exportado"),
+            tr("{n} costos unitarios exportados a:\n{path}\n\n"
+               "El archivo incluye los ACU items con su recurso "
+               "identificado por código (no por id local), por lo que se "
+               "puede importar en otra instalación.").format(n=n, path=path)
         )
 
     def _importar_json(self):
         from core.catalogos_json import importar_biblioteca_json
         from PySide6.QtWidgets import QFileDialog, QMessageBox as _QMB
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar Biblioteca CU desde JSON", "", "JSON (*.json)"
+            self, tr("Importar Biblioteca CU desde JSON"), "", "JSON (*.json)"
         )
         if not path:
             return
 
         # Preguntar modo
-        msg = (
+        msg = tr(
             "¿Cómo manejar los CU que ya existen en tu biblioteca?\n\n"
             "Un CU se considera existente si coincide en\n"
             "(descripción · unidad · grupo).\n\n"
@@ -786,7 +789,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
             "• No (Solo nuevos): ignora los existentes, solo agrega los nuevos"
         )
         res = _QMB.question(
-            self, "Modo de importación", msg,
+            self, tr("Modo de importación"), msg,
             _QMB.Yes | _QMB.No | _QMB.Cancel
         )
         if res == _QMB.Cancel:
@@ -796,15 +799,15 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         try:
             r = importar_biblioteca_json(path, modo=modo)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo importar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo importar:\n{e}").format(e=e))
             return
         if not r['ok']:
-            QMessageBox.warning(self, "Importar", r.get('msg'))
+            QMessageBox.warning(self, tr("Importar"), r.get('msg'))
             return
         self.cargar()
         QMessageBox.information(
-            self, "Importación completa",
-            f"{r['msg']}\nTotal CU en archivo: {r['n_total']}"
+            self, tr("Importación completa"),
+            f"{r['msg']}\n" + tr("Total CU en archivo: {n}").format(n=r['n_total'])
         )
 
     def _importar_bc3(self):
@@ -848,14 +851,14 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
     def _importar_delphin_sqlite(self):
         from PySide6.QtWidgets import QFileDialog, QMessageBox as _QMB
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar Biblioteca CU desde Delphin Express",
-            "", "Bases de datos Delphin (*.sqlite *.db)"
+            self, tr("Importar Biblioteca CU desde Delphin Express"),
+            "", tr("Bases de datos Delphin (*.sqlite *.db)")
         )
         if not path:
             return
 
         # Preguntar modo (igual que JSON)
-        msg = (
+        msg = tr(
             "¿Cómo manejar los CU que ya existen en tu biblioteca?\n\n"
             "Un CU se considera existente si coincide en\n"
             "(descripción · unidad · grupo).\n\n"
@@ -866,7 +869,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
             "'Delphin Base de datos')."
         )
         res = _QMB.question(
-            self, "Modo de importación", msg,
+            self, tr("Modo de importación"), msg,
             _QMB.Yes | _QMB.No | _QMB.Cancel
         )
         if res == _QMB.Cancel:
@@ -878,21 +881,24 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
             r = import_biblioteca_delphin_sqlite(path, modo=modo)
         except Exception as e:
             QMessageBox.critical(
-                self, "Error",
-                f"No se pudo importar la biblioteca:\n\n{e}"
+                self, tr("Error"),
+                tr("No se pudo importar la biblioteca:\n\n{e}").format(e=e)
             )
             return
         if not r['ok']:
-            QMessageBox.warning(self, "Importar", r.get('msg'))
+            QMessageBox.warning(self, tr("Importar"), r.get('msg'))
             return
         self.cargar()
         QMessageBox.information(
-            self, "Importación completa",
-            f"Biblioteca importada desde Delphin.\n\n"
-            f"  ACU origen:        {r['n_acs_origen']}\n"
-            f"  Creados:           {r['n_creados']}\n"
-            f"  Actualizados:      {r['n_actualizados']}\n"
-            f"  Ignorados:         {r['n_ignorados']}\n\n"
-            f"  Items ACU insertados:  {r['n_items']}\n"
-            f"  Recursos nuevos:       {r['n_recursos_creados']}"
+            self, tr("Importación completa"),
+            tr("Biblioteca importada desde Delphin.\n\n"
+               "  ACU origen:        {n_acs_origen}\n"
+               "  Creados:           {n_creados}\n"
+               "  Actualizados:      {n_actualizados}\n"
+               "  Ignorados:         {n_ignorados}\n\n"
+               "  Items ACU insertados:  {n_items}\n"
+               "  Recursos nuevos:       {n_recursos_creados}").format(
+                n_acs_origen=r['n_acs_origen'], n_creados=r['n_creados'],
+                n_actualizados=r['n_actualizados'], n_ignorados=r['n_ignorados'],
+                n_items=r['n_items'], n_recursos_creados=r['n_recursos_creados'])
         )

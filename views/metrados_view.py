@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 from core.database import (get_db, get_decimales_ppto, get_decimales_metrado,
                            _rn, parcial_wysiwyg, partida_usa_acero)
 from utils.formatting import fmt, parse_num, parse_num_opt
+from utils.i18n import tr, N_
 from utils.icons import icon
 
 
@@ -55,15 +56,15 @@ BLUE_HEAD    = "#F0F4FA"   # fondo cabecera de partida-hoja
 BLUE_BORDER  = "#C8D2E0"
 
 
-COLS = ["Ítem", "Descripción", "Und.", "N°Est.", "N°Elem.",
-        "Área", "Largo", "Ancho", "Alto", "Parcial", "Total"]
+COLS = [N_("Ítem"), N_("Descripción"), N_("Und."), N_("N°Est."), N_("N°Elem."),
+        N_("Área"), N_("Largo"), N_("Ancho"), N_("Alto"), N_("Parcial"), N_("Total")]
 
 # Planilla de acero (solo lectura) — mismas columnas que la tabla de acero del
 # proyecto (COLS_ACERO en proyecto_view), con «Ítem» al frente por ser una hoja
 # multi-partida. Parc.(m) = N°Estr × N°Elem × N°Var × Longitud (calculado);
 # la BD guarda `parcial` = Parc.(kg).
-ACERO_COLS = ["Ítem", "Descripción", "Diámetro", "N°Estr.", "N°Elem.",
-              "N°Var.", "Longitud", "Parc.(m)", "kg/ml", "Parc.(kg)"]
+ACERO_COLS = [N_("Ítem"), N_("Descripción"), N_("Diámetro"), N_("N°Estr."), N_("N°Elem."),
+              N_("N°Var."), N_("Longitud"), N_("Parc.(m)"), "kg/ml", N_("Parc.(kg)")]
 
 
 class MetradosView(QWidget):
@@ -106,7 +107,7 @@ class MetradosView(QWidget):
         hl.setContentsMargins(8, 4, 10, 4)
         hl.setSpacing(6)
 
-        btn_back = QPushButton("← Presupuesto")
+        btn_back = QPushButton(tr("← Presupuesto"))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
             f"QPushButton {{ background:rgba(255,255,255,0.12); color:white;"
@@ -118,7 +119,7 @@ class MetradosView(QWidget):
         hl.addWidget(btn_back)
         hl.addSpacing(8)
 
-        lbl_title = QLabel("Hoja de Metrados")
+        lbl_title = QLabel(tr("Hoja de Metrados"))
         lbl_title.setStyleSheet(
             "color:white; font-size:12px; font-weight:700;"
             " background:transparent; border:none;")
@@ -131,12 +132,12 @@ class MetradosView(QWidget):
             from utils.theme import tab_topbar
             return tab_topbar(sel, padding='3px 14px')
         self._tab_style = _tab_style
-        self.btn_tab_met = QPushButton("Metrados")
+        self.btn_tab_met = QPushButton(tr("Metrados"))
         self.btn_tab_met.setCursor(Qt.PointingHandCursor)
         self.btn_tab_met.setStyleSheet(_tab_style(True))
         self.btn_tab_met.clicked.connect(lambda: self._select_tab(0))
         hl.addWidget(self.btn_tab_met)
-        self.btn_tab_acero = QPushButton("Acero")
+        self.btn_tab_acero = QPushButton(tr("Acero"))
         self.btn_tab_acero.setCursor(Qt.PointingHandCursor)
         self.btn_tab_acero.setStyleSheet(_tab_style(False))
         self.btn_tab_acero.clicked.connect(lambda: self._select_tab(1))
@@ -151,7 +152,7 @@ class MetradosView(QWidget):
             " font-size:11px; padding:3px 12px; min-height:0; }"
             "QPushButton:hover { background:rgba(255,255,255,0.30); }"
         )
-        self.btn_imprimir = QPushButton("Imprimir…")
+        self.btn_imprimir = QPushButton(tr("Imprimir…"))
         self.btn_imprimir.setIcon(icon("imprimir"))
         self.btn_imprimir.setIconSize(QSize(14, 14))
         self.btn_imprimir.setCursor(Qt.PointingHandCursor)
@@ -159,7 +160,7 @@ class MetradosView(QWidget):
         self.btn_imprimir.clicked.connect(self._imprimir)
         hl.addWidget(self.btn_imprimir)
 
-        self.btn_excel = QPushButton("Exportar Excel")
+        self.btn_excel = QPushButton(tr("Exportar Excel"))
         self.btn_excel.setIcon(icon("xlsx"))
         self.btn_excel.setIconSize(QSize(14, 14))
         self.btn_excel.setCursor(Qt.PointingHandCursor)
@@ -182,13 +183,13 @@ class MetradosView(QWidget):
 
         # Banda con pistas de uso (encima de la tabla)
         if self._editable:
-            tips = QLabel(
+            tips = QLabel(tr(
                 "💡  <b>Doble clic en una partida</b> agrega una fila de detalle  ·  "
                 "<b>Doble clic en una celda</b> la edita  ·  "
                 "Flechas / Tab / Enter para navegar  ·  "
                 "<b>Clic derecho</b> para más acciones  ·  "
                 "<b>Supr</b> borra contenido"
-            )
+            ))
             tips.setStyleSheet(
                 f"color:{SLATE_500}; font-size:11px; background:{SILVER_100};"
                 f" border:1px solid {SILVER_300}; border-bottom:none;"
@@ -196,11 +197,11 @@ class MetradosView(QWidget):
                 f" padding:6px 12px;"
             )
         else:
-            tips = QLabel(
+            tips = QLabel(tr(
                 "🔒  <b>Solo lectura</b> — el proyecto está aprobado o en ejecución. "
                 "Cambia el estado a «En elaboración» (chip de estado del proyecto) "
                 "para editar los metrados."
-            )
+            ))
             tips.setStyleSheet(
                 "color:#273445; font-size:11px; background:#FFF8E1;"
                 " border:1px solid #FFD27D; border-bottom:none;"
@@ -213,7 +214,7 @@ class MetradosView(QWidget):
         # Tabla — mismo estilo que Cronograma Valorizado / Gantt:
         # border silver, gridlines slate-200 sutiles, header slate-500 blanco.
         self.tbl = QTableWidget(0, len(COLS))
-        self.tbl.setHorizontalHeaderLabels(COLS)
+        self.tbl.setHorizontalHeaderLabels([tr(c) for c in COLS])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectItems)
         self.tbl.setEditTriggers(
@@ -354,17 +355,17 @@ class MetradosView(QWidget):
         vl.setContentsMargins(20, 14, 20, 14)
         vl.setSpacing(0)
         if self._editable:
-            info = QLabel(
+            info = QLabel(tr(
                 "🔩  <b>Acero de refuerzo</b>  ·  <b>Doble clic en una partida</b> "
                 "agrega una fila  ·  escribe el <b>Ø</b> (1/2\", 3/8\"…) y el kg/m se "
                 "completa solo  ·  <b>Supr</b> borra  ·  Parc.(m) y Parc.(kg) se "
                 "calculan. Se guarda y actualiza el metrado del presupuesto."
-            )
+            ))
         else:
-            info = QLabel(
+            info = QLabel(tr(
                 "🔩  <b>Acero de refuerzo</b> — solo lectura (proyecto aprobado/"
                 "en ejecución). Cambia el estado a «En elaboración» para editar."
-            )
+            ))
         info.setTextFormat(Qt.RichText)
         info.setStyleSheet(
             f"color:{SLATE_500}; font-size:11px; background:{SILVER_100};"
@@ -374,7 +375,7 @@ class MetradosView(QWidget):
         vl.addWidget(info)
 
         self.tbl_acero = QTableWidget(0, len(ACERO_COLS))
-        self.tbl_acero.setHorizontalHeaderLabels(ACERO_COLS)
+        self.tbl_acero.setHorizontalHeaderLabels([tr(c) for c in ACERO_COLS])
         self.tbl_acero.verticalHeader().setVisible(False)
         self.tbl_acero.setEditTriggers(
             (QAbstractItemView.DoubleClicked   |
@@ -571,7 +572,7 @@ class MetradosView(QWidget):
                 for f in filas:
                     self._ac_add_detail(p['id'], f)
         if t.rowCount():
-            add_row(['', 'TOTAL ACERO (kg)', '', '', '', '', '', '', '',
+            add_row(['', tr('TOTAL ACERO (kg)'), '', '', '', '', '', '', '',
                      self._nf(grand, dec)], kind='total', partida_id=-1,
                     bold=True, bg="#FFF3E8", fg=ORANGE_DARK,
                     align={9: Qt.AlignRight})
@@ -785,15 +786,15 @@ class MetradosView(QWidget):
         kind = self._ac_kind[row]
         pid = self._ac_partida[row]
         if kind == 'header':
-            menu.addAction("Agregar fila de acero",
+            menu.addAction(tr("Agregar fila de acero"),
                            lambda: self._ac_on_double_click(row, 0))
         elif kind == 'detail':
-            menu.addAction("Agregar fila de acero",
+            menu.addAction(tr("Agregar fila de acero"),
                            lambda: self._ac_on_double_click(self._ac_find_header(pid) or row, 0))
-            menu.addAction("Eliminar fila", lambda: self._ac_eliminar_fila(row, pid))
+            menu.addAction(tr("Eliminar fila"), lambda: self._ac_eliminar_fila(row, pid))
         if kind in ('header', 'detail'):
             menu.addSeparator()
-            menu.addAction("📐  Cambiar a planilla de metrados normal",
+            menu.addAction(tr("📐  Cambiar a planilla de metrados normal"),
                            lambda p=pid: self._cambiar_planilla(p, 'met'))
         if not menu.isEmpty():
             menu.exec(self.tbl_acero.viewport().mapToGlobal(pos))
@@ -815,7 +816,7 @@ class MetradosView(QWidget):
         if not self._editable or partida_id < 0:
             return
         otro_tbl = 'metrados_detalle' if modo == 'acero' else 'acero_detalle'
-        otro_nom = 'metrado normal' if modo == 'acero' else 'acero'
+        otro_nom = tr('metrado normal') if modo == 'acero' else tr('acero')
         conn = get_db()
         tiene_otro = conn.execute(
             f"SELECT 1 FROM {otro_tbl} WHERE partida_id=? LIMIT 1", (partida_id,)
@@ -823,9 +824,9 @@ class MetradosView(QWidget):
         conn.close()
         if tiene_otro:
             resp = QMessageBox.question(
-                self, "Cambiar planilla",
-                f"Esta partida tiene datos de {otro_nom}.\n"
-                "Al cambiar de planilla esos datos se borrarán.\n\n¿Continuar?",
+                self, tr("Cambiar planilla"),
+                tr("Esta partida tiene datos de {otro}.\n"
+                   "Al cambiar de planilla esos datos se borrarán.\n\n¿Continuar?").format(otro=otro_nom),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if resp != QMessageBox.Yes:
                 return
@@ -1176,16 +1177,18 @@ class MetradosView(QWidget):
         partida_id = self._row_partida[row]
 
         menu = QMenu(self)
-        act_add = menu.addAction("➕  Agregar fila bajo esta partida")
+        act_add = menu.addAction(tr("➕  Agregar fila bajo esta partida"))
         act_del = None
         sel_rows = sorted({i.row() for i in self.tbl.selectedIndexes()
                            if i.row() < len(self._row_kind)
                            and self._row_kind[i.row()] == 'dim'})
         if sel_rows:
             n = len(sel_rows)
-            act_del = menu.addAction(f"🗑  Eliminar {n} fila{'s' if n>1 else ''}  (Supr)")
+            act_del = menu.addAction(
+                tr("🗑  Eliminar {n} filas  (Supr)").format(n=n) if n > 1
+                else tr("🗑  Eliminar 1 fila  (Supr)"))
         menu.addSeparator()
-        act_acero = menu.addAction("🔩  Cambiar a planilla de acero")
+        act_acero = menu.addAction(tr("🔩  Cambiar a planilla de acero"))
 
         chosen = menu.exec(self.tbl.viewport().mapToGlobal(pos))
         if chosen is act_add:
@@ -1398,7 +1401,7 @@ class MetradosView(QWidget):
         sugerido = f"{slug}_metrados_{fecha}.xlsx"
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Hoja de Metrados", sugerido, "Excel (*.xlsx)"
+            self, tr("Exportar Hoja de Metrados"), sugerido, "Excel (*.xlsx)"
         )
         if not path:
             return
@@ -1411,11 +1414,11 @@ class MetradosView(QWidget):
                 f.write(buf.getvalue())
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Error",
-                                 f"No se pudo exportar:\n{e}")
+            QMessageBox.critical(self, tr("Error"),
+                                 tr("No se pudo exportar:\n{e}").format(e=e))
             return
-        QMessageBox.information(self, "Exportado",
-                                f"Archivo guardado:\n{path}")
+        QMessageBox.information(self, tr("Exportado"),
+                                tr("Archivo guardado:\n{path}").format(path=path))
 
     def _imprimir(self):
         """Muestra una vista previa de impresión del PDF de metrados."""
@@ -1427,7 +1430,7 @@ class MetradosView(QWidget):
             generar_pdf_archivo("metrados", self.pid, tmp_pdf.name)
 
             from views.imprimir_seleccion_dialog import VistaPreviaDialog
-            VistaPreviaDialog(self, tmp_pdf.name, "Hoja de Metrados",
+            VistaPreviaDialog(self, tmp_pdf.name, tr("Hoja de Metrados"),
                               nombre_archivo="hoja-de-metrados.pdf").exec()
             try:
                 os.unlink(tmp_pdf.name)
@@ -1435,6 +1438,6 @@ class MetradosView(QWidget):
                 pass
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Error",
-                                 f"No se pudo preparar la impresión:\n{e}")
+            QMessageBox.critical(self, tr("Error"),
+                                 tr("No se pudo preparar la impresión:\n{e}").format(e=e))
 

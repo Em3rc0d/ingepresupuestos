@@ -45,6 +45,7 @@ from core.formula_polinomica import (
 from core.indices_inei import listar_areas
 from utils.formatting import fmt, parse_num
 from views._catalogo_base import EditorPlenoDelegate
+from utils.i18n import tr, N_
 from utils.icons import icon
 
 
@@ -73,6 +74,12 @@ RED_DARK     = C.error_dark
 BLUE_700     = C.info
 PAGE_BG      = "#EEF2F7"   # se ve en los tiradores de los splitters
 
+# Nombres de los meses para los selectores de período (solo pantalla: el
+# dato del combo es el número de mes).
+_MESES = [N_("Enero"), N_("Febrero"), N_("Marzo"), N_("Abril"), N_("Mayo"),
+          N_("Junio"), N_("Julio"), N_("Agosto"), N_("Septiembre"),
+          N_("Octubre"), N_("Noviembre"), N_("Diciembre")]
+
 
 class DecretoDialog(QDialog):
     """El D.S. 011-79-VC, que es la norma que rige toda esta pantalla.
@@ -100,7 +107,7 @@ class DecretoDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(
-            "D.S. 011-79-VC — Reglamento de fórmulas polinómicas")
+            tr("D.S. 011-79-VC — Reglamento de fórmulas polinómicas"))
         self.resize(940, 760)
         v = QVBoxLayout(self)
         v.setContentsMargins(12, 12, 12, 10)
@@ -116,7 +123,7 @@ class DecretoDialog(QDialog):
         vista.setDocument(self._doc)
         v.addWidget(vista, 1)
 
-        aviso = QLabel(
+        aviso = QLabel(tr(
             "<b>Texto concordado</b> con sus modificatorias: D.S. 022-80-VC, "
             "006-86-VC, 004-88-VC, 011-89-VC y 012-91-VC — las anotaciones "
             "«Modificado por…» y «Derogado por…» están en el propio texto.<br>"
@@ -130,7 +137,7 @@ class DecretoDialog(QDialog):
             "el régimen de fórmulas polinómicas sigue apoyado en este decreto. "
             "Conviene contrastar con la versión oficial antes de un "
             "procedimiento."
-        )
+        ))
         aviso.setWordWrap(True)
         aviso.setOpenExternalLinks(True)
         aviso.setTextFormat(Qt.RichText)
@@ -142,21 +149,21 @@ class DecretoDialog(QDialog):
         v.addWidget(aviso)
 
         pie = QHBoxLayout()
-        btn_spij = QPushButton("Ver versión oficial (SPIJ)")
+        btn_spij = QPushButton(tr("Ver versión oficial (SPIJ)"))
         btn_spij.setCursor(Qt.PointingHandCursor)
         btn_spij.setToolTip(
-            "Sistema Peruano de Información Jurídica del Ministerio de "
-            "Justicia — para comprobar si hay modificatorias posteriores")
+            tr("Sistema Peruano de Información Jurídica del Ministerio de "
+               "Justicia — para comprobar si hay modificatorias posteriores"))
         btn_spij.clicked.connect(self._abrir_spij)
         pie.addWidget(btn_spij)
         pie.addStretch(1)
-        btn_ext = QPushButton("Abrir fuera")
+        btn_ext = QPushButton(tr("Abrir fuera"))
         btn_ext.setCursor(Qt.PointingHandCursor)
-        btn_ext.setToolTip("Abrirlo con el visor de PDF del sistema")
+        btn_ext.setToolTip(tr("Abrirlo con el visor de PDF del sistema"))
         btn_ext.clicked.connect(self._abrir_fuera)
         pie.addWidget(btn_ext)
         bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.button(QDialogButtonBox.Close).setText("Cerrar")
+        bb.button(QDialogButtonBox.Close).setText(tr("Cerrar"))
         bb.rejected.connect(self.accept)
         bb.accepted.connect(self.accept)
         pie.addWidget(bb)
@@ -190,7 +197,7 @@ class IndicesDelProyectoDialog(QDialog):
     def __init__(self, proyecto_id, monomios, moneda='Soles',
                  formula_id=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Índices unificados del proyecto")
+        self.setWindowTitle(tr("Índices unificados del proyecto"))
         self.resize(1040, 620)
         v = QVBoxLayout(self)
         v.setContentsMargins(16, 14, 16, 12)
@@ -212,13 +219,18 @@ class IndicesDelProyectoDialog(QDialog):
 
         sin = inc.get('monto_sin_indice') or 0
         cab = QLabel(
-            f"<b>{len(ius)}</b> índices · costo directo "
-            f"<b>{fmt(inc.get('cd') or 0, moneda)}</b> · gastos generales y "
-            f"utilidad <b>{fmt(inc.get('gg_utilidad') or 0, moneda)}</b> · "
-            f"base <b>{fmt(base, moneda)}</b>"
-            + (f"<br><span style='color:{ORANGE_DARK}'>{fmt(sin, moneda)} "
-               f"({sin / base * 100:.1f}%) en insumos sin índice propio, "
-               f"contados en el de su tipo</span>" if sin and base else "")
+            tr("<b>{n}</b> índices · costo directo "
+               "<b>{cd}</b> · gastos generales y "
+               "utilidad <b>{gu}</b> · "
+               "base <b>{base}</b>").format(
+                n=len(ius), cd=fmt(inc.get('cd') or 0, moneda),
+                gu=fmt(inc.get('gg_utilidad') or 0, moneda),
+                base=fmt(base, moneda))
+            + (f"<br><span style='color:{ORANGE_DARK}'>"
+               + tr("{monto} ({pct:.1f}%) en insumos sin índice propio, "
+                    "contados en el de su tipo").format(
+                   monto=fmt(sin, moneda), pct=sin / base * 100)
+               + "</span>" if sin and base else "")
         )
         cab.setTextFormat(Qt.RichText)
         cab.setStyleSheet(f"color:{SLATE_700}; font-size:13px;")
@@ -226,8 +238,8 @@ class IndicesDelProyectoDialog(QDialog):
 
         self.tbl = QTableWidget(0, 7)
         self.tbl.setHorizontalHeaderLabels(
-            ["Índice", "Descripción", "Tipo", "Insumos", "Monto",
-             "Incidencia", "Monomio"])
+            [tr("Índice"), tr("Descripción"), tr("Tipo"), tr("Insumos"), tr("Monto"),
+             tr("Incidencia"), tr("Monomio")])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setAlternatingRowColors(True)
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -285,20 +297,20 @@ class IndicesDelProyectoDialog(QDialog):
             it_s.setFont(f_b)
             if simbolo == '—':
                 it_s.setForeground(QColor(ORANGE_DARK))
-                it_s.setToolTip("Todavía no está en ningún monomio: "
-                                "auto-calcula la fórmula.")
+                it_s.setToolTip(tr("Todavía no está en ningún monomio: "
+                                   "auto-calcula la fórmula."))
             self.tbl.setItem(r, 6, it_s)
             if not i.get('asignado', True):
                 for c in range(7):
                     self.tbl.item(r, c).setForeground(QColor(ORANGE_DARK))
-                self.tbl.item(r, 1).setToolTip(
+                self.tbl.item(r, 1).setToolTip(tr(
                     "Parte de este monto viene de insumos sin índice propio, "
-                    "contados en el índice de su tipo.")
+                    "contados en el índice de su tipo."))
         self.tbl.itemDoubleClicked.connect(self._abrir_desglose)
         self._pid, self._moneda, self._fid = proyecto_id, moneda, formula_id
         v.addWidget(self.tbl, 1)
 
-        pie = QLabel(
+        pie = QLabel(tr(
             "Ordenado por monto. En ámbar, lo que se apoya en insumos sin "
             "índice propio. Doble clic en un índice para ver de qué insumos y "
             "partidas sale su monto.<br>"
@@ -308,14 +320,14 @@ class IndicesDelProyectoDialog(QDialog):
             "reajusta al contratista. Los gastos generales entran como un solo "
             "monomio (GU), sin desglosarse en insumos, tal como manda el art. 2 "
             "del D.S. 011-79-VC."
-        )
+        ))
         pie.setTextFormat(Qt.RichText)
         pie.setWordWrap(True)
         pie.setStyleSheet(f"color:{SLATE_300}; font-size:11px;")
         v.addWidget(pie)
 
         bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.button(QDialogButtonBox.Close).setText("Cerrar")
+        bb.button(QDialogButtonBox.Close).setText(tr("Cerrar"))
         bb.rejected.connect(self.accept)
         bb.accepted.connect(self.accept)
         v.addWidget(bb)
@@ -340,7 +352,7 @@ class DesgloseIUDialog(QDialog):
     def __init__(self, proyecto_id: int, codigo: str, nombre: str,
                  moneda: str = 'Soles', formula_id=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Índice {codigo} — {nombre}")
+        self.setWindowTitle(tr("Índice {codigo} — {nombre}").format(codigo=codigo, nombre=nombre))
         self.resize(1040, 600)
         v = QVBoxLayout(self)
         v.setContentsMargins(16, 14, 16, 12)
@@ -350,7 +362,8 @@ class DesgloseIUDialog(QDialog):
 
         cab = QLabel(
             f"<b>{codigo} · {nombre}</b><br>"
-            f"{len(des['insumos'])} insumo(s) · <b>{fmt(des['monto'], moneda)}</b>"
+            + tr("{n} insumo(s) · <b>{monto}</b>").format(
+                n=len(des['insumos']), monto=fmt(des['monto'], moneda))
         )
         cab.setTextFormat(Qt.RichText)
         cab.setStyleSheet(f"color:{SLATE_700}; font-size:13px;")
@@ -358,7 +371,7 @@ class DesgloseIUDialog(QDialog):
 
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(
-            ["Insumo / Partida", "Unidad", "Cantidad", "Monto", "% del índice"])
+            [tr("Insumo / Partida"), tr("Unidad"), tr("Cantidad"), tr("Monto"), tr("% del índice")])
         self.tree.setAlternatingRowColors(True)
         self.tree.setStyleSheet(
             "QTreeWidget { background:white; border:1px solid #D4D4D4;"
@@ -387,8 +400,8 @@ class DesgloseIUDialog(QDialog):
                 it.setTextAlignment(c, Qt.AlignRight | Qt.AlignVCenter)
             if not ins['asignado']:
                 it.setForeground(0, QColor(ORANGE_DARK))
-                it.setToolTip(0, "Este insumo no tiene índice unificado propio: "
-                                 "se contabiliza en el de su tipo.")
+                it.setToolTip(0, tr("Este insumo no tiene índice unificado propio: "
+                                    "se contabiliza en el de su tipo."))
             for p in ins['partidas']:
                 hijo = QTreeWidgetItem([
                     f"{p['item']}  {p['descripcion']}", p['unidad'] or '',
@@ -405,16 +418,16 @@ class DesgloseIUDialog(QDialog):
         v.addWidget(self.tree, 1)
 
         pie = QLabel(
-            des['msg'] or "Despliega un insumo para ver en qué partidas se usa "
-                          "y cuánto aporta cada una. Los montos son los mismos "
-                          "con que la fórmula calcula la incidencia."
+            des['msg'] or tr("Despliega un insumo para ver en qué partidas se usa "
+                             "y cuánto aporta cada una. Los montos son los mismos "
+                             "con que la fórmula calcula la incidencia.")
         )
         pie.setWordWrap(True)
         pie.setStyleSheet(f"color:{SLATE_300}; font-size:11px;")
         v.addWidget(pie)
 
         bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.button(QDialogButtonBox.Close).setText("Cerrar")
+        bb.button(QDialogButtonBox.Close).setText(tr("Cerrar"))
         bb.rejected.connect(self.accept)
         bb.accepted.connect(self.accept)
         v.addWidget(bb)
@@ -433,7 +446,7 @@ class FormulasDialog(QDialog):
         super().__init__(parent)
         self.pid = proyecto_id
         self.formula_activa = None
-        self.setWindowTitle("Fórmulas polinómicas de la obra")
+        self.setWindowTitle(tr("Fórmulas polinómicas de la obra"))
         self.resize(620, 420)
         self._build()
         self._recargar()
@@ -444,11 +457,11 @@ class FormulasDialog(QDialog):
         v.setSpacing(10)
 
         ayuda = QLabel(
-            f"El D.S. 011-79-VC permite hasta <b>{MAX_FORMULAS} fórmulas</b> "
-            f"por obra (8 si el contrato tiene obras de diversa naturaleza), "
-            f"subdividiendo el presupuesto en tantas partes como fórmulas. "
-            f"Marca los subpresupuestos que cubre cada una; sin marcar ninguno, "
-            f"la fórmula cubre toda la obra."
+            tr("El D.S. 011-79-VC permite hasta <b>{n} fórmulas</b> "
+               "por obra (8 si el contrato tiene obras de diversa naturaleza), "
+               "subdividiendo el presupuesto en tantas partes como fórmulas. "
+               "Marca los subpresupuestos que cubre cada una; sin marcar ninguno, "
+               "la fórmula cubre toda la obra.").format(n=MAX_FORMULAS)
         )
         ayuda.setWordWrap(True)
         ayuda.setStyleSheet(f"color:{SLATE_500}; font-size:12px;")
@@ -459,16 +472,16 @@ class FormulasDialog(QDialog):
         v.addWidget(self.lst, 1)
 
         acc = QHBoxLayout()
-        b_add = QPushButton("Agregar"); b_add.setIcon(icon("add"))
+        b_add = QPushButton(tr("Agregar")); b_add.setIcon(icon("add"))
         b_add.clicked.connect(self._agregar); acc.addWidget(b_add)
-        b_ren = QPushButton("Renombrar"); b_ren.setIcon(icon("editar"))
+        b_ren = QPushButton(tr("Renombrar")); b_ren.setIcon(icon("editar"))
         b_ren.clicked.connect(self._renombrar); acc.addWidget(b_ren)
-        b_del = QPushButton("Eliminar"); b_del.setIcon(icon("eliminar"))
+        b_del = QPushButton(tr("Eliminar")); b_del.setIcon(icon("eliminar"))
         b_del.clicked.connect(self._eliminar); acc.addWidget(b_del)
         acc.addStretch(1)
         v.addLayout(acc)
 
-        lbl = QLabel("Subpresupuestos que cubre:")
+        lbl = QLabel(tr("Subpresupuestos que cubre:"))
         lbl.setStyleSheet(f"color:{SLATE_700}; font-weight:700; font-size:12px;")
         v.addWidget(lbl)
         self.lst_subs = QListWidget()
@@ -476,7 +489,7 @@ class FormulasDialog(QDialog):
         v.addWidget(self.lst_subs, 1)
 
         bb = QDialogButtonBox(QDialogButtonBox.Close)
-        bb.button(QDialogButtonBox.Close).setText("Cerrar")
+        bb.button(QDialogButtonBox.Close).setText(tr("Cerrar"))
         bb.rejected.connect(self.accept)
         bb.accepted.connect(self.accept)
         v.addWidget(bb)
@@ -490,7 +503,7 @@ class FormulasDialog(QDialog):
             subs = f['subpresupuestos']
             txt = f"{f['numero']:02d} · {f['nombre']}"
             txt += (f"   —  {', '.join(s['nombre'] for s in subs)}" if subs
-                    else "   —  toda la obra")
+                    else "   —  " + tr("toda la obra"))
             self.lst.addItem(txt)
         self.lst.blockSignals(False)
         self.lst.setCurrentRow(min(max(fila, 0), len(self._formulas) - 1))
@@ -521,7 +534,7 @@ class FormulasDialog(QDialog):
             self.lst_subs.addItem(it)
         self.lst_subs.blockSignals(False)
         if not subs:
-            self.lst_subs.addItem("(el proyecto no tiene subpresupuestos)")
+            self.lst_subs.addItem(tr("(el proyecto no tiene subpresupuestos)"))
 
     def _on_subs(self):
         f = self._actual()
@@ -535,14 +548,14 @@ class FormulasDialog(QDialog):
         self._recargar()
 
     def _agregar(self):
-        nombre, ok = QInputDialog.getText(self, "Nueva fórmula",
-                                          "Nombre de la fórmula:")
+        nombre, ok = QInputDialog.getText(self, tr("Nueva fórmula"),
+                                          tr("Nombre de la fórmula:"))
         if not ok:
             return
         try:
             self.formula_activa = crear_formula(self.pid, nombre)
         except ValueError as e:
-            QMessageBox.warning(self, "No se pudo agregar", str(e))
+            QMessageBox.warning(self, tr("No se pudo agregar"), str(e))
             return
         self._recargar()
 
@@ -550,8 +563,8 @@ class FormulasDialog(QDialog):
         f = self._actual()
         if not f:
             return
-        nombre, ok = QInputDialog.getText(self, "Renombrar fórmula",
-                                          "Nombre:", text=f['nombre'])
+        nombre, ok = QInputDialog.getText(self, tr("Renombrar fórmula"),
+                                          tr("Nombre:"), text=f['nombre'])
         if ok and nombre.strip():
             renombrar_formula(f['id'], nombre)
             self._recargar()
@@ -561,15 +574,15 @@ class FormulasDialog(QDialog):
         if not f:
             return
         r = QMessageBox.question(
-            self, "Eliminar fórmula",
-            f"¿Eliminar «{f['nombre']}» con sus monomios?",
+            self, tr("Eliminar fórmula"),
+            tr("¿Eliminar «{nombre}» con sus monomios?").format(nombre=f['nombre']),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if r != QMessageBox.Yes:
             return
         try:
             eliminar_formula(f['id'])
         except ValueError as e:
-            QMessageBox.warning(self, "No se pudo eliminar", str(e))
+            QMessageBox.warning(self, tr("No se pudo eliminar"), str(e))
             return
         self.formula_activa = None
         self._recargar()
@@ -644,7 +657,7 @@ class FormulaView(QWidget):
         hl.setContentsMargins(8, 4, 10, 4)
         hl.setSpacing(6)
 
-        btn_back = QPushButton("← Presupuesto")
+        btn_back = QPushButton(tr("← Presupuesto"))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
             f"QPushButton {{ background:rgba(255,255,255,0.12); color:white;"
@@ -656,7 +669,7 @@ class FormulaView(QWidget):
         hl.addWidget(btn_back)
         hl.addSpacing(8)
 
-        lbl_title = QLabel("Fórmula Polinómica")
+        lbl_title = QLabel(tr("Fórmula Polinómica"))
         lbl_title.setStyleSheet(
             "color:white; font-size:12px; font-weight:700;"
             " background:transparent; border:none;")
@@ -679,7 +692,7 @@ class FormulaView(QWidget):
         if not ruta.exists():
             QMessageBox.warning(
                 self, "D.S. 011-79-VC",
-                f"No encuentro el decreto en:\n{ruta}")
+                tr("No encuentro el decreto en:\n{ruta}").format(ruta=ruta))
             return
         try:
             DecretoDialog(self).exec()
@@ -692,7 +705,7 @@ class FormulaView(QWidget):
     def _volver(self):
         """Vuelve al presupuesto, sin llevarse por delante lo no guardado."""
         if not self._confirmar_descartar(
-                "Si sales ahora sin guardar, se pierden."):
+                tr("Si sales ahora sin guardar, se pierden.")):
             return
         if self._on_back:
             self._on_back()
@@ -713,51 +726,51 @@ class FormulaView(QWidget):
         self.cmb_formula = QComboBox()
         self.cmb_formula.setMinimumWidth(180)
         self.cmb_formula.setToolTip(
-            "Fórmula polinómica del proyecto. Cada una cubre los "
-            "subpresupuestos que se le asignen."
+            tr("Fórmula polinómica del proyecto. Cada una cubre los "
+               "subpresupuestos que se le asignen.")
         )
         self.cmb_formula.currentIndexChanged.connect(self._on_formula_change)
         fl.addWidget(self.cmb_formula)
 
-        self.btn_indices = self._btn_barra("Índices del proyecto…",
+        self.btn_indices = self._btn_barra(tr("Índices del proyecto…"),
                                            "rep-resumen")
         self.btn_indices.setToolTip(
-            "Todos los índices unificados de la obra, con su incidencia y en "
-            "qué monomio quedaron")
+            tr("Todos los índices unificados de la obra, con su incidencia y en "
+               "qué monomio quedaron"))
         self.btn_indices.clicked.connect(self._ver_indices_proyecto)
         fl.addWidget(self.btn_indices)
 
-        self.btn_formulas = self._btn_barra("Fórmulas…")
-        self.btn_formulas.setToolTip("Agregar, renombrar o eliminar fórmulas")
+        self.btn_formulas = self._btn_barra(tr("Fórmulas…"))
+        self.btn_formulas.setToolTip(tr("Agregar, renombrar o eliminar fórmulas"))
         self.btn_formulas.clicked.connect(self._gestionar_formulas)
         fl.addWidget(self.btn_formulas)
 
-        self.btn_calcular = self._btn_barra("Auto-calcular desde ACU",
+        self.btn_calcular = self._btn_barra(tr("Auto-calcular desde ACU"),
                                             "rep-acus", primary=True)
         self.btn_calcular.clicked.connect(self._calcular_desde_acu)
         fl.addWidget(self.btn_calcular)
 
-        btn_add = self._btn_barra("Agregar monomio", "add")
+        btn_add = self._btn_barra(tr("Agregar monomio"), "add")
         btn_add.clicked.connect(self._agregar_monomio)
         fl.addWidget(btn_add)
 
-        self.btn_guardar = self._btn_barra("Guardar", "guardar")
+        self.btn_guardar = self._btn_barra(tr("Guardar"), "guardar")
         self.btn_guardar.clicked.connect(self._guardar)
         fl.addWidget(self.btn_guardar)
 
-        self.btn_export = self._btn_barra("Exportar Excel", "exportar")
+        self.btn_export = self._btn_barra(tr("Exportar Excel"), "exportar")
         self.btn_export.clicked.connect(self._exportar_excel)
         fl.addWidget(self.btn_export)
 
-        self.btn_export_pdf = self._btn_barra("Exportar PDF", "exportar")
+        self.btn_export_pdf = self._btn_barra(tr("Exportar PDF"), "exportar")
         self.btn_export_pdf.clicked.connect(self._exportar_pdf)
         fl.addWidget(self.btn_export_pdf)
 
         # Aviso de las fórmulas sin composición (a mano o previas a la 3.0.4).
-        self.lbl_sin_composicion = QLabel(
+        self.lbl_sin_composicion = QLabel(tr(
             "Sin composición: auto-calcula para ver de qué índices sale cada "
             "monomio."
-        )
+        ))
         self.lbl_sin_composicion.setStyleSheet(
             f"color:{SLATE_300}; font-size:11px; padding-left:10px;"
             f" background:transparent; border:none;"
@@ -870,11 +883,11 @@ class FormulaView(QWidget):
         hl.setContentsMargins(12, 5, 12, 5)
         hl.setSpacing(10)
 
-        self.lbl_pie_ayuda = QLabel(
+        self.lbl_pie_ayuda = QLabel(tr(
             "💡 La fórmula reajusta el monto de obra según los índices "
             "unificados del INEI: <b>K = Σ k·(Ir/Io)</b>. Los coeficientes "
             "deben sumar 1.000 y ninguno bajar del 5%."
-        )
+        ))
         self.lbl_pie_ayuda.setTextFormat(Qt.RichText)
         self.lbl_pie_ayuda.setStyleSheet(
             f"color:{SLATE_500}; font-size:11px;"
@@ -950,12 +963,12 @@ class FormulaView(QWidget):
 
     def _build_panel_monomios(self) -> QFrame:
         """La tabla de monomios, a sangre. Los botones viven en la barra."""
-        fr, v, hl, _ = self._panel("Monomios")
+        fr, v, hl, _ = self._panel(tr("Monomios"))
 
         self.tbl = QTableWidget(0, 7)
         self.tbl.setHorizontalHeaderLabels(
-            ["#", "Símbolo", "Descripción", "Índice INEI", "Coef. k",
-             "% Partic.", ""]
+            ["#", tr("Símbolo"), tr("Descripción"), tr("Índice INEI"), tr("Coef. k"),
+             tr("% Partic."), ""]
         )
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setAlternatingRowColors(True)
@@ -1012,7 +1025,7 @@ class FormulaView(QWidget):
         columna «Monomio» permite mover un índice a otro, que es la otra mitad
         del pedido.
         """
-        fr, v, hl, lbl = self._panel("Composición del monomio")
+        fr, v, hl, lbl = self._panel(tr("Composición del monomio"))
         self.lbl_comp_titulo = lbl
 
         self.lbl_comp_badge = QLabel("")
@@ -1026,7 +1039,7 @@ class FormulaView(QWidget):
 
         self.tbl_comp = QTableWidget(0, 5)
         self.tbl_comp.setHorizontalHeaderLabels(
-            ["Índice", "Descripción", "Monto", "Incidencia", "Monomio"])
+            [tr("Índice"), tr("Descripción"), tr("Monto"), tr("Incidencia"), tr("Monomio")])
         self.tbl_comp.verticalHeader().setVisible(False)
         self.tbl_comp.setAlternatingRowColors(True)
         self.tbl_comp.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -1069,7 +1082,7 @@ class FormulaView(QWidget):
             etiqueta = f"{f['numero']:02d} · {f['nombre']}"
             subs = f['subpresupuestos']
             if subs:
-                etiqueta += f"  ({len(subs)} subp.)"
+                etiqueta += "  " + tr("({n} subp.)").format(n=len(subs))
             self.cmb_formula.addItem(etiqueta, f['id'])
         if self._formula_id is None:
             self._formula_id = formulas[0]['id']
@@ -1084,7 +1097,7 @@ class FormulaView(QWidget):
     def _on_formula_change(self):
         nueva = self.cmb_formula.currentData()
         if not self._confirmar_descartar(
-                "Al cambiar de fórmula se recargan los monomios guardados."):
+                tr("Al cambiar de fórmula se recargan los monomios guardados.")):
             # Volver a la anterior sin disparar el cambio otra vez.
             self.cmb_formula.blockSignals(True)
             ix = self.cmb_formula.findData(self._formula_id)
@@ -1105,9 +1118,10 @@ class FormulaView(QWidget):
         if not self._sucio or not self._monomios:
             return True
         r = QMessageBox.question(
-            self, "Cambios sin guardar",
-            f"La fórmula tiene cambios sin guardar ({len(self._monomios)} "
-            f"monomios).\n\n{motivo}\n\n¿Guardarlos antes de continuar?",
+            self, tr("Cambios sin guardar"),
+            tr("La fórmula tiene cambios sin guardar ({n} "
+               "monomios).\n\n{motivo}\n\n¿Guardarlos antes de continuar?").format(
+                n=len(self._monomios), motivo=motivo),
             QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
             QMessageBox.Save
         )
@@ -1129,7 +1143,7 @@ class FormulaView(QWidget):
     def _gestionar_formulas(self):
         """Alta, renombrado, baja y subpresupuestos de cada fórmula."""
         if not self._confirmar_descartar(
-                "Al salir de aquí se recargan los monomios guardados."):
+                tr("Al salir de aquí se recargan los monomios guardados.")):
             return
         dlg = FormulasDialog(self.pid, self)
         dlg.exec()
@@ -1154,31 +1168,33 @@ class FormulaView(QWidget):
         self.tbl_comp.setRowCount(0)
         fila = self._monomio_activo
         if fila < 0 or fila >= len(self._monomios):
-            self.lbl_comp_titulo.setText("Composición del monomio")
+            self.lbl_comp_titulo.setText(tr("Composición del monomio"))
             self.lbl_comp_badge.setText("")
-            self.lbl_comp_pie.setText(
+            self.lbl_comp_pie.setText(tr(
                 "Selecciona un monomio para ver los índices unificados que lo "
                 "forman."
-            )
+            ))
             return
 
         m = self._monomios[fila]
         comps = m.get('componentes') or []
         simbolo = m.get('simbolo') or '?'
         self.lbl_comp_titulo.setText(
-            f"Composición de {simbolo} — {m.get('descripcion') or ''}"
+            tr("Composición de {simbolo} — {descripcion}").format(
+                simbolo=simbolo, descripcion=m.get('descripcion') or '')
         )
         self.lbl_comp_badge.setText(
-            f"{len(comps)} índice" + ("s" if len(comps) != 1 else "")
+            tr("{n} índices").format(n=len(comps)) if len(comps) != 1
+            else tr("1 índice")
         )
         self.lbl_comp_badge.setVisible(True)
 
         if not comps:
-            self.lbl_comp_pie.setText(
+            self.lbl_comp_pie.setText(tr(
                 "Este monomio no tiene composición guardada: se escribió a mano "
                 "o viene de una versión anterior. Usa «Auto-calcular desde ACU» "
                 "para derivarla del presupuesto."
-            )
+            ))
             return
 
         moneda = self._proyecto_meta.get('moneda', 'Soles')
@@ -1213,19 +1229,19 @@ class FormulaView(QWidget):
             for j, mm in enumerate(self._monomios):
                 cmb.addItem(f"{mm.get('simbolo') or '?'}", j)
             cmb.setCurrentIndex(fila)
-            cmb.setToolTip("Mover este índice a otro monomio")
+            cmb.setToolTip(tr("Mover este índice a otro monomio"))
             cmb.currentIndexChanged.connect(
                 lambda idx, cod=c.get('codigo'), orig=fila:
                 self._mover_componente(cod, orig, idx)
             )
             self.tbl_comp.setCellWidget(r, 4, cmb)
 
-        self.lbl_comp_pie.setText(
-            f"El índice del monomio es el de mayor peso; al calcular K se "
-            f"promedian los tres de más peso. Cambia la columna «Monomio» para "
-            f"mover un índice, o haz doble clic en uno para ver de qué insumos "
-            f"y partidas sale su monto."
-        )
+        self.lbl_comp_pie.setText(tr(
+            "El índice del monomio es el de mayor peso; al calcular K se "
+            "promedian los tres de más peso. Cambia la columna «Monomio» para "
+            "mover un índice, o haz doble clic en uno para ver de qué insumos "
+            "y partidas sale su monto."
+        ))
 
     def _abrir_desglose(self, item):
         """Doble clic en un índice: de qué insumos y partidas sale su monto."""
@@ -1259,10 +1275,10 @@ class FormulaView(QWidget):
             return
         if len(comps) == 1:
             QMessageBox.information(
-                self, "Composición",
-                f"«{mov.get('nombre')}» es el único índice de este monomio.\n"
-                "Mover el último dejaría el monomio vacío: elimínalo con la "
-                "papelera si ya no lo quieres."
+                self, tr("Composición"),
+                tr("«{nombre}» es el único índice de este monomio.\n"
+                   "Mover el último dejaría el monomio vacío: elimínalo con la "
+                   "papelera si ya no lo quieres.").format(nombre=mov.get('nombre'))
             )
             self._render_composicion()
             return
@@ -1289,7 +1305,7 @@ class FormulaView(QWidget):
 
     # ── panel "Cálculo de Reajuste K" ───────────────────────────────────────
     def _build_panel_reajuste(self) -> QFrame:
-        fr, v, hl, _ = self._panel("Cálculo de Reajuste K (con valores INEI)")
+        fr, v, hl, _ = self._panel(tr("Cálculo de Reajuste K (con valores INEI)"))
 
         self.lbl_k_badge = QLabel("K = —")
         self.lbl_k_badge.setStyleSheet(
@@ -1308,7 +1324,7 @@ class FormulaView(QWidget):
         pl.setSpacing(10)
 
         # Oferta
-        lbl_o = QLabel("Oferta:")
+        lbl_o = QLabel(tr("Oferta:"))
         lbl_o.setStyleSheet(
             f"color:{SLATE_500}; font-weight:600; font-size:12px;"
             f" background:transparent; border:none;"
@@ -1317,9 +1333,7 @@ class FormulaView(QWidget):
         self.cmb_oferta_mes = QComboBox()
         for i in range(1, 13):
             self.cmb_oferta_mes.addItem(
-                ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre",
-                 "Diciembre"][i - 1], i
+                tr(_MESES[i - 1]), i
             )
         self.cmb_oferta_mes.setFixedWidth(110)
         pl.addWidget(self.cmb_oferta_mes)
@@ -1339,7 +1353,7 @@ class FormulaView(QWidget):
         pl.addWidget(flecha)
 
         # Reajuste
-        lbl_r = QLabel("Reajuste:")
+        lbl_r = QLabel(tr("Reajuste:"))
         lbl_r.setStyleSheet(
             f"color:{SLATE_500}; font-weight:600; font-size:12px;"
             f" background:transparent; border:none;"
@@ -1348,9 +1362,7 @@ class FormulaView(QWidget):
         self.cmb_reajuste_mes = QComboBox()
         for i in range(1, 13):
             self.cmb_reajuste_mes.addItem(
-                ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre",
-                 "Diciembre"][i - 1], i
+                tr(_MESES[i - 1]), i
             )
         self.cmb_reajuste_mes.setFixedWidth(110)
         pl.addWidget(self.cmb_reajuste_mes)
@@ -1363,7 +1375,7 @@ class FormulaView(QWidget):
         pl.addSpacing(14)
 
         # Área
-        lbl_a = QLabel("Área:")
+        lbl_a = QLabel(tr("Área:"))
         lbl_a.setStyleSheet(
             f"color:{SLATE_500}; font-weight:600; font-size:12px;"
             f" background:transparent; border:none;"
@@ -1378,7 +1390,7 @@ class FormulaView(QWidget):
 
         pl.addStretch(1)
 
-        self.btn_recalcular_k = QPushButton("Recalcular")
+        self.btn_recalcular_k = QPushButton(tr("Recalcular"))
         self.btn_recalcular_k.setIcon(icon("rep-acus"))
         self.btn_recalcular_k.setIconSize(QSize(16, 16))
         self.btn_recalcular_k.setCursor(Qt.PointingHandCursor)
@@ -1403,7 +1415,7 @@ class FormulaView(QWidget):
         # Tabla de detalle
         self.tbl_k = QTableWidget(0, 7)
         self.tbl_k.setHorizontalHeaderLabels([
-            "Símbolo", "INEI", "Coef. k", "Io (oferta)", "Ir (reajuste)",
+            tr("Símbolo"), "INEI", tr("Coef. k"), tr("Io (oferta)"), tr("Ir (reajuste)"),
             "Ir / Io", "k × (Ir/Io)"
         ])
         self.tbl_k.verticalHeader().setVisible(False)
@@ -1450,7 +1462,7 @@ class FormulaView(QWidget):
         self.lbl_k_grande.setStyleSheet(f"color:{_acc_h()}; padding:0 12px;")
         fl.addWidget(self.lbl_k_grande)
 
-        btn_ir_inei = QPushButton("Cargar valores INEI →")
+        btn_ir_inei = QPushButton(tr("Cargar valores INEI →"))
         btn_ir_inei.setCursor(Qt.PointingHandCursor)
         btn_ir_inei.setStyleSheet(
             f"QPushButton {{ background:transparent; color:{BLUE_700};"
@@ -1488,8 +1500,8 @@ class FormulaView(QWidget):
                 return
             w = w.parent()
         QMessageBox.information(
-            self, "Índices INEI",
-            "Para abrir el editor: sidebar → INEI"
+            self, tr("Índices INEI"),
+            tr("Para abrir el editor: sidebar → INEI")
         )
 
     # ── columna lateral: info / costos / ayuda ──────────────────────────────
@@ -1605,7 +1617,7 @@ class FormulaView(QWidget):
         btn_del.setIconSize(QSize(14, 14))
         btn_del.setCursor(Qt.PointingHandCursor)
         btn_del.setFixedWidth(28)
-        btn_del.setToolTip("Eliminar monomio")
+        btn_del.setToolTip(tr("Eliminar monomio"))
         btn_del.setStyleSheet(
             "QPushButton { background:transparent; border:none; }"
             f"QPushButton:hover {{ background:{RED_SOFT}; border-radius:4px; }}"
@@ -1617,7 +1629,7 @@ class FormulaView(QWidget):
         """Pinta de rojo el coeficiente (y su %) si la incidencia está por
         debajo del 5% (mínimo legal D.S. 011-79-VC); lo limpia si cumple."""
         bajo = 0 < coef < 0.050
-        tip = "Incidencia menor al 5% (mínimo legal 0.050)" if bajo else ""
+        tip = tr("Incidencia menor al 5% (mínimo legal 0.050)") if bajo else ""
         for it, fg_normal in ((it_k, None), (it_p, QColor(SLATE_500))):
             if it is None:
                 continue
@@ -1714,13 +1726,15 @@ class FormulaView(QWidget):
         comp = next(c for c in m_orig['componentes'] if c['codigo'] == codigo)
         moneda = self._proyecto_meta.get('moneda', 'Soles')
         r = QMessageBox.question(
-            self, "El índice ya está en otro monomio",
-            f"«{nombre or codigo}» ({fmt(comp.get('monto', 0), moneda)}) ya "
-            f"forma parte del monomio «{m_orig.get('simbolo')}».\n\n"
-            f"¿Moverlo a «{m.get('simbolo')}»?\n\n"
-            f"Si no lo mueves, su monto sigue contando en "
-            f"«{m_orig.get('simbolo')}» y este monomio se queda sin "
-            f"composición, con coeficiente cero.",
+            self, tr("El índice ya está en otro monomio"),
+            tr("«{nombre}» ({monto}) ya "
+               "forma parte del monomio «{origen}».\n\n"
+               "¿Moverlo a «{destino}»?\n\n"
+               "Si no lo mueves, su monto sigue contando en "
+               "«{origen}» y este monomio se queda sin "
+               "composición, con coeficiente cero.").format(
+                nombre=nombre or codigo, monto=fmt(comp.get('monto', 0), moneda),
+                origen=m_orig.get('simbolo'), destino=m.get('simbolo')),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
         )
         if r != QMessageBox.Yes:
@@ -1759,10 +1773,11 @@ class FormulaView(QWidget):
                      f"{len(destino['componentes']) - 1} más"
             )
             QMessageBox.information(
-                self, "Monomio eliminado",
-                f"Sus {len(huerfanos)} índice(s) pasaron a "
-                f"«{destino.get('simbolo')}» para no perder costo directo. "
-                f"Puedes repartirlos desde la composición."
+                self, tr("Monomio eliminado"),
+                tr("Sus {n} índice(s) pasaron a "
+                   "«{destino}» para no perder costo directo. "
+                   "Puedes repartirlos desde la composición.").format(
+                    n=len(huerfanos), destino=destino.get('simbolo'))
             )
             recalcular_coeficientes(self._monomios, self._cd)
         self._render_tabla()
@@ -1800,14 +1815,14 @@ class FormulaView(QWidget):
         suma = sum(float(m.get('coeficiente') or 0) for m in monos)
         if abs(suma - 1.0) >= 0.001:
             issues.append(
-                f"La suma de coeficientes debe ser 1.000 (actual: {suma:.3f}).")
+                tr("La suma de coeficientes debe ser 1.000 (actual: {suma:.3f}).").format(suma=suma))
         if n > 8:
-            issues.append(f"Máximo 8 monomios por fórmula (tienes {n}).")
+            issues.append(tr("Máximo 8 monomios por fórmula (tienes {n}).").format(n=n))
         bajos = [(m.get('simbolo') or '?') for m in monos
                  if 0 < float(m.get('coeficiente') or 0) < 0.050]
         if bajos:
             issues.append(
-                "Incidencia menor al 5% (mínimo legal 0.050): "
+                tr("Incidencia menor al 5% (mínimo legal 0.050): ")
                 + ", ".join(bajos) + ".")
         # Coeficiente CERO con un índice ya escrito: el monomio no aporta nada
         # a la fórmula. Pasa al crear uno nuevo y no moverle ningún índice, y
@@ -1818,9 +1833,9 @@ class FormulaView(QWidget):
                   and (m.get('indice_inei') or '').strip()]
         if vacios:
             issues.append(
-                "Sin incidencia (coeficiente 0), no aportan a la fórmula: "
+                tr("Sin incidencia (coeficiente 0), no aportan a la fórmula: ")
                 + ", ".join(vacios)
-                + ". Muévele índices desde la composición o elimínalos.")
+                + tr(". Muévele índices desde la composición o elimínalos."))
         return issues
 
     def _actualizar_totales(self):
@@ -1850,20 +1865,21 @@ class FormulaView(QWidget):
         elif issues:
             self.lbl_validacion.setText(
                 "⚠ " + "<br>⚠ ".join(_esc(i) for i in issues)
-                + f"<br><span style='font-weight:400'>Ver el {norma}</span>")
+                + "<br><span style='font-weight:400'>"
+                + tr("Ver el {norma}").format(norma=norma) + "</span>")
             self.lbl_validacion.setStyleSheet(
                 f"padding:0 16px 12px 16px; font-size:11px; color:{RED_DARK};"
                 f" background:transparent; border:none; font-weight:600;")
             self.lbl_validacion.setVisible(True)
         else:
-            self.lbl_validacion.setText(f"✓ Fórmula válida ({norma})")
+            self.lbl_validacion.setText(tr("✓ Fórmula válida ({norma})").format(norma=norma))
             self.lbl_validacion.setStyleSheet(
                 f"padding:0 16px 12px 16px; font-size:11px; color:{GREEN_DARK};"
                 f" background:transparent; border:none; font-weight:600;")
             self.lbl_validacion.setVisible(True)
         self.lbl_validacion.setToolTip(
-            "Abrir el Decreto Supremo 011-79-VC, que reglamenta las fórmulas "
-            "polinómicas")
+            tr("Abrir el Decreto Supremo 011-79-VC, que reglamenta las fórmulas "
+               "polinómicas"))
         self.lbl_validacion.setCursor(Qt.PointingHandCursor)
 
     def _render_expr(self):
@@ -1885,25 +1901,25 @@ class FormulaView(QWidget):
     # ── Acciones ───────────────────────────────────────────────────────────
     def _calcular_desde_acu(self):
         self.btn_calcular.setEnabled(False)
-        self.btn_calcular.setText("Calculando…")
+        self.btn_calcular.setText(tr("Calculando…"))
         try:
             r = calcular_por_iu(self.pid, formula_id=self._formula_id)
         finally:
             self.btn_calcular.setEnabled(True)
-            self.btn_calcular.setText("Auto-calcular desde ACU")
+            self.btn_calcular.setText(tr("Auto-calcular desde ACU"))
 
         if not r.get('ok'):
-            QMessageBox.warning(self, "Auto-calcular",
-                                r.get('msg') or "No se pudo calcular.")
+            QMessageBox.warning(self, tr("Auto-calcular"),
+                                r.get('msg') or tr("No se pudo calcular."))
             return
 
         n = len(r['monomios'])
         if self._monomios:
             res = QMessageBox.question(
-                self, "Auto-calcular",
-                f"Esto reemplazará los monomios actuales por {n} monomio(s) "
-                f"derivados del ACU, agrupando los insumos por su índice "
-                f"unificado.\n\n¿Continuar?",
+                self, tr("Auto-calcular"),
+                tr("Esto reemplazará los monomios actuales por {n} monomio(s) "
+                   "derivados del ACU, agrupando los insumos por su índice "
+                   "unificado.\n\n¿Continuar?").format(n=n),
                 QMessageBox.Yes | QMessageBox.No
             )
             if res != QMessageBox.Yes:
@@ -1934,22 +1950,23 @@ class FormulaView(QWidget):
             self.lbl_pie_info.setText("")
             return
         moneda = self._proyecto_meta.get('moneda', 'Soles')
-        txt = (f"C.D. <b>{fmt(self._cd, moneda)}</b> · "
-               f"<b>{len(self._ius)}</b> índices")
+        txt = tr("C.D. <b>{cd}</b> · <b>{n}</b> índices").format(
+            cd=fmt(self._cd, moneda), n=len(self._ius))
         sin = getattr(self, '_monto_sin_indice', 0.0)
         if sin:
             txt += (f" · <span style='color:{ORANGE_DARK}'>"
-                    f"{fmt(sin, moneda)} ({sin / self._cd * 100:.0f}%) sin "
-                    f"índice propio</span>")
+                    + tr("{monto} ({pct:.0f}%) sin índice propio").format(
+                        monto=fmt(sin, moneda), pct=sin / self._cd * 100)
+                    + "</span>")
         self.lbl_pie_info.setText(txt)
 
     def _guardar(self):
         suma = sum(float(m.get('coeficiente') or 0) for m in self._monomios)
         if self._monomios and abs(suma - 1.0) > 0.005:
             res = QMessageBox.question(
-                self, "Confirmar",
-                f"Los coeficientes suman {suma:.3f} (debería ser 1.000).\n"
-                f"¿Guardar de todas formas?",
+                self, tr("Confirmar"),
+                tr("Los coeficientes suman {suma:.3f} (debería ser 1.000).\n"
+                   "¿Guardar de todas formas?").format(suma=suma),
                 QMessageBox.Yes | QMessageBox.No
             )
             if res != QMessageBox.Yes:
@@ -1957,13 +1974,13 @@ class FormulaView(QWidget):
         try:
             guardar_monomios(self.pid, self._monomios, self._formula_id)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{e}")
+            QMessageBox.critical(self, tr("Error"), tr("No se pudo guardar:\n{e}").format(e=e))
             return
         self._sucio = False
         self._calcular_k()
         QMessageBox.information(
-            self, "Guardado",
-            f"Fórmula polinómica guardada ({len(self._monomios)} monomios)."
+            self, tr("Guardado"),
+            tr("Fórmula polinómica guardada ({n} monomios).").format(n=len(self._monomios))
         )
 
     def _exportar_excel(self):
@@ -1977,7 +1994,7 @@ class FormulaView(QWidget):
         sugerido = f"{slug}_formula_{fecha}.xlsx"
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Fórmula Polinómica", sugerido, "Excel (*.xlsx)"
+            self, tr("Exportar Fórmula Polinómica"), sugerido, "Excel (*.xlsx)"
         )
         if not path:
             return
@@ -1993,11 +2010,11 @@ class FormulaView(QWidget):
                 f.write(buf.getvalue())
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Error",
-                                 f"No se pudo exportar:\n{e}")
+            QMessageBox.critical(self, tr("Error"),
+                                 tr("No se pudo exportar:\n{e}").format(e=e))
             return
-        QMessageBox.information(self, "Exportado",
-                                f"Archivo guardado:\n{path}")
+        QMessageBox.information(self, tr("Exportado"),
+                                tr("Archivo guardado:\n{path}").format(path=path))
 
     def _exportar_pdf(self):
         """Exporta la fórmula polinómica a PDF (mismo pipeline/estilo que los
@@ -2011,7 +2028,7 @@ class FormulaView(QWidget):
         sugerido = f"{slug}_formula_{fecha}.pdf"
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Fórmula Polinómica a PDF", sugerido, "PDF (*.pdf)"
+            self, tr("Exportar Fórmula Polinómica a PDF"), sugerido, "PDF (*.pdf)"
         )
         if not path:
             return
@@ -2025,11 +2042,11 @@ class FormulaView(QWidget):
             generar_pdf_archivo('formula_polinomica', self.pid, path)
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.critical(self, "Error",
-                                 f"No se pudo exportar:\n{e}")
+            QMessageBox.critical(self, tr("Error"),
+                                 tr("No se pudo exportar:\n{e}").format(e=e))
             return
-        QMessageBox.information(self, "Exportado",
-                                f"Archivo guardado:\n{path}")
+        QMessageBox.information(self, tr("Exportado"),
+                                tr("Archivo guardado:\n{path}").format(path=path))
 
     # ── Períodos y cálculo de K (con valores INEI) ──────────────────────────
     def _cargar_periodos_ui(self):
@@ -2066,10 +2083,10 @@ class FormulaView(QWidget):
             self.tbl_k.setRowCount(0)
             self.lbl_k_badge.setText("K = —")
             self.lbl_k_grande.setText("K = —")
-            self.lbl_alerta_k.setText(
+            self.lbl_alerta_k.setText(tr(
                 "No hay monomios definidos. Crea o auto-calcula la fórmula "
                 "primero."
-            )
+            ))
             return
 
         oa = self.inp_oferta_anio.value()
@@ -2103,10 +2120,10 @@ class FormulaView(QWidget):
             self.lbl_k_grande.setText("K = —")
             self.lbl_alerta_k.setText(
                 r.get('msg') or
-                ("La fórmula todavía no está guardada: pulsa «Guardar» para "
-                 "calcular K." if self._monomios else
-                 "No hay monomios definidos. Crea o auto-calcula la fórmula "
-                 "primero.")
+                (tr("La fórmula todavía no está guardada: pulsa «Guardar» para "
+                    "calcular K.") if self._monomios else
+                 tr("No hay monomios definidos. Crea o auto-calcula la fórmula "
+                    "primero."))
             )
             return
 
@@ -2142,7 +2159,7 @@ class FormulaView(QWidget):
 
             # Io
             vo = d.get('valor_o')
-            txt_o = f"{vo:.4f}".rstrip('0').rstrip('.') if vo else "— sin dato"
+            txt_o = f"{vo:.4f}".rstrip('0').rstrip('.') if vo else tr("— sin dato")
             it_o = QTableWidgetItem(txt_o)
             it_o.setFlags(flag)
             it_o.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -2152,7 +2169,7 @@ class FormulaView(QWidget):
 
             # Ir
             vr = d.get('valor_r')
-            txt_r = f"{vr:.4f}".rstrip('0').rstrip('.') if vr else "— sin dato"
+            txt_r = f"{vr:.4f}".rstrip('0').rstrip('.') if vr else tr("— sin dato")
             it_r = QTableWidgetItem(txt_r)
             it_r.setFlags(flag)
             it_r.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -2191,7 +2208,7 @@ class FormulaView(QWidget):
         kt = r['k_total']
         sin = r['monomios_sin_datos']
         if sin > 0:
-            self.lbl_k_badge.setText(f"K parcial = {kt:.4f}")
+            self.lbl_k_badge.setText(tr("K parcial = {k:.4f}").format(k=kt))
             self.lbl_k_badge.setStyleSheet(
                 f"background:{RED_SOFT}; color:{RED_DARK}; padding:4px 12px;"
                 f"  border-radius:4px; font-weight:700; font-size:12px;"
@@ -2202,9 +2219,9 @@ class FormulaView(QWidget):
                 f"color:{RED_500}; padding:0 12px;"
             )
             self.lbl_alerta_k.setText(
-                f"⚠  Faltan valores INEI para {sin} monomio(s). "
-                f"El K mostrado es parcial. "
-                f"Carga valores en el editor de INEI."
+                tr("⚠  Faltan valores INEI para {n} monomio(s). "
+                   "El K mostrado es parcial. "
+                   "Carga valores en el editor de INEI.").format(n=sin)
             )
         else:
             self.lbl_k_badge.setText(f"K = {kt:.4f}")
@@ -2223,10 +2240,12 @@ class FormulaView(QWidget):
             pct = (kt - 1.0) * 100
             if abs(pct) < 0.001:
                 self.lbl_alerta_k.setText(
-                    "K = 1.0000 → sin reajuste (oferta = reajuste)."
+                    tr("K = 1.0000 → sin reajuste (oferta = reajuste).")
                 )
             else:
-                signo = "incremento" if pct > 0 else "decremento"
                 self.lbl_alerta_k.setText(
-                    f"Reajuste resultante: {signo} de {abs(pct):.2f}% sobre el monto contractual."
+                    (tr("Reajuste resultante: incremento de {pct:.2f}% sobre el monto contractual.")
+                     if pct > 0 else
+                     tr("Reajuste resultante: decremento de {pct:.2f}% sobre el monto contractual.")
+                     ).format(pct=abs(pct))
                 )
