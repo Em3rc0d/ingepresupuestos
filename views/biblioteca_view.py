@@ -406,7 +406,11 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         # Refrescar combo grupo (sin perder selección)
         self._refrescar_combo_grupos()
 
-        q = self.inp_q.text().strip().lower() if hasattr(self, 'inp_q') else ''
+        # Tildes y mayúsculas fuera, de los dos lados: el LOWER de SQLite solo
+        # baja ASCII («PREPARACIÓN» → «preparaciÓn») y no encontraba nada que
+        # llevara tilde (David Ramos, ronda 7). Igual que el Catálogo de Insumos.
+        from utils.formatting import norm_busqueda
+        q = norm_busqueda(self.inp_q.text().strip()) if hasattr(self, 'inp_q') else ''
         grupo = self.cmb_grupo.currentData() if hasattr(self, 'cmb_grupo') else ''
         acu_filt = self.cmb_acu.currentData() if hasattr(self, 'cmb_acu') else ''
 
@@ -419,7 +423,7 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         )
         params: list = []
         if q:
-            sql += " AND LOWER(cu.descripcion) LIKE ?"
+            sql += " AND _norm(cu.descripcion) LIKE ?"
             params.append(f"%{q}%")
         if grupo:
             sql += " AND cu.grupo = ?"
@@ -428,9 +432,14 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
             sql += " AND EXISTS (SELECT 1 FROM biblioteca_acu_items i WHERE i.cu_id=cu.id)"
         elif acu_filt == 'sin_acu':
             sql += " AND NOT EXISTS (SELECT 1 FROM biblioteca_acu_items i WHERE i.cu_id=cu.id)"
-        sql += " ORDER BY cu.usos DESC, cu.descripcion LIMIT 1000"
+        # Sin LIMIT: con «Todos los grupos» se cargaban los primeros 1000 por
+        # orden alfabético y los CU del usuario que caían después nunca
+        # aparecían, aunque su grupo saliera en el desplegable (David Ramos,
+        # ronda 7). Cargar los ~7500 cuesta lo mismo que los 5300 insumos.
+        sql += " ORDER BY cu.usos DESC, cu.descripcion"
 
         conn = get_db()
+        conn.create_function("_norm", 1, norm_busqueda)
         rows = conn.execute(sql, params).fetchall()
         kpis = conn.execute(
             "SELECT COUNT(*) AS total, "
@@ -520,8 +529,6 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         n_total = kpis['total'] or 0
         if n_filt == n_total:
             self.lbl_subt.setText(f"{n_total} CU")
-        elif n_filt == 1000:
-            self.lbl_subt.setText(f"primeros 1000 de {n_total} (filtra para afinar)")
         else:
             self.lbl_subt.setText(f"{n_filt} de {n_total} CU")
 

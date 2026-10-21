@@ -2930,13 +2930,6 @@ class ProyectoView(QWidget):
         self.tbl_acu._key_handler = self._acu_key_press
         vl.addWidget(self.tbl_acu, stretch=1)
 
-        self.lbl_acu_clipboard = QLabel("")
-        self.lbl_acu_clipboard.setStyleSheet(
-            f"color:#0F5132; font-size:10px; border:none;"
-            f" background:#D1E7DD; border-radius:4px; padding:1px 7px;"
-        )
-        self.lbl_acu_clipboard.setVisible(False)
-
         # Subtotales por tipo
         self._make_acu_subtotales(vl)
 
@@ -8353,14 +8346,16 @@ class ProyectoView(QWidget):
         self.cargar_insumos()
 
     def _actualizar_lbl_clipboard(self):
+        """Avisa en la barra de estado, como al copiar partidas. Antes era un
+        QLabel sin padre ni layout: al mostrarlo Qt lo volvía una ventana
+        suelta que no se cerraba sola (David Ramos, ronda 7)."""
         n = len(self._acu_clipboard)
-        if n == 0:
-            self.lbl_acu_clipboard.setVisible(False)
-        else:
-            self.lbl_acu_clipboard.setText(
-                f"📋  {n} insumo{'s' if n > 1 else ''} copiado{'s' if n > 1 else ''}"
-            )
-            self.lbl_acu_clipboard.setVisible(True)
+        win = self.window()
+        if n == 0 or not hasattr(win, 'statusBar'):
+            return
+        win.statusBar().showMessage(
+            f"{n} insumo{'s' if n > 1 else ''} copiado{'s' if n > 1 else ''}"
+            " — usa Ctrl+V para pegar", 4000)
 
     def _toggle_chat_acu(self, visible: bool):
         if visible:
@@ -12196,9 +12191,12 @@ class _DonutChart(QWidget):
         """(ancho de la columna de montos, ancho de la de porcentajes)."""
         textos = self._leyenda_textos()
         w_pct = max([fm.horizontalAdvance(p) for _l, _m, p in textos] or [0])
-        montos = [m for _l, m, _p in textos if m] + \
-                 ([self._texto_total()] if self._moneda is not None else [])
-        w_amt = max([fm.horizontalAdvance(m) for m in montos] or [0])
+        w_amt = max([fm.horizontalAdvance(m) for _l, m, _p in textos if m] or [0])
+        if self._moneda is not None:
+            # El Total se pinta en negrita: medido con la fuente normal, la
+            # columna quedaba corta y se comía la «S/» (David Ramos, ACU.docx).
+            f_tot = QFont(); f_tot.setPointSize(8); f_tot.setBold(True)
+            w_amt = max(w_amt, QFontMetrics(f_tot).horizontalAdvance(self._texto_total()))
         return w_amt, w_pct
 
     def _filas_leyenda(self, W: int, fm) -> list:
