@@ -851,100 +851,30 @@ class RecursosView(CatalogoTablaMixin, QWidget):
                                 f"Catálogo exportado:\n{ruta}\n\n{len(rows)} insumos.")
 
     def _importar_excel(self):
-        try:
-            from openpyxl import load_workbook
-        except ImportError:
-            QMessageBox.warning(self, "openpyxl no instalado",
-                                "Instale openpyxl para importar:\n\npip install openpyxl")
-            return
-
+        # Excel con cualquier formato: el diálogo detecta la cabecera y deja
+        # asignar columnas (Lista del MTOP, Menfis, SINAPI, el formato propio).
+        from utils.i18n import tr
+        from core.importar_excel_insumos import leer_libro
+        from views.importar_excel_dialog import ImportarExcelDialog
         ruta, _ = QFileDialog.getOpenFileName(
-            self, "Importar catálogo de insumos", "", "Excel (*.xlsx *.xls)"
+            self, tr("Importar catálogo de insumos"), "", "Excel (*.xlsx *.xlsm *.xls)"
         )
         if not ruta:
             return
         try:
-            wb = load_workbook(ruta, read_only=True, data_only=True)
+            libro = leer_libro(ruta)
         except Exception as e:
-            QMessageBox.critical(self, "Error",
-                                 f"No se pudo abrir el archivo:\n{e}")
+            QMessageBox.critical(self, tr("Error"),
+                                 tr("No se pudo abrir el archivo:\n{e}").format(e=e))
             return
-        ws = wb.active
-        # Buscar fila de cabecera (primera no vacía)
-        rows_iter = ws.iter_rows(values_only=True)
-        try:
-            header = next(rows_iter)
-        except StopIteration:
-            QMessageBox.warning(self, "Vacío", "El archivo no tiene datos.")
+        if not any(libro.filas.values()):
+            QMessageBox.warning(self, tr("Vacío"), tr("El archivo no tiene datos."))
             return
-
-        # Mapear por nombre — tolerante a mayúsculas/espacios
-        def norm(s: str) -> str:
-            return (s or '').strip().lower().replace('í', 'i').replace('ó', 'o')
-
-        idx = {norm(h): i for i, h in enumerate(header)}
-        col_cod = idx.get('codigo', idx.get('código', -1))
-        col_desc = idx.get('descripcion', idx.get('descripción', -1))
-        col_tipo = idx.get('tipo', -1)
-        col_und = idx.get('unidad', -1)
-        col_pre = idx.get('precio', -1)
-        col_inei = idx.get('indice inei', idx.get('índice inei', idx.get('inei', -1)))
-
-        if col_desc < 0 or col_tipo < 0:
-            QMessageBox.warning(self, "Cabecera incorrecta",
-                                "El Excel debe tener al menos las columnas:\n"
-                                "Código · Tipo · Descripción · Unidad · Precio · Índice INEI")
+        dlg = ImportarExcelDialog(libro, self)
+        if dlg.exec() != QDialog.Accepted:
             return
-
-        creados = 0
-        actualizados = 0
-        errores = 0
-        conn = get_db()
-        try:
-            for fila in rows_iter:
-                if not fila or all(c is None or str(c).strip() == '' for c in fila):
-                    continue
-                desc = (str(fila[col_desc]).strip() if col_desc >= 0 and fila[col_desc] is not None else '')
-                tipo = (str(fila[col_tipo]).strip().upper() if col_tipo >= 0 and fila[col_tipo] is not None else '')
-                if not desc or tipo not in TIPOS_RECURSO:
-                    errores += 1
-                    continue
-                cod = (str(fila[col_cod]).strip() if col_cod >= 0 and fila[col_cod] is not None else '')
-                und = (str(fila[col_und]).strip() if col_und >= 0 and fila[col_und] is not None else '')
-                pre_raw = fila[col_pre] if col_pre >= 0 else 0
-                pre = parse_num(str(pre_raw)) if pre_raw is not None else 0.0
-                inei = (str(fila[col_inei]).strip().zfill(2)[:2]
-                        if col_inei >= 0 and fila[col_inei] is not None
-                        else (cod[:2] if len(cod) >= 2 else INEI_DEFAULT.get(tipo, '39')))
-
-                if not cod:
-                    cod = _siguiente_codigo_inei(conn, inei)
-
-                # Buscar duplicado por código exacto
-                ex = conn.execute("SELECT id FROM recursos WHERE codigo=?", (cod,)).fetchone()
-                if ex:
-                    conn.execute(
-                        "UPDATE recursos SET descripcion=?, tipo=?, unidad=?, precio=?, "
-                        "indice_inei=? WHERE id=?",
-                        (desc, tipo, und, pre, inei, ex['id'])
-                    )
-                    actualizados += 1
-                else:
-                    conn.execute(
-                        "INSERT INTO recursos (codigo, descripcion, tipo, unidad, precio, indice_inei) "
-                        "VALUES (?,?,?,?,?,?)",
-                        (cod, desc, tipo, und, pre, inei)
-                    )
-                    creados += 1
-            conn.commit()
-        finally:
-            conn.close()
         self.cargar()
-        QMessageBox.information(
-            self, "Importación completa",
-            f"{creados} nuevos\n{actualizados} actualizados"
-            + (f"\n{errores} ignorados (datos inválidos)" if errores else "")
-        )
+        QMessageBox.information(self, tr("Importación completa"), dlg.texto_resumen)
 
     # ── Import / Export JSON ───────────────────────────────────────────────
     def _exportar_json(self):
