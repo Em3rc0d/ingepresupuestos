@@ -78,6 +78,36 @@ projeto. Só a interface muda.
 | Monomio | Monômio | |
 | Reajuste | Reajuste | |
 
+## Outros termos que apareceram ao traduzir
+
+| Espanhol (Peru) | Português (Brasil) | Nota |
+|---|---|---|
+| Rubro (do fechamento) | Rubrica | Cada linha do fechamento (despesas gerais, supervisão…). |
+| Plantilla | Modelo | |
+| Hoja de metrados | Memória de cálculo | |
+| Monto | Valor | |
+| Holgura | Folga | |
+| Lag / desfase | Lag / defasagem | |
+| Días calendario / laborables | Dias corridos / dias úteis | |
+| Parte diario | Registro diário | |
+| Asiento (del cuaderno) | Anotação | |
+| TDR (términos de referencia) | TR (termo de referência) | |
+| Stock / por llegar | Estoque / a receber | |
+| Valorizado (coluna) | Valor medido | No menu do cronograma: «Cronograma Físico-Financeiro». |
+| Oferta (mês da oferta) | Proposta | Fórmula polinomial. |
+| Supervisión | Fiscalização / Supervisão | |
+| Modalidades: concurso oferta / llave en mano | Concurso-oferta / empreitada integral | |
+| RUC / DNI | CNPJ / CPF | Rótulo do campo; o relatório imprime o nome fiscal do país do projeto. |
+| Rol (de usuário) | Perfil | |
+| Invitado | Convidado | |
+| Base de datos | Banco de dados | |
+| Logo | Logotipo | |
+| Acero | Armadura | |
+
+As siglas de dependência do cronograma (FC, CC, FF, CF) **não** são traduzidas: são a sintaxe que o campo de predecessoras entende (como no MS Project em espanhol). A descrição ao lado sim: «FC — Término a Início».
+
+**Colisões conhecidas** (a mesma palavra em espanhol com dois sentidos; o JSON só aceita um): «Requerido» = «Requisitado» (coluna das requisições; na importação aparece como etiqueta de campo obrigatório).
+
 ## Interface
 
 | Espanhol | Português (Brasil) |
