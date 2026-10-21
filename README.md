@@ -28,7 +28,7 @@ Copyright (C) 2026 Marco Sumari
 - **Hoja de Metrados** con soporte de **acero** (diámetros peruanos, NTP 341.031 / ASTM A615).
 - **Fórmula polinómica** (D.S. 011-79-VC) por **índices unificados del INEI**, con las dos bases vigentes (Julio 1992 y Diciembre 2025 = 100, R.J. 016-2026-INEI), el Diccionario de Elementos de la Construcción y el histórico de índices actualizado cada mes desde el propio repositorio.
 - **13 reportes** consistentes en **PDF · Excel · ODS · Word · ODT**, con formato configurable: logo y razón social, márgenes, tamaño del texto, encabezado y pie, y **esquemas de colores para los títulos** de fábrica o propios.
-- **Importadores nativos**: archivos `.prs`, bases `.sqlite`, copias de seguridad `.bak`/`.bkf`/`.S2K` (vía IngeConverter), Excel, IFC y `.db` nativo.
+- **Importadores nativos**: archivos `.prs`, bases `.sqlite`, copias de seguridad `.bak`/`.bkf`/`.S2K` (vía IngeConverter), ficheros `.bc3` (FIEBDC-3: presupuestos y bases de precios), Excel, IFC y `.db` nativo.
 - **Asistente IA (Tuxia)** con la clave del propio usuario —Groq, Gemini y OpenRouter tienen plan gratuito; Ollama corre sin internet— y **«Sugerir partidas»** con búsqueda semántica local (RAG). Sin clave, el asistente sigue respondiendo con análisis locales del proyecto.
 
 Las novedades de cada versión están en [Releases](https://github.com/ingelibre/ingepresupuestos/releases); la 3.0.8, la 3.0.10, la 3.0.12 y la 3.0.14 (septiembre de 2026) salieron de las observaciones que envió un usuario, David Ramos López, y la 3.0.16 de los reportes de los usuarios que llegaron desde Colombia y el resto de Latinoamérica.
@@ -72,7 +72,7 @@ ni registro: proyectos, presupuestos, ACU, cronograma Gantt con ruta crítica y
 sincronización con MS Project, metrados, fórmula polinómica con índices INEI al
 día, Control de Obra completo, los 13 reportes en todos sus formatos (PDF ·
 Excel · ODS · Word · ODT · MS Project) con formato y colores configurables, los
-importadores de `.prs`, `.sqlite`, `.bak`, Excel, IFC y `.db`, y el asistente IA
+importadores de `.prs`, `.sqlite`, `.bak`, `.bc3`, Excel, IFC y `.db`, y el asistente IA
 con la clave del propio usuario.
 
 Si el programa te sirve y estás en condiciones de aportar, eso es lo que lo

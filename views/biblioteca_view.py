@@ -213,6 +213,9 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
         a_delphin = menu_imp.addAction(icon("sqlite"),
                                         "Desde Delphin (base .sqlite)")
         a_delphin.triggered.connect(self._importar_delphin_sqlite)
+        a_bc3 = menu_imp.addAction(icon("biblioteca"),
+                                   "Desde base de precios BC3 (.bc3)")
+        a_bc3.triggered.connect(self._importar_bc3)
         self.btn_import.setMenu(menu_imp)
         top.addWidget(self.btn_import)
 
@@ -803,6 +806,44 @@ class BibliotecaView(CatalogoTablaMixin, QWidget):
             self, "Importación completa",
             f"{r['msg']}\nTotal CU en archivo: {r['n_total']}"
         )
+
+    def _importar_bc3(self):
+        """Base de precios BC3 (FIEBDC-3) → Biblioteca CU. Mismo importador
+        que «Importar → BC3 → Añadir a la Biblioteca» (`core.bc3_importer`).
+        Va sin hilo: la base más grande probada (27 000 conceptos) tarda ~2 s."""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox as _QMB, QApplication
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Importar base de precios BC3",
+            "", "Ficheros BC3 (*.bc3 *.BC3 *.zip)"
+        )
+        if not path:
+            return
+        msg = (
+            "¿Cómo manejar los CU que ya existen en tu biblioteca?\n\n"
+            "Un CU se considera existente si coincide en\n"
+            "(descripción · unidad · grupo). El grupo lleva el código de la "
+            "base y el capítulo, así que solo coinciden los de una "
+            "importación anterior de la MISMA base.\n\n"
+            "• Sí (Merge): los actualiza con los precios del archivo.\n"
+            "• No (Solo nuevos): los deja como están, solo agrega los nuevos."
+        )
+        res = _QMB.question(self, "Modo de importación", msg,
+                            _QMB.Yes | _QMB.No | _QMB.Cancel)
+        if res == _QMB.Cancel:
+            return
+        modo = 'merge' if res == _QMB.Yes else 'solo_nuevos'
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            from core.bc3_importer import import_biblioteca_bc3, resumen_biblioteca
+            r = import_biblioteca_bc3(path, modo=modo)
+        except Exception as e:
+            QApplication.restoreOverrideCursor()
+            QMessageBox.critical(self, "Error",
+                                 f"No se pudo importar la base de precios:\n\n{e}")
+            return
+        QApplication.restoreOverrideCursor()
+        self.cargar()
+        QMessageBox.information(self, "Importación completa", resumen_biblioteca(r))
 
     def _importar_delphin_sqlite(self):
         from PySide6.QtWidgets import QFileDialog, QMessageBox as _QMB

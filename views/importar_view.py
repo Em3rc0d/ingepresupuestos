@@ -10,6 +10,8 @@ Soporta 5 formatos:
     - S10 Costos & Pptos    (Presupuesto + ACUs + Insumos)
     - IFC / BIM             (Modelo .ifc → estructura sin precios)
     - PDF de PowerCost      (Presupuesto + ACU + Insumos en PDF)
+    - BC3 / FIEBDC-3        (Presto, Arquímedes, bases de precios españolas:
+                             presupuesto → proyecto, base → Biblioteca CU)
 
 La importación corre en un QThread para no congelar la UI; al terminar emite
 ``proyecto_importado(int)`` que MainWindow conecta para abrir el proyecto.
@@ -54,6 +56,7 @@ PROGRAMAS = [
     {"id": "delphin",          "nombre": "Delphin Express", "icono": "spreadsheet"},
     {"id": "s10",              "nombre": "S10",             "icono": "spreadsheet"},
     {"id": "bim",              "nombre": "BIM / IFC",       "icono": "paquete"},
+    {"id": "bc3",              "nombre": "BC3 (España)",    "icono": "biblioteca"},
     {"id": "ingepresupuestos", "nombre": "ingePresupuestos","icono": "sqlite"},
 ]
 
@@ -246,6 +249,39 @@ FORMATOS = [
         ],
     },
     {
+        "id":     "bc3",
+        "programa":  "bc3",
+        "subnombre": "FIEBDC-3 (.bc3)",
+        "nombre": "BC3 / FIEBDC-3",
+        "icono":  "biblioteca",
+        "ext":    "Ficheros BC3 (*.bc3 *.BC3 *.zip)",
+        "archivos": [
+            ("bc3", "Fichero .bc3 (o .zip que lo contenga)", True,
+             "Formato estándar español FIEBDC-3: lo exportan Presto, "
+             "Arquímedes, Menfis y lo usan las bases de precios oficiales."),
+        ],
+        "instrucciones": [
+            "Un .bc3 puede ser un PRESUPUESTO (capítulos, partidas y "
+            "mediciones) o una BASE DE PRECIOS (miles de precios sin "
+            "mediciones, como las de la Junta de Andalucía o los colegios "
+            "de Aparejadores). Al importar se detecta cuál es y puedes "
+            "elegir el destino.",
+            "Presupuesto → proyecto nuevo: los capítulos pasan a títulos, "
+            "las partidas con su medición y su descomposición como ACU, y "
+            "el texto largo como especificaciones.",
+            "Base de precios → Biblioteca CU: cada precio descompuesto es "
+            "un CU agrupado por capítulo, y la mano de obra, maquinaria y "
+            "materiales entran al catálogo de insumos. Si la reimportas, "
+            "actualiza los CU de esa misma base.",
+            "Los auxiliares (morteros, hormigones…) se incluyen dentro de "
+            "cada ACU como una línea con su precio. Los porcentajes que no "
+            "son de un solo tipo (costes indirectos, medios auxiliares) "
+            "entran con su importe fijo.",
+            "Si la base viene comprimida (.zip), selecciona el .zip "
+            "directamente.",
+        ],
+    },
+    {
         "id":     "pdf_powercost",
         "programa":  "powercost",
         "subnombre": "PDF",
@@ -318,12 +354,14 @@ class _ImportWorker(QThread):
     failed = Signal(str)              # mensaje de error
 
     finished_multi = Signal(list, str)  # [pid1, pid2, ...], resumen
+    finished_bib = Signal(str)          # resumen (BC3 → Biblioteca CU)
 
     def __init__(self, formato: str, files: dict,
                  id_ppto: int | None = None,
                  ids_ppto: list[int] | None = None,
                  cods_s10: list[str] | None = None,
                  delphin_ids: tuple[str, str] | None = None,
+                 bc3_destino: str | None = None,
                  parent=None):
         super().__init__(parent)
         self.formato = formato
@@ -336,11 +374,17 @@ class _ImportWorker(QThread):
         # una base real trae decenas de presupuestos con la plantilla vacía
         # «Nuevo Proyecto» de primera — que importa cero partidas.
         self.delphin_ids = delphin_ids
+        # solo para bc3: 'proyecto' o 'biblioteca' (lo elige el usuario
+        # tras la detección en `_elegir_destino_bc3`).
+        self.bc3_destino = bc3_destino
 
     def run(self):
         # Caso especial: backup S10 nativo — delega al bridge de IngeConverter
         if self.formato == "s10_s2k":
             self._run_s10_s2k()
+            return
+        if self.formato == "bc3":
+            self._run_bc3()
             return
 
         # Caso especial: multi-proyecto desde una sola base
@@ -456,6 +500,22 @@ class _ImportWorker(QThread):
             resumen = "  ·  ".join(partes)
             self.finished_ok.emit(pid, resumen)
 
+        except Exception as e:
+            import traceback
+            self.failed.emit(f"{e}\n\n{traceback.format_exc()[-600:]}")
+
+    def _run_bc3(self):
+        """BC3: presupuesto → proyecto, o base de precios → Biblioteca CU."""
+        from core import bc3_importer
+        try:
+            if self.bc3_destino == "biblioteca":
+                r = bc3_importer.import_biblioteca_bc3(
+                    self.files["bc3"], modo="merge", progreso=self.progreso.emit)
+                self.finished_bib.emit(bc3_importer.resumen_biblioteca(r))
+                return
+            self.progreso.emit("Leyendo el presupuesto BC3…")
+            pid, resumen, _info = bc3_importer.guardar_presupuesto_bc3(self.files["bc3"])
+            self.finished_ok.emit(pid, resumen)
         except Exception as e:
             import traceback
             self.failed.emit(f"{e}\n\n{traceback.format_exc()[-600:]}")
@@ -904,6 +964,14 @@ class ImportarView(QWidget):
         # especialidad (y a menudo varias VERSIONES de cada una), así que hay
         # que preguntar cuál. Sin preguntar se importaba el primero de la
         # tabla, que suele ser la plantilla vacía «Nuevo Proyecto».
+        # BC3: un mismo .bc3 puede ser un presupuesto o una base de precios
+        # (van a sitios distintos). Se detecta y el usuario confirma.
+        bc3_destino = None
+        if self._formato_id == "bc3":
+            bc3_destino = self._elegir_destino_bc3()
+            if bc3_destino is None:
+                return
+
         delphin_ids = None
         if self._formato_id == "delphin_sqlite":
             delphin_ids = self._elegir_presupuesto_delphin()
@@ -959,13 +1027,63 @@ class ImportarView(QWidget):
         self._worker = _ImportWorker(
             self._formato_id, dict(self._archivos),
             id_ppto=id_ppto, ids_ppto=ids_ppto,
-            delphin_ids=delphin_ids, parent=self
+            delphin_ids=delphin_ids, bc3_destino=bc3_destino, parent=self
         )
         self._worker.progreso.connect(self.lbl_estado.setText)
         self._worker.finished_ok.connect(self._on_ok)
+        self._worker.finished_bib.connect(self._on_ok_biblioteca)
         self._worker.finished_multi.connect(self._on_ok_multi)
         self._worker.failed.connect(self._on_fail)
         self._worker.start()
+
+    def _elegir_destino_bc3(self):
+        """'proyecto', 'biblioteca' o ``None`` si se cancela.
+
+        Detección (`bc3_importer.detectar_bc3`): con mediciones (~M) es un
+        presupuesto, sin ellas una base de precios. El botón por defecto es
+        el detectado, pero se puede elegir el otro: un presupuesto también
+        sirve para alimentar la biblioteca, y hay presupuestos exportados
+        sin mediciones."""
+        from PySide6.QtWidgets import QApplication
+        from core.bc3_importer import detectar_bc3
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            det = detectar_bc3(self._archivos["bc3"])
+        except Exception as e:                        # noqa: BLE001 — al usuario
+            QApplication.restoreOverrideCursor()
+            QMessageBox.critical(
+                self, "Error al leer el BC3",
+                f"No se pudo leer el archivo:\n\n{e}")
+            return None
+        QApplication.restoreOverrideCursor()
+
+        es_ppto = det["tipo"] == "presupuesto"
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Question)
+        box.setWindowTitle("Importar BC3")
+        que = ("un <b>presupuesto</b>" if es_ppto
+               else "una <b>base de precios</b>")
+        miles = lambda n: f"{n:,}".replace(",", ".")
+        box.setText(
+            f"«{det['nombre']}» parece {que}:<br>"
+            f"{miles(det['n_conceptos'])} conceptos · "
+            f"{miles(det['n_descompuestos'])} precios descompuestos · "
+            f"{miles(det['n_mediciones'])} mediciones.")
+        box.setInformativeText(
+            "¿Qué quieres hacer con él?\n\n"
+            "• Proyecto nuevo: capítulos, partidas, mediciones y ACU.\n"
+            "• Biblioteca CU: cada precio descompuesto como CU, agrupado "
+            "por capítulo, y sus insumos al catálogo.")
+        b_proy = box.addButton("Crear proyecto", QMessageBox.AcceptRole)
+        b_bib = box.addButton("Añadir a la Biblioteca", QMessageBox.AcceptRole)
+        box.addButton("Cancelar", QMessageBox.RejectRole)
+        box.setDefaultButton(b_proy if es_ppto else b_bib)
+        box.exec()
+        if box.clickedButton() is b_proy:
+            return "proyecto"
+        if box.clickedButton() is b_bib:
+            return "biblioteca"
+        return None
 
     def _elegir_presupuesto_delphin(self):
         """``(id_proyecto, id_presupuesto)`` elegidos, o ``None`` si el usuario
@@ -1122,6 +1240,14 @@ class ImportarView(QWidget):
             f"Proyecto importado correctamente.\n\n{resumen}"
         )
         self.proyecto_importado.emit(pid)
+        self._aplicar_formato(self._formato_id)
+
+    def _on_ok_biblioteca(self, resumen: str):
+        """BC3 importado a la Biblioteca CU: no hay proyecto que abrir."""
+        self.bar.setVisible(False)
+        self.lbl_estado.setText("")
+        self._worker = None
+        QMessageBox.information(self, "Importación completa", resumen)
         self._aplicar_formato(self._formato_id)
 
     def _on_ok_multi(self, pids: list, resumen: str):
