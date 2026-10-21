@@ -6,6 +6,7 @@
 
 Equivalente a templates/cronograma.html del Flask, adaptado a PySide6.
 """
+import contextlib
 import json as _json
 from datetime import datetime, timedelta
 
@@ -46,6 +47,7 @@ from core.pdf_reports import (
     _oculto as _oculto_rep,
 )
 from utils.formatting import fmt, parse_num, ITEM_TRAMOS_POR_LINEA
+from utils.i18n import N_, tr
 from utils.icons import qss_icon_url
 from utils.theme import nivel_fg as _nivel_fg
 
@@ -76,6 +78,11 @@ GANTT_GRID = "#E8EAED"
 # «MPP» y los usará el lector de sincronización.
 MSPDI_TEXT29 = "188744015"
 MSPDI_TEXT30 = "188744016"
+
+
+# Rol donde las tablas guardan el texto en español de una celda que en
+# pantalla va traducida: el Excel lee la tabla y sale en el idioma del proyecto.
+_ROL_ES = Qt.UserRole + 41
 
 
 def _re_simbolos_moneda() -> str:
@@ -131,7 +138,7 @@ class CronogramaView(QWidget):
         bar_hl.setSpacing(6)
 
         # ← Volver al presupuesto
-        btn_back = QPushButton("← Presupuesto")
+        btn_back = QPushButton(tr("← Presupuesto"))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet(
             f"QPushButton {{ background:rgba(255,255,255,0.12); color:white;"
@@ -146,8 +153,8 @@ class CronogramaView(QWidget):
         self._stack = QStackedWidget()
         self._stack.setStyleSheet(f"background:{SILVER_100};")
 
-        self._tabs = ["Diagrama Gantt", "Cronograma Valorizado",
-                       "Adquisición de Insumos", "Curva S"]
+        self._tabs = [tr("Diagrama Gantt"), tr("Cronograma Valorizado"),
+                       tr("Adquisición de Insumos"), tr("Curva S")]
         self._tab_btns: list[QPushButton] = []
 
         def _tab_style(sel: bool) -> str:
@@ -171,18 +178,18 @@ class CronogramaView(QWidget):
 
         # Plazo contractual + enlace para editarlo (antes en la topbar propia).
         plazo = self._proy.get('plazo') or 0
-        self._lbl_plazo = QLabel(f"Plazo: {plazo} días")
+        self._lbl_plazo = QLabel(tr("Plazo: {plazo} días").format(plazo=plazo))
         self._lbl_plazo.setStyleSheet(
             "color:white; font-size:11px; font-weight:600;"
             " background:transparent; border:none;")
-        _tip_plazo = ("Plazo = días contractuales del proyecto.\n"
+        _tip_plazo = tr("Plazo = días contractuales del proyecto.\n"
                       "Programados = días que ocupa la programación del Gantt.\n"
                       "Pueden no coincidir. Para cambiar el plazo, ve a "
                       "«Editar proyecto».")
         self._lbl_plazo.setToolTip(_tip_plazo)
         bar_hl.addWidget(self._lbl_plazo)
         if self._on_editar is not None:
-            btn_edit_plazo = QPushButton("✏ Editar plazo")
+            btn_edit_plazo = QPushButton(tr("✏ Editar plazo"))
             btn_edit_plazo.setCursor(Qt.PointingHandCursor)
             btn_edit_plazo.setToolTip(_tip_plazo)
             btn_edit_plazo.setStyleSheet(
@@ -206,7 +213,7 @@ class CronogramaView(QWidget):
         # "Calcular duración", "Auto-programar" y "Guardar" SOLO aplican al
         # Diagrama Gantt — se ocultan en las otras pestañas (valorizado,
         # adquisiciones, curva S son vistas de solo lectura derivadas del Gantt).
-        self._btn_dur = QPushButton("Calcular duración")
+        self._btn_dur = QPushButton(tr("Calcular duración"))
         self._btn_dur.setCursor(Qt.PointingHandCursor)
         self._btn_dur.setStyleSheet(btn_style)
         self._btn_dur.clicked.connect(self._calcular_duraciones)
@@ -214,21 +221,21 @@ class CronogramaView(QWidget):
 
         # Auto-programar — botón con menú (3 modos)
         from PySide6.QtWidgets import QMenu
-        self._btn_auto = QPushButton("Auto-programar ▾")
+        self._btn_auto = QPushButton(tr("Auto-programar ▾"))
         self._btn_auto.setCursor(Qt.PointingHandCursor)
         self._btn_auto.setStyleSheet(btn_style)
         menu_auto = QMenu(self._btn_auto)
-        menu_auto.addAction("Por fases (rápido, local)",
+        menu_auto.addAction(tr("Por fases (rápido, local)"),
                             self._auto_programar_local)
-        menu_auto.addAction("Con IA (más realista)",
+        menu_auto.addAction(tr("Con IA (más realista)"),
                             self._auto_programar_ia)
         menu_auto.addSeparator()
-        menu_auto.addAction("Secuencial (modo simple)",
+        menu_auto.addAction(tr("Secuencial (modo simple)"),
                             self._auto_programar)
         self._btn_auto.setMenu(menu_auto)
         bar_hl.addWidget(self._btn_auto)
 
-        self._btn_save = QPushButton("Guardar")
+        self._btn_save = QPushButton(tr("Guardar"))
         self._btn_save.setCursor(Qt.PointingHandCursor)
         self._btn_save.setStyleSheet(btn_style)
         self._btn_save.clicked.connect(self._guardar_todo)
@@ -300,9 +307,9 @@ class CronogramaView(QWidget):
                       default=0)
         if plazo > 0:
             self._lbl_plazo.setText(
-                f"Plazo: {plazo} días  ·  {max_ef} programados")
+                tr("Plazo: {plazo} días  ·  {max_ef} programados").format(plazo=plazo, max_ef=max_ef))
         else:
-            self._lbl_plazo.setText(f"{max_ef} días programados")
+            self._lbl_plazo.setText(tr("{max_ef} días programados").format(max_ef=max_ef))
 
     def _non_working_set(self, n_dias: int) -> set:
         """Días corridos (1..n_dias) que son domingos o feriados del proyecto
@@ -374,12 +381,12 @@ class CronogramaView(QWidget):
                               '_ES': 1, '_EF': proj_end, '_dur': proj_end})
             elif tipo == 'inicio':
                 filas.append({'id': INICIO_PID, '_virtual': 'inicio', 'item': '',
-                              'descripcion': 'Inicio de Obra', 'es_titulo': 0, 'nivel': 1,
+                              'descripcion': N_('Inicio de Obra'), 'es_titulo': 0, 'nivel': 1,
                               'es_hito': 2, '_ES': 1, '_EF': 1, '_dur': 0,
                               '_succ_ids': sin_pred})
             elif tipo == 'fin':
                 filas.append({'id': FIN_PID, '_virtual': 'fin', 'item': '',
-                              'descripcion': 'Termino de Obra', 'es_titulo': 0, 'nivel': 1,
+                              'descripcion': N_('Termino de Obra'), 'es_titulo': 0, 'nivel': 1,
                               'es_hito': 3, '_ES': proj_end, '_EF': proj_end, '_dur': 0,
                               '_pred_ids': terminales})
             elif tipo == 'sub':
@@ -483,20 +490,20 @@ class CronogramaView(QWidget):
             # Persistir las duraciones ajustadas
             self._guardar_y_refrescar()
         if plazo <= 0:
-            cuerpo = (extra + "\n\n⚠ El proyecto no tiene plazo configurado.\n"
+            cuerpo = (extra + tr("\n\n⚠ El proyecto no tiene plazo configurado.\n"
                                 "Define el plazo en datos del proyecto y vuelve "
-                                "a ejecutar auto-programar para ajustar.")
+                                "a ejecutar auto-programar para ajustar."))
         elif pre <= plazo:
-            cuerpo = (extra + f"\n\nDuración programada: {post} días\n"
-                                f"Plazo del proyecto: {plazo} días\n"
-                                "✔ Encaja dentro del plazo (no se ajustó).")
+            cuerpo = (extra + tr("\n\nDuración programada: {post} días\n"
+                                "Plazo del proyecto: {plazo} días\n"
+                                "✔ Encaja dentro del plazo (no se ajustó).").format(post=post, plazo=plazo))
         else:
             pct = round((1 - factor) * 100, 1)
-            cuerpo = (extra + f"\n\nLa ruta crítica original ocupaba {pre} días, "
-                                f"excedía el plazo de {plazo} días.\n"
-                                f"Se redujeron las duraciones un {pct}% "
+            cuerpo = (extra + tr("\n\nLa ruta crítica original ocupaba {pre} días, "
+                                "excedía el plazo de {plazo} días.\n"
+                                "Se redujeron las duraciones un {pct}% "
                                 "para encajar.\n"
-                                f"Duración final: {post} días.")
+                                "Duración final: {post} días.").format(pre=pre, plazo=plazo, pct=pct, post=post))
         QMessageBox.information(self, titulo, cuerpo)
 
     def _auto_programar(self):
@@ -506,9 +513,9 @@ class CronogramaView(QWidget):
         new_map = auto_programar(self._partidas, self._cron_map)
         self._aplicar_nuevo_map(new_map)
         self._msg_resultado_autoprogramar(
-            "Auto-programar",
-            "Cada partida usa la anterior como predecesora "
-            "(modo secuencial simple).")
+            tr("Auto-programar"),
+            tr("Cada partida usa la anterior como predecesora "
+               "(modo secuencial simple)."))
 
     def _auto_programar_local(self):
         """Modo local heurístico: agrupa partidas en fases constructivas
@@ -520,10 +527,10 @@ class CronogramaView(QWidget):
         new_map = auto_programar_local(self._partidas, self._cron_map)
         self._aplicar_nuevo_map(new_map)
         self._msg_resultado_autoprogramar(
-            "Auto-programar — por fases",
-            "Partidas agrupadas por fases constructivas.\n"
-            "Las partidas de la misma fase se ejecutan en paralelo; "
-            "cada fase espera el final de la anterior.")
+            tr("Auto-programar — por fases"),
+            tr("Partidas agrupadas por fases constructivas.\n"
+               "Las partidas de la misma fase se ejecutan en paralelo; "
+               "cada fase espera el final de la anterior."))
 
     def _auto_programar_ia(self):
         """Modo IA: el LLM analiza las descripciones y devuelve dependencias
@@ -541,18 +548,18 @@ class CronogramaView(QWidget):
             QApplication.restoreOverrideCursor()
 
         if new_map is None:
-            r = QMessageBox.question(self, "Auto-programar con IA",
-                f"No se pudo usar la IA:\n\n{err}\n\n"
-                "¿Quieres usar el modo local (por fases) en su lugar?",
+            r = QMessageBox.question(self, tr("Auto-programar con IA"),
+                tr("No se pudo usar la IA:\n\n{err}\n\n"
+                   "¿Quieres usar el modo local (por fases) en su lugar?").format(err=err),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
             if r == QMessageBox.Yes:
                 self._auto_programar_local()
             return
         self._aplicar_nuevo_map(new_map)
         self._msg_resultado_autoprogramar(
-            "Auto-programar — con IA",
-            "Cronograma generado por IA aplicado.\n"
-            "Revisa las dependencias críticas y ajusta si es necesario.")
+            tr("Auto-programar — con IA"),
+            tr("Cronograma generado por IA aplicado.\n"
+               "Revisa las dependencias críticas y ajusta si es necesario."))
 
     def _guardar_todo(self):
         """Guarda el cronograma_map a la DB."""
@@ -614,13 +621,13 @@ class _DialogExportarGanttPdf(QDialog):
         ("A2 (420 × 594 mm)", "A2"),
         ("A1 (594 × 841 mm)", "A1"),
         ("A0 (841 × 1189 mm)", "A0"),
-        ("Carta / Letter (216 × 279 mm)", "Letter"),
-        ("Tabloide / Ledger (279 × 432 mm)", "Tabloid"),
+        (N_("Carta / Letter (216 × 279 mm)"), "Letter"),
+        (N_("Tabloide / Ledger (279 × 432 mm)"), "Tabloid"),
     ]
 
     def __init__(self, parent=None, pred_visible: bool = True):
         super().__init__(parent)
-        self.setWindowTitle("Exportar Gantt")
+        self.setWindowTitle(tr("Exportar Gantt"))
         self.setMinimumWidth(560)
         self.setMinimumHeight(720)
         self.resize(580, 740)
@@ -663,15 +670,15 @@ class _DialogExportarGanttPdf(QDialog):
         vl.setContentsMargins(18, 16, 18, 14)
         vl.setSpacing(10)
 
-        ttl = QLabel("Opciones de exportación")
+        ttl = QLabel(tr("Opciones de exportación"))
         f = ttl.font(); f.setPointSize(13); f.setBold(True); ttl.setFont(f)
         ttl.setStyleSheet("color:#1E2635;")
         vl.addWidget(ttl)
 
         # Modo paginación
-        vl.addWidget(QLabel("Paginación:"))
-        self.rb_fit   = QRadioButton("Una hoja (ajustar todo el cronograma)")
-        self.rb_multi = QRadioButton("Múltiples hojas (escala legible, recomendado)")
+        vl.addWidget(QLabel(tr("Paginación:")))
+        self.rb_fit   = QRadioButton(tr("Una hoja (ajustar todo el cronograma)"))
+        self.rb_multi = QRadioButton(tr("Múltiples hojas (escala legible, recomendado)"))
         self.rb_multi.setChecked(True)
         grp_pg = QButtonGroup(self)
         grp_pg.addButton(self.rb_fit)
@@ -679,10 +686,10 @@ class _DialogExportarGanttPdf(QDialog):
         vl.addWidget(self.rb_fit)
         vl.addWidget(self.rb_multi)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "En ambos casos la tabla de partidas se mantiene a la izquierda "
             "y el gantt a la derecha en cada hoja."
-        )
+        ))
         nota.setStyleSheet("color:#667885; font-size:10px;")
         nota.setWordWrap(True)
         vl.addWidget(nota)
@@ -690,10 +697,10 @@ class _DialogExportarGanttPdf(QDialog):
         # Tamaño de papel + Orientación (en una fila)
         vl.addSpacing(4)
         hh_pap = QHBoxLayout()
-        hh_pap.addWidget(QLabel("Tamaño de papel:"))
+        hh_pap.addWidget(QLabel(tr("Tamaño de papel:")))
         self.cmb_papel = QComboBox()
         for label, _ in self.PAPEL_OPCIONES:
-            self.cmb_papel.addItem(label)
+            self.cmb_papel.addItem(tr(label))
         # Default A3 — el formato más usado por ingenieros para Gantt
         self.cmb_papel.setCurrentIndex(1)
         self.cmb_papel.setStyleSheet(
@@ -704,9 +711,9 @@ class _DialogExportarGanttPdf(QDialog):
         vl.addLayout(hh_pap)
 
         # Orientación
-        vl.addWidget(QLabel("Orientación:"))
-        self.rb_land = QRadioButton("Horizontal (recomendado)")
-        self.rb_port = QRadioButton("Vertical")
+        vl.addWidget(QLabel(tr("Orientación:")))
+        self.rb_land = QRadioButton(tr("Horizontal (recomendado)"))
+        self.rb_port = QRadioButton(tr("Vertical"))
         self.rb_land.setChecked(True)
         grp_or = QButtonGroup(self)
         grp_or.addButton(self.rb_land)
@@ -720,13 +727,13 @@ class _DialogExportarGanttPdf(QDialog):
         # Escala del eje temporal
         vl.addSpacing(4)
         hh2 = QHBoxLayout()
-        hh2.addWidget(QLabel("Escala del eje temporal:"))
+        hh2.addWidget(QLabel(tr("Escala del eje temporal:")))
         self.cmb_escala = QComboBox()
         self.cmb_escala.addItems([
-            "Automática (según ancho)",
-            "Días — mostrar día y mes",
-            "Semanas — S1, S2…",
-            "Meses — sólo mes/año",
+            tr("Automática (según ancho)"),
+            tr("Días — mostrar día y mes"),
+            tr("Semanas — S1, S2…"),
+            tr("Meses — sólo mes/año"),
         ])
         self.cmb_escala.setCurrentIndex(0)
         self.cmb_escala.setStyleSheet(
@@ -739,11 +746,11 @@ class _DialogExportarGanttPdf(QDialog):
         # Hojas en eje tiempo — solo aplica en modo multipágina
         from PySide6.QtWidgets import QSpinBox
         hh3 = QHBoxLayout()
-        self.lbl_hojas = QLabel("Hojas en eje tiempo (multipágina):")
+        self.lbl_hojas = QLabel(tr("Hojas en eje tiempo (multipágina):"))
         self.sp_hojas = QSpinBox()
         self.sp_hojas.setRange(0, 24)
         self.sp_hojas.setValue(0)
-        self.sp_hojas.setSpecialValueText("Automático")
+        self.sp_hojas.setSpecialValueText(tr("Automático"))
         self.sp_hojas.setStyleSheet(
             "QSpinBox { padding:3px 6px; border:1px solid #D4D4D4;"
             " border-radius:4px; background:white; min-width:80px; }"
@@ -767,48 +774,48 @@ class _DialogExportarGanttPdf(QDialog):
         # casilla sale apagada (David Ramos, 16 sep 2026: la ocultaba y el
         # PDF la traía igual, al revés que Inicio/Fin). Sigue pudiendo
         # marcarla aquí solo para esta exportación.
-        self.chk_pred = QCheckBox("Incluir columna de Predecesoras")
+        self.chk_pred = QCheckBox(tr("Incluir columna de Predecesoras"))
         self.chk_pred.setChecked(bool(pred_visible))
         self.chk_pred.setStyleSheet("color:#273445; font-size:12px;")
         vl.addWidget(self.chk_pred)
 
         # Encabezado / Pie de página (compartidos con Centro de Reportes)
-        vl.addWidget(QLabel("Elementos del reporte:"))
+        vl.addWidget(QLabel(tr("Elementos del reporte:")))
         # Arrancan como diga el formato de reportes (Encabezado y pie); aquí
         # se pueden cambiar solo para esta exportación.
         from core.pdf_reports import gantt_flags_desde_formato as _gff
         _flags = _gff()
-        self.chk_header = QCheckBox("Incluir encabezado (logo, empresa, datos del proyecto)")
+        self.chk_header = QCheckBox(tr("Incluir encabezado (logo, empresa, datos del proyecto)"))
         self.chk_header.setChecked(_flags['incluir_header'])
         self.chk_header.setStyleSheet("color:#273445; font-size:12px;")
         vl.addWidget(self.chk_header)
 
-        self.chk_footer = QCheckBox("Incluir pie de página (textos del formato: izq / centro / der)")
+        self.chk_footer = QCheckBox(tr("Incluir pie de página (textos del formato: izq / centro / der)"))
         self.chk_footer.setChecked(_flags['incluir_footer'])
         self.chk_footer.setStyleSheet("color:#273445; font-size:12px;")
         vl.addWidget(self.chk_footer)
 
-        self.chk_legend = QCheckBox("Incluir leyenda (Tarea / Crítica / Hito / Dependencia / Hoy / Fin plazo)")
+        self.chk_legend = QCheckBox(tr("Incluir leyenda (Tarea / Crítica / Hito / Dependencia / Hoy / Fin plazo)"))
         self.chk_legend.setChecked(_flags['incluir_legend'])
         self.chk_legend.setStyleSheet("color:#273445; font-size:12px;")
         vl.addWidget(self.chk_legend)
 
-        self.chk_page = QCheckBox("Incluir número de página (N de N)")
+        self.chk_page = QCheckBox(tr("Incluir número de página (N de N)"))
         self.chk_page.setChecked(_flags['incluir_page'])
         self.chk_page.setStyleSheet("color:#273445; font-size:12px;")
         vl.addWidget(self.chk_page)
 
         # Atajo para editar el formato compartido
         hh_fmt = QHBoxLayout()
-        hint = QLabel(
+        hint = QLabel(tr(
             "Logo, nombre de empresa, colores y textos del pie se guardan en "
             "el formato compartido con el Centro de Reportes."
-        )
+        ))
         hint.setStyleSheet("color:#667885; font-size:10px;")
         hint.setWordWrap(True)
         from PySide6.QtWidgets import QPushButton as _QPB
-        btn_fmt = _QPB("🎨  Editar formato…")
-        btn_fmt.setToolTip("Abrir el editor de formato (logo, empresa, color, pies)")
+        btn_fmt = _QPB(tr("🎨  Editar formato…"))
+        btn_fmt.setToolTip(tr("Abrir el editor de formato (logo, empresa, color, pies)"))
         btn_fmt.setStyleSheet(
             "QPushButton { background:white; color:#273445; border:1px solid #D4D4D4;"
             " border-radius:4px; padding:5px 12px; font-size:11px; }"
@@ -825,7 +832,7 @@ class _DialogExportarGanttPdf(QDialog):
         from PySide6.QtWidgets import QPushButton
         bar = QHBoxLayout()
         bar.setSpacing(8)
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setMinimumWidth(96); btn_cancel.setMinimumHeight(32)
         btn_cancel.setStyleSheet(
             "QPushButton { background:white; color:#485A6C; border:1px solid #D4D4D4;"
@@ -834,9 +841,9 @@ class _DialogExportarGanttPdf(QDialog):
         )
         btn_cancel.clicked.connect(self.reject)
 
-        btn_img = QPushButton("🖼  Imagen…")
+        btn_img = QPushButton(tr("🖼  Imagen…"))
         btn_img.setMinimumWidth(120); btn_img.setMinimumHeight(32)
-        btn_img.setToolTip("Exportar como imagen (PNG / JPG)")
+        btn_img.setToolTip(tr("Exportar como imagen (PNG / JPG)"))
         btn_img.setStyleSheet(
             "QPushButton { background:white; color:#273445; border:1px solid #D4D4D4;"
             " border-radius:4px; padding:6px 14px; font-weight:600; }"
@@ -844,7 +851,7 @@ class _DialogExportarGanttPdf(QDialog):
         )
         btn_img.clicked.connect(self._emitir_imagen)
 
-        btn_prev = QPushButton("👁  Vista previa")
+        btn_prev = QPushButton(tr("👁  Vista previa"))
         btn_prev.setMinimumWidth(130); btn_prev.setMinimumHeight(32)
         btn_prev.setStyleSheet(
             "QPushButton { background:white; color:#273445; border:1px solid #D4D4D4;"
@@ -853,7 +860,7 @@ class _DialogExportarGanttPdf(QDialog):
         )
         btn_prev.clicked.connect(self._emitir_preview)
 
-        btn_ok = QPushButton("Exportar PDF…")
+        btn_ok = QPushButton(tr("Exportar PDF…"))
         btn_ok.setMinimumWidth(130); btn_ok.setMinimumHeight(32)
         btn_ok.setDefault(True)
         btn_ok.setStyleSheet(
@@ -893,8 +900,8 @@ class _DialogExportarGanttPdf(QDialog):
             FormatoReporteDialog(self).exec()
         except Exception as e:
             from PySide6.QtWidgets import QMessageBox as _Mb
-            _Mb.warning(self, "Formato",
-                          f"No se pudo abrir el editor de formato:\n{e}")
+            _Mb.warning(self, tr("Formato"),
+                          tr("No se pudo abrir el editor de formato:\n{e}").format(e=e))
 
     def _emitir_preview(self):
         self.preview_solicitado.emit(self._opts())
@@ -1319,16 +1326,16 @@ class _GanttArrow(QGraphicsPathItem):
             self.setFlag(QGraphicsItem.ItemIsSelectable, True)
             self.setFlag(QGraphicsItem.ItemIsFocusable, True)
             if pct:
-                etiqueta = f"CC+{int(pct)}% (comienza cuando la pred. lleva {int(pct)}%)"
+                etiqueta = tr("CC+{pct}% (comienza cuando la pred. lleva {pct}%)").format(pct=int(pct))
             elif tgt_pct:
-                etiqueta = f"sucesor al {tgt_pct}% al fin de pred"
+                etiqueta = tr("sucesor al {tgt_pct}% al fin de pred").format(tgt_pct=tgt_pct)
             else:
                 from core.cronograma import _TIPO_ES
                 etiqueta = _TIPO_ES.get(tipo, tipo) + (f"{lag:+d}" if lag else "")
             self.setToolTip(
-                f"Dependencia: {etiqueta}\n"
-                "Clic = seleccionar (Supr para eliminar) · arrastra para "
-                "ajustar lag/% · clic derecho para más opciones."
+                tr("Dependencia: {etiqueta}\n"
+                   "Clic = seleccionar (Supr para eliminar) · arrastra para "
+                   "ajustar lag/% · clic derecho para más opciones.").format(etiqueta=etiqueta)
             )
 
     def shape(self):
@@ -1595,7 +1602,7 @@ class GanttWidget(QWidget):
         tb_hl.setContentsMargins(0, 0, 0, 0)
         tb_hl.setSpacing(8)
 
-        lbl = QLabel("Escala:")
+        lbl = QLabel(tr("Escala:"))
         lbl.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         tb_hl.addWidget(lbl)
 
@@ -1603,13 +1610,13 @@ class GanttWidget(QWidget):
         # "Auto" = la unidad del encabezado se deriva del zoom (comportamiento
         # clásico). Las demás FIJAN la unidad del encabezado (días/semanas/meses)
         # independientemente del zoom — como la escala temporal de MS Project.
-        self._cmb_escala.addItems(["Auto", "Días", "Semanas", "Meses"])
+        self._cmb_escala.addItems([tr("Auto"), tr("Días"), tr("Semanas"), tr("Meses")])
         from utils.tooltip import set_tooltip as _set_tt_esc
         _set_tt_esc(self._cmb_escala,
-                    "Unidad del encabezado del Gantt.\n"
+                    tr("Unidad del encabezado del Gantt.\n"
                     "Auto: se ajusta sola al zoom.\n"
                     "Días / Semanas / Meses: fija esa unidad (el zoom solo "
-                    "cambia el tamaño, no la unidad).")
+                    "cambia el tamaño, no la unidad)."))
         # Restaurar la última unidad elegida por el usuario
         from PySide6.QtCore import QSettings as _QS_esc
         _saved_unit = str(_QS_esc("ingePresupuestos", "layout").value(
@@ -1626,7 +1633,7 @@ class GanttWidget(QWidget):
         tb_hl.addWidget(self._cmb_escala)
 
         tb_hl.addSpacing(20)
-        lbl_z = QLabel("Zoom:")
+        lbl_z = QLabel(tr("Zoom:"))
         lbl_z.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         tb_hl.addWidget(lbl_z)
 
@@ -1635,7 +1642,7 @@ class GanttWidget(QWidget):
         btn_zout.setFixedSize(26, 22)
         btn_zout.setCursor(Qt.PointingHandCursor)
         from utils.tooltip import set_tooltip as _set_tt
-        _set_tt(btn_zout, "Alejar (Ctrl + rueda)")
+        _set_tt(btn_zout, tr("Alejar (Ctrl + rueda)"))
         btn_zout.setStyleSheet(
             f"QPushButton {{ background:white; border:1px solid {SILVER_300};"
             f" border-radius:4px; font-size:14px; font-weight:700; min-height:0; padding:0; }}"
@@ -1652,7 +1659,7 @@ class GanttWidget(QWidget):
         self._sl_zoom.setSingleStep(1)
         self._sl_zoom.setPageStep(4)
         self._sl_zoom.setTickInterval(4)
-        _set_tt(self._sl_zoom, "Ancho de día (px) — arrastra para zoom continuo")
+        _set_tt(self._sl_zoom, tr("Ancho de día (px) — arrastra para zoom continuo"))
         self._sl_zoom.setStyleSheet(
             "QSlider::groove:horizontal {"
             f" background:{SILVER_300}; height:4px; border-radius:2px; }}"
@@ -1670,7 +1677,7 @@ class GanttWidget(QWidget):
         btn_zin = QPushButton("+")
         btn_zin.setFixedSize(26, 22)
         btn_zin.setCursor(Qt.PointingHandCursor)
-        _set_tt(btn_zin, "Acercar (Ctrl + rueda)")
+        _set_tt(btn_zin, tr("Acercar (Ctrl + rueda)"))
         btn_zin.setStyleSheet(
             f"QPushButton {{ background:white; border:1px solid {SILVER_300};"
             f" border-radius:4px; font-size:14px; font-weight:700; min-height:0; padding:0; }}"
@@ -1685,10 +1692,10 @@ class GanttWidget(QWidget):
         tb_hl.addWidget(self._lbl_zoom)
 
         # Botón "Ajustar" — calcula DAY_W para que el proyecto entero quepa
-        btn_fit = QPushButton("⤢ Ajustar")
+        btn_fit = QPushButton(tr("⤢ Ajustar"))
         btn_fit.setFixedHeight(22)
         btn_fit.setCursor(Qt.PointingHandCursor)
-        _set_tt(btn_fit, "Calcular zoom para que el proyecto completo entre en pantalla")
+        _set_tt(btn_fit, tr("Calcular zoom para que el proyecto completo entre en pantalla"))
         btn_fit.setStyleSheet(
             f"QPushButton {{ background:white; border:1px solid {SILVER_300};"
             f" border-radius:4px; font-size:11px; padding:2px 10px; min-height:0; }}"
@@ -1701,7 +1708,7 @@ class GanttWidget(QWidget):
         btn_reset = QPushButton("100%")
         btn_reset.setFixedHeight(22)
         btn_reset.setCursor(Qt.PointingHandCursor)
-        _set_tt(btn_reset, "Restablecer zoom a tamaño normal (16 px/día)")
+        _set_tt(btn_reset, tr("Restablecer zoom a tamaño normal (16 px/día)"))
         btn_reset.setStyleSheet(
             f"QPushButton {{ background:white; border:1px solid {SILVER_300};"
             f" border-radius:4px; font-size:11px; padding:2px 8px; min-height:0; }}"
@@ -1714,14 +1721,14 @@ class GanttWidget(QWidget):
         from PySide6.QtCore import QSettings as _QS
         s = _QS("ingePresupuestos", "layout")
         self._show_slack = bool(s.value("gantt_show_slack", False, type=bool))
-        self._btn_slack = QPushButton("⏳ Holgura")
+        self._btn_slack = QPushButton(tr("⏳ Holgura"))
         self._btn_slack.setCheckable(True)
         self._btn_slack.setChecked(self._show_slack)
         self._btn_slack.setFixedHeight(22)
         self._btn_slack.setCursor(Qt.PointingHandCursor)
         _set_tt(self._btn_slack,
-                  "Muestra/oculta la barra de holgura — cuánto puede atrasarse "
-                  "cada tarea no crítica sin afectar el fin del proyecto.")
+                  tr("Muestra/oculta la barra de holgura — cuánto puede atrasarse "
+                  "cada tarea no crítica sin afectar el fin del proyecto."))
         self._btn_slack.setStyleSheet(
             f"QPushButton {{ background:white; border:1px solid {SILVER_300};"
             f" border-radius:4px; font-size:11px; padding:2px 10px; min-height:0; }}"
@@ -1736,7 +1743,7 @@ class GanttWidget(QWidget):
         tb_hl.addSpacing(20)
         from PySide6.QtWidgets import QDateEdit
         from PySide6.QtCore import QDate
-        lbl_ini = QLabel("Inicio:")
+        lbl_ini = QLabel(tr("Inicio:"))
         lbl_ini.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         tb_hl.addWidget(lbl_ini)
         self._dp_inicio = QDateEdit()
@@ -1754,10 +1761,10 @@ class GanttWidget(QWidget):
         self._dp_inicio.dateChanged.connect(self._on_fecha_inicio)
         tb_hl.addWidget(self._dp_inicio)
 
-        btn_fer = QPushButton("Feriados…")
+        btn_fer = QPushButton(tr("Feriados…"))
         btn_fer.setCursor(Qt.PointingHandCursor)
         from utils.tooltip import set_tooltip
-        set_tooltip(btn_fer, "Días no laborables (se sombrean en el Gantt)")
+        set_tooltip(btn_fer, tr("Días no laborables (se sombrean en el Gantt)"))
         btn_fer.setStyleSheet(
             f"QPushButton {{ background:white; border:1px solid {SILVER_300};"
             f" border-radius:4px; font-size:11px; padding:3px 10px;"
@@ -1777,8 +1784,8 @@ class GanttWidget(QWidget):
             f"QPushButton:hover {{ background:{SILVER_100}; color:{SLATE_700}; }}"
         )
         btn_pdf.clicked.connect(self._exportar_pdf)
-        set_tooltip(btn_pdf, "Exportar el Gantt a PDF / imagen — con opciones "
-                              "de papel, paginación y vista previa")
+        set_tooltip(btn_pdf, tr("Exportar el Gantt a PDF / imagen — con opciones "
+                              "de papel, paginación y vista previa"))
         tb_hl.addWidget(btn_pdf)
 
         btn_mpp = QPushButton("📊 MS Project")
@@ -1790,31 +1797,31 @@ class GanttWidget(QWidget):
             f"QPushButton:hover {{ background:{SILVER_100}; color:{SLATE_700}; }}"
         )
         btn_mpp.clicked.connect(self._exportar_mpp)
-        set_tooltip(btn_mpp, "Exportar el cronograma como XML para abrirlo en "
+        set_tooltip(btn_mpp, tr("Exportar el cronograma como XML para abrirlo en "
                               "Microsoft Project (también ProjectLibre): calendario, "
                               "hitos, ruta crítica y notas con color. Luego "
-                              "«Desde Project» trae de vuelta lo que cambies allá.")
+                              "«Desde Project» trae de vuelta lo que cambies allá."))
         tb_hl.addWidget(btn_mpp)
 
         # Vuelta desde Project: lee el XML que Project guardó, empareja por
         # IngeID y muestra qué cambiaría antes de aplicar.
-        btn_sync = QPushButton("🔄 Desde Project")
+        btn_sync = QPushButton(tr("🔄 Desde Project"))
         btn_sync.setCursor(Qt.PointingHandCursor)
         btn_sync.setStyleSheet(btn_mpp.styleSheet())
         btn_sync.clicked.connect(self._sincronizar_project)
-        set_tooltip(btn_sync, "Traer duraciones y predecesoras desde el XML que "
+        set_tooltip(btn_sync, tr("Traer duraciones y predecesoras desde el XML que "
                                "guardaste en Microsoft Project (Archivo → Guardar "
-                               "como → tipo XML). Muestra los cambios antes de aplicar.")
+                               "como → tipo XML). Muestra los cambios antes de aplicar."))
         tb_hl.addWidget(btn_sync)
 
         tb_hl.addStretch()
 
         lbl_leg = QLabel(
-            "<span style='color:#3689E6'>▬</span> Tarea  "
+            tr("<span style='color:#3689E6'>▬</span> Tarea  "
             "<span style='color:#C6262E'>▬</span> Crítica  "
             "<span style='color:#7A36B1'>◆</span> Hito  "
             "<span style='color:#6B7785'>→</span> Dependencia  "
-            "<span style='color:#C62828'>┊</span> Fin plazo"
+            "<span style='color:#C62828'>┊</span> Fin plazo")
         )
         lbl_leg.setStyleSheet(f"color:{SLATE_500}; font-size:10px;")
         tb_hl.addWidget(lbl_leg)
@@ -1837,15 +1844,15 @@ class GanttWidget(QWidget):
         # Tabla izquierda — 8 columnas (estilo MS Project: doble duración)
         self.tbl = QTableWidget(0, 8)
         self.tbl.setHorizontalHeaderLabels(
-            ["id", "Ítem", "Descripción", "Días\ncal.", "Días\nlab.",
-             "Inicio", "Fin", "Pred."]
+            ["id", tr("Ítem"), tr("Descripción"), tr("Días\ncal."), tr("Días\nlab."),
+             tr("Inicio"), tr("Fin"), tr("Pred.")]
         )
         # Tooltip explicativo de las dos columnas de duración.
         for _c, _tip in (
-            (3, "Duración en días CALENDARIO (incluye domingos y feriados).\n"
-                "Se calcula sola: Fin − Inicio + 1."),
-            (4, "Duración en días LABORABLES (descuenta domingos/feriados).\n"
-                "Es la que editas tú."),
+            (3, tr("Duración en días CALENDARIO (incluye domingos y feriados).\n"
+                "Se calcula sola: Fin − Inicio + 1.")),
+            (4, tr("Duración en días LABORABLES (descuenta domingos/feriados).\n"
+                "Es la que editas tú.")),
         ):
             _h = self.tbl.horizontalHeaderItem(_c)
             if _h is not None:
@@ -1854,7 +1861,7 @@ class GanttWidget(QWidget):
         hdr_item = self.tbl.horizontalHeaderItem(7)
         if hdr_item is not None:
             hdr_item.setToolTip(
-                "Predecesoras — notación MS Project (español):\n"
+                tr("Predecesoras — notación MS Project (español):\n"
                 "  5         → FC (default): inicia cuando 5 termina\n"
                 "  5FC+3     → FC con 3 días de lag\n"
                 "  5CC       → CC: inicia cuando 5 inicia\n"
@@ -1867,7 +1874,7 @@ class GanttWidget(QWidget):
                 "  (también se aceptan FS/SS/SF en inglés)\n"
                 "\n"
                 "¿No sabes el # de la fila? Clic derecho sobre la tarea →\n"
-                "«Predecesoras…» para buscarlas por descripción."
+                "«Predecesoras…» para buscarlas por descripción.")
             )
         th = self.tbl.horizontalHeader()
         # Todas las columnas redimensionables a mano (como MS Project). La
@@ -2118,9 +2125,9 @@ class GanttWidget(QWidget):
     def _on_header_ctx_menu(self, pos):
         from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
-        hdr = menu.addAction("Mostrar todas las columnas"
+        hdr = menu.addAction(tr("Mostrar todas las columnas")
                              if self._hay_columnas_ocultas()
-                             else "Ocultar columnas (dejar id y Descripción)")
+                             else tr("Ocultar columnas (dejar id y Descripción)"))
         hdr.triggered.connect(self._alternar_todas_las_columnas)
         menu.addSeparator()
         for c in range(self.tbl.columnCount()):
@@ -2191,32 +2198,32 @@ class GanttWidget(QWidget):
 
         self._hints_idx = 0
         self._hints_lista = [
-            "💡  <b>Arrastra una barra hacia otra</b> (hacia arriba/abajo) para "
+            tr("💡  <b>Arrastra una barra hacia otra</b> (hacia arriba/abajo) para "
             "crear una dependencia, como en MS Project. Sueltas al inicio = FC, "
             "al fin = FF, en el tercio central = CC+50% (el sucesor comienza "
-            "cuando la pred. lleva el 50%)",
-            "💡  <b>Arrastra</b> una flecha horizontalmente para ajustar el "
-            "lag en días (o el % si la vinculaste a mitad de la pred.)",
-            "💡  Haz <b>clic</b> sobre una flecha para seleccionarla y pulsa "
-            "<b>Supr</b> para eliminar (Ctrl+clic agrega varias a la selección)",
-            "💡  Haz <b>clic</b> sobre una <b>barra</b> y se resaltan en azul "
-            "sus predecesoras y sucesoras",
-            "💡  La <b style='color:#94A3B8'>barra gris</b> al final de una "
+            "cuando la pred. lleva el 50%)"),
+            tr("💡  <b>Arrastra</b> una flecha horizontalmente para ajustar el "
+            "lag en días (o el % si la vinculaste a mitad de la pred.)"),
+            tr("💡  Haz <b>clic</b> sobre una flecha para seleccionarla y pulsa "
+            "<b>Supr</b> para eliminar (Ctrl+clic agrega varias a la selección)"),
+            tr("💡  Haz <b>clic</b> sobre una <b>barra</b> y se resaltan en azul "
+            "sus predecesoras y sucesoras"),
+            tr("💡  La <b style='color:#94A3B8'>barra gris</b> al final de una "
             "tarea es su <b>holgura</b> — días que puede atrasarse sin "
-            "afectar el fin del proyecto",
-            "💡  Clic derecho sobre una <b>flecha</b> para cambiar el tipo "
-            "(FC/CC/FF/CF), editar lag/% o eliminarla",
-            "💡  Predecesoras: <b>5</b> = FC · <b>5FC+3</b> = FC+lag · "
-            "<b>5CC+2</b> = CC · <b>5FF-1</b> = FF · <b>5CF</b> = CF",
-            "💡  <b>Ctrl + rueda</b> sobre el Gantt para hacer zoom horizontal "
-            "en la línea de tiempo",
-            "💡  Las barras <b style='color:#C6262E'>rojas</b> son la ruta "
-            "crítica — su atraso retrasa el proyecto",
-            "💡  Auto-programar ▾ → <b>Con IA</b> sugiere dependencias "
-            "realistas según las descripciones",
-            "💡  <b>F1</b> abre la lista completa de atajos de teclado",
-            "💡  Clic derecho sobre una barra para dividirla, marcarla como "
-            "hito o cambiarle el color",
+            "afectar el fin del proyecto"),
+            tr("💡  Clic derecho sobre una <b>flecha</b> para cambiar el tipo "
+            "(FC/CC/FF/CF), editar lag/% o eliminarla"),
+            tr("💡  Predecesoras: <b>5</b> = FC · <b>5FC+3</b> = FC+lag · "
+            "<b>5CC+2</b> = CC · <b>5FF-1</b> = FF · <b>5CF</b> = CF"),
+            tr("💡  <b>Ctrl + rueda</b> sobre el Gantt para hacer zoom horizontal "
+            "en la línea de tiempo"),
+            tr("💡  Las barras <b style='color:#C6262E'>rojas</b> son la ruta "
+            "crítica — su atraso retrasa el proyecto"),
+            tr("💡  Auto-programar ▾ → <b>Con IA</b> sugiere dependencias "
+            "realistas según las descripciones"),
+            tr("💡  <b>F1</b> abre la lista completa de atajos de teclado"),
+            tr("💡  Clic derecho sobre una barra para dividirla, marcarla como "
+            "hito o cambiarle el color"),
         ]
         self.lbl_hint = QLabel(self._hints_lista[0])
         self.lbl_hint.setStyleSheet(
@@ -2226,7 +2233,7 @@ class GanttWidget(QWidget):
         hl.addWidget(self.lbl_hint, stretch=1)
 
         from utils.icons import icon as load_icon
-        btn_help = QPushButton(" Ayúdame")
+        btn_help = QPushButton(tr(" Ayúdame"))
         btn_help.setIcon(load_icon("tuxia"))
         btn_help.setIconSize(QSize(16, 16))
         btn_help.setCursor(Qt.PointingHandCursor)
@@ -2280,7 +2287,7 @@ class GanttWidget(QWidget):
         from PySide6.QtGui import QPalette, QColor
         # No padre — para que el dialog no herede la paleta oscura del topbar
         dlg = QDialog()
-        dlg.setWindowTitle("Feriados / días no laborables")
+        dlg.setWindowTitle(tr("Feriados / días no laborables"))
         dlg.resize(440, 380)
         dlg.setAttribute(Qt.WA_StyledBackground, True)
         dlg.setWindowModality(Qt.ApplicationModal)
@@ -2320,9 +2327,9 @@ class GanttWidget(QWidget):
 
         # ── Toggle: saltar no laborables en cálculo del CPM ──
         chk_saltar = QCheckBox(
-            "Saltar domingos y feriados\n"
+            tr("Saltar domingos y feriados\n"
             "Las tareas no inician ni terminan en estos días; la duración se "
-            "cuenta solo en días laborables."
+            "cuenta solo en días laborables.")
         )
         chk_saltar.setChecked(
             int(self._cv._proy.get('salta_no_laborables', 1) or 0) == 1
@@ -2330,8 +2337,8 @@ class GanttWidget(QWidget):
         vl.addWidget(chk_saltar)
 
         vl.addWidget(QLabel(
-            "\nFeriados — una fecha por línea o separadas por coma.\n"
-            "Formato: AAAA-MM-DD. Ej: 2026-07-28, 2026-07-29 (Fiestas Patrias)"
+            tr("\nFeriados — una fecha por línea o separadas por coma.\n"
+            "Formato: AAAA-MM-DD. Ej: 2026-07-28, 2026-07-29 (Fiestas Patrias)")
         ))
         ed = QPlainTextEdit()
         actual = (self._cv._proy.get('feriados') or '').replace(',', '\n').strip()
@@ -2342,7 +2349,7 @@ class GanttWidget(QWidget):
         from PySide6.QtWidgets import QHBoxLayout, QPushButton, QApplication
         ia_row = QHBoxLayout()
         ia_row.addStretch()
-        btn_ia = QPushButton("✨ Cargar feriados con IA")
+        btn_ia = QPushButton(tr("✨ Cargar feriados con IA"))
         btn_ia.setCursor(Qt.PointingHandCursor)
         btn_ia.setStyleSheet(
             "QPushButton { background:#FEF5EB; color:#C0621A;"
@@ -2370,8 +2377,8 @@ class GanttWidget(QWidget):
                 QApplication.restoreOverrideCursor()
             if err:
                 from PySide6.QtWidgets import QMessageBox
-                QMessageBox.warning(dlg, "Cargar feriados con IA",
-                    f"No se pudo obtener la lista:\n\n{err}")
+                QMessageBox.warning(dlg, tr("Cargar feriados con IA"),
+                    tr("No se pudo obtener la lista:\n\n{err}").format(err=err))
                 return
             # Combinar con las que ya están escritas (no perder ediciones)
             import re as _re
@@ -2383,8 +2390,8 @@ class GanttWidget(QWidget):
         ia_row.addWidget(btn_ia)
         vl.addLayout(ia_row)
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Save).setText("Guardar")
-        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        bb.button(QDialogButtonBox.Save).setText(tr("Guardar"))
+        bb.button(QDialogButtonBox.Cancel).setText(tr("Cancelar"))
         bb.accepted.connect(dlg.accept)
         bb.rejected.connect(dlg.reject)
         vl.addWidget(bb)
@@ -2510,7 +2517,8 @@ class GanttWidget(QWidget):
             editable = not (es_titulo or virtual)
             desc_txt = p['descripcion'] or ''
             if virtual in ('inicio', 'fin'):
-                desc_txt = "◆ " + desc_txt
+                # Solo en pantalla: el PDF del Gantt sigue en el idioma del proyecto.
+                desc_txt = "◆ " + tr(desc_txt)
             cells = [
                 (num_str,                Qt.AlignCenter,  False),
                 (p.get('item', '') or '', Qt.AlignLeft,   False),
@@ -2682,21 +2690,21 @@ class GanttWidget(QWidget):
 
         n_preds = len(self._parse_preds(cd.get('predecesoras', '') or ''))
         act_pred = menu.addAction(
-            f"🔗 Predecesoras…{f' ({n_preds})' if n_preds else ''}")
+            tr("🔗 Predecesoras…") + (f" ({n_preds})" if n_preds else ''))
         act_pred.triggered.connect(lambda: self._editar_predecesoras(pid))
         menu.addSeparator()
 
-        act_div = menu.addAction("✂ Dividir tarea")
+        act_div = menu.addAction(tr("✂ Dividir tarea"))
         act_div.triggered.connect(lambda: self._dividir_tarea(pid))
         if has_segs:
-            act_unir = menu.addAction("⊞ Unir segmentos")
+            act_unir = menu.addAction(tr("⊞ Unir segmentos"))
             act_unir.triggered.connect(lambda: self._unir_segmentos(pid))
         menu.addSeparator()
         for label, val in [
-            ("◯ Tarea normal", 0),
-            ("◆ Marcar como hito (sin duración)", 1),
-            ("▶ Marcar inicio de fase (mantiene duración)", 2),
-            ("⏹ Marcar fin de fase (mantiene duración)", 3),
+            (tr("◯ Tarea normal"), 0),
+            (tr("◆ Marcar como hito (sin duración)"), 1),
+            (tr("▶ Marcar inicio de fase (mantiene duración)"), 2),
+            (tr("⏹ Marcar fin de fase (mantiene duración)"), 3),
         ]:
             act = menu.addAction(label + (" ✓" if es_hito == val else ""))
             act.triggered.connect(lambda _=False, v=val: self._set_hito(pid, v))
@@ -2704,10 +2712,10 @@ class GanttWidget(QWidget):
         # Color personalizado de la barra
         cur_color = (cd.get('color', '') or '').strip()
         marca = f" ({cur_color})" if cur_color else ""
-        act_col = menu.addAction(f"🎨 Color de barra…{marca}")
+        act_col = menu.addAction(tr("🎨 Color de barra…") + marca)
         act_col.triggered.connect(lambda: self._elegir_color_barra(pid))
         if cur_color:
-            act_clr = menu.addAction("✕ Quitar color personalizado")
+            act_clr = menu.addAction(tr("✕ Quitar color personalizado"))
             act_clr.triggered.connect(lambda: self._set_color_barra(pid, ''))
         menu.exec(global_pos)
 
@@ -2733,10 +2741,10 @@ class GanttWidget(QWidget):
         if not malos:
             return
         QMessageBox.warning(
-            self, "Predecesoras no encontradas",
-            "No existe ninguna fila para: " + ", ".join(f"«{m}»" for m in malos) +
-            ".\n\nEsas dependencias se van a ignorar. Usa clic derecho sobre la "
-            "tarea → «Predecesoras…» para elegirlas por descripción.")
+            self, tr("Predecesoras no encontradas"),
+            tr("No existe ninguna fila para: {lista}.\n\nEsas dependencias se van a ignorar. Usa clic derecho sobre la "
+               "tarea → «Predecesoras…» para elegirlas por descripción.").format(
+                lista=", ".join(f"«{m}»" for m in malos)))
 
     def _editar_predecesoras(self, pid: int):
         """Abre el selector de predecesoras (busca por descripción en vez de
@@ -2766,7 +2774,7 @@ class GanttWidget(QWidget):
         cmap = self._cv._cron_map
         actual = (cmap.get(pid, {}).get('color', '') or '').strip()
         ini = QColor(actual) if actual else QColor("#F37329")
-        col = QColorDialog.getColor(ini, self, "Color de la barra")
+        col = QColorDialog.getColor(ini, self, tr("Color de la barra"))
         if col.isValid():
             self._set_color_barra(pid, col.name())
 
@@ -2909,7 +2917,7 @@ class GanttWidget(QWidget):
         sugerido = os.path.join(self._dir_descargas_gantt(),
                                   f"gantt_{self._cv.pid}.pdf")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Gantt a PDF", sugerido, "PDF (*.pdf)"
+            self, tr("Exportar Gantt a PDF"), sugerido, "PDF (*.pdf)"
         )
         if not path:
             return
@@ -2923,11 +2931,11 @@ class GanttWidget(QWidget):
                 incluir_page=opts.get('incluir_page', True),
             )
             self._save_dir_gantt(path)
-            QMessageBox.information(self, "Exportar PDF",
-                                       f"Gantt exportado a:\n{path}")
+            QMessageBox.information(self, tr("Exportar PDF"),
+                                       tr("Gantt exportado a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _vista_previa_pdf(self, opts):
         """Vista previa WYSIWYG: genera el PDF (mismo pipeline que el export) a
@@ -2940,8 +2948,8 @@ class GanttWidget(QWidget):
             from PySide6.QtPdf import QPdfDocument
             from PySide6.QtPdfWidgets import QPdfView
         except ImportError:
-            QMessageBox.warning(self, "Vista previa",
-                                  "Módulo QtPdf/QtPdfWidgets no disponible.")
+            QMessageBox.warning(self, tr("Vista previa"),
+                                  tr("Módulo QtPdf/QtPdfWidgets no disponible."))
             return
 
         fd, tmp = tempfile.mkstemp(suffix='.pdf')
@@ -2959,12 +2967,12 @@ class GanttWidget(QWidget):
             import traceback; traceback.print_exc()
             try: os.unlink(tmp)
             except Exception: pass
-            QMessageBox.warning(self, "Vista previa",
-                                  f"No se pudo generar la vista previa: {e}")
+            QMessageBox.warning(self, tr("Vista previa"),
+                                  tr("No se pudo generar la vista previa: {e}").format(e=e))
             return
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("Vista previa — Gantt")
+        dlg.setWindowTitle(tr("Vista previa — Gantt"))
         dlg.setWindowModality(Qt.ApplicationModal)
         dlg.resize(1200, 820)
         vl = QVBoxLayout(dlg)
@@ -2976,12 +2984,12 @@ class GanttWidget(QWidget):
         bar.setStyleSheet("background:#EEF1F5; border-bottom:1px solid #D4D4D4;")
         bhl = QHBoxLayout(bar)
         bhl.setContentsMargins(8, 4, 8, 4)
-        lbl = QLabel("Vista previa del Gantt (igual al PDF que se exporta)")
+        lbl = QLabel(tr("Vista previa del Gantt (igual al PDF que se exporta)"))
         lbl.setStyleSheet("color:#485A6C; font-size:11px; border:none;")
         bhl.addWidget(lbl)
         bhl.addStretch()
-        btn_img = QPushButton("🖼  Exportar imagen…")
-        btn_pdf = QPushButton("Exportar PDF…")
+        btn_img = QPushButton(tr("🖼  Exportar imagen…"))
+        btn_pdf = QPushButton(tr("Exportar PDF…"))
         for b in (btn_img, btn_pdf):
             b.setCursor(Qt.PointingHandCursor)
             b.setStyleSheet(
@@ -3008,17 +3016,17 @@ class GanttWidget(QWidget):
             sugerido = os.path.join(self._dir_descargas_gantt(),
                                       f"gantt_{self._cv.pid}.pdf")
             path, _ = QFileDialog.getSaveFileName(
-                dlg, "Exportar Gantt a PDF", sugerido, "PDF (*.pdf)")
+                dlg, tr("Exportar Gantt a PDF"), sugerido, "PDF (*.pdf)")
             if not path:
                 return
             try:
                 import shutil
                 shutil.copyfile(tmp, path)
                 self._save_dir_gantt(path)
-                QMessageBox.information(dlg, "Exportar PDF",
-                                          f"PDF exportado:\n{path}")
+                QMessageBox.information(dlg, tr("Exportar PDF"),
+                                          tr("PDF exportado:\n{path}").format(path=path))
             except Exception as e:
-                QMessageBox.warning(dlg, "Exportar PDF", f"No se pudo: {e}")
+                QMessageBox.warning(dlg, tr("Exportar PDF"), tr("No se pudo: {e}").format(e=e))
         btn_pdf.clicked.connect(_export_pdf_desde_preview)
 
         try:
@@ -3036,14 +3044,14 @@ class GanttWidget(QWidget):
         try:
             from PySide6.QtPdf import QPdfDocument
         except ImportError:
-            QMessageBox.warning(self, "Exportar imagen",
-                                  "Módulo QtPdf no disponible.")
+            QMessageBox.warning(self, tr("Exportar imagen"),
+                                  tr("Módulo QtPdf no disponible."))
             return
 
         sugerido = os.path.join(self._dir_descargas_gantt(),
                                   f"gantt_{self._cv.pid}.png")
         path, sel = QFileDialog.getSaveFileName(
-            self, "Exportar Gantt como imagen", sugerido,
+            self, tr("Exportar Gantt como imagen"), sugerido,
             "PNG (*.png);;JPEG (*.jpg *.jpeg)"
         )
         if not path:
@@ -3105,13 +3113,14 @@ class GanttWidget(QWidget):
                     raise RuntimeError(f"No se pudo guardar {out}")
                 outs.append(out)
             self._save_dir_gantt(path)
-            msg = "Imagen exportada:\n" + outs[0] if n == 1 \
-                else f"{n} páginas exportadas:\n{outs[0]}\n…\n{outs[-1]}"
-            QMessageBox.information(self, "Exportar imagen", msg)
+            msg = tr("Imagen exportada:\n") + outs[0] if n == 1 \
+                else tr("{n} páginas exportadas:\n{primera}\n…\n{ultima}").format(
+                    n=n, primera=outs[0], ultima=outs[-1])
+            QMessageBox.information(self, tr("Exportar imagen"), msg)
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Exportar imagen",
-                                  f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Exportar imagen"),
+                                  tr("No se pudo exportar: {e}").format(e=e))
         finally:
             try: os.unlink(tmp_pdf)
             except Exception: pass
@@ -4967,15 +4976,15 @@ class GanttWidget(QWidget):
         ultimo = s.value(f"mpp_path/{self._cv.pid}", "") or ""
         inicio = ultimo if ultimo and os.path.exists(ultimo) else self._dir_descargas_gantt()
         path, _ = QFileDialog.getOpenFileName(
-            self, "Sincronizar con Microsoft Project — elige el XML guardado por Project",
+            self, tr("Sincronizar con Microsoft Project — elige el XML guardado por Project"),
             inicio, "MS Project XML (*.xml)")
         if not path:
             return
         try:
             datos = leer_project_xml(path)
         except Exception as e:
-            _QMB.warning(self, "Sincronizar con Project",
-                         f"No se pudo leer el archivo como XML de Microsoft Project.\n\n{e}")
+            _QMB.warning(self, tr("Sincronizar con Project"),
+                         tr("No se pudo leer el archivo como XML de Microsoft Project.\n\n{e}").format(e=e))
             return
         plan = planificar(datos, self._cv._partidas, self._cv._cron_map)
         dlg = SincronizarProjectDialog(plan, path, self)
@@ -4990,8 +4999,8 @@ class GanttWidget(QWidget):
         self._llenar_tabla()
         self._render_gantt()
         s.setValue(f"mpp_path/{self._cv.pid}", path)
-        _QMB.information(self, "Sincronizar con Project",
-                         f"Se actualizaron {n} partida(s) desde Project.")
+        _QMB.information(self, tr("Sincronizar con Project"),
+                         tr("Se actualizaron {n} partida(s) desde Project.").format(n=n))
 
     def _exportar_mpp(self):
         """Exporta el cronograma a XML compatible con Microsoft Project (MSPDI).
@@ -5002,7 +5011,7 @@ class GanttWidget(QWidget):
         sugerido = os.path.join(self._dir_descargas_gantt(),
                                   f"cronograma_{self._cv.pid}.xml")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar a Microsoft Project XML",
+            self, tr("Exportar a Microsoft Project XML"),
             sugerido, "MS Project XML (*.xml)"
         )
         if not path:
@@ -5398,23 +5407,23 @@ class GanttWidget(QWidget):
             tree.write(path, encoding='utf-8', xml_declaration=True)
             self._save_dir_gantt(path)
 
-            msg = (
-                f"Cronograma exportado a:\n{path}\n\n"
+            msg = tr(
+                "Cronograma exportado a:\n{path}\n\n"
                 "Incluye:\n"
                 "  • Metadata: empresa, cliente, ubicación, modalidad\n"
                 "  • Calendario: domingos no laborables\n"
-                f"  • {len(feriados)} feriados como excepciones del calendario\n"
+                "  • {n} feriados como excepciones del calendario\n"
                 "  • Hitos, ruta crítica y dependencias con lag\n"
                 "  • Colores personalizados → notas + columna ColorBarra (Text30)\n\n"
                 "Formato estándar abierto (XML de MS Project / MSPDI):\n"
                 "ábrelo en MS Project o, SIN necesidad de licencia, en\n"
                 "ProjectLibre (gratis — Windows, Mac y Linux). También\n"
                 "compatible con GanttProject."
-            )
-            QMessageBox.information(self, "Exportar a MS Project", msg)
+            ).format(path=path, n=len(feriados))
+            QMessageBox.information(self, tr("Exportar a MS Project"), msg)
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     # ──────────────────────────────────────────────────────────────────────
     # Render del Gantt (QGraphicsScene)
@@ -5709,9 +5718,9 @@ class GanttWidget(QWidget):
         if source_pid == target_pid:
             return
         if self._evita_ciclo(source_pid, target_pid):
-            QMessageBox.warning(self, "Dependencia circular",
-                                  "Esa dependencia crearía un ciclo entre partidas. "
-                                  "Revisa la cadena de predecesoras.")
+            QMessageBox.warning(self, tr("Dependencia circular"),
+                                  tr("Esa dependencia crearía un ciclo entre partidas. "
+                                  "Revisa la cadena de predecesoras."))
             return
         token = self._build_pred_token(source_pid, tipo, lag, pct, tgt_pct)
         if token is None:
@@ -5740,7 +5749,7 @@ class GanttWidget(QWidget):
         if pct_actual:
             etiqueta = f"CC+{int(pct_actual)}%"
         elif tgt_pct_actual:
-            etiqueta = f"sucesor al {tgt_pct_actual}% cuando pred. termina"
+            etiqueta = tr("sucesor al {tgt_pct}% cuando pred. termina").format(tgt_pct=tgt_pct_actual)
         else:
             from core.cronograma import _TIPO_ES
             etiqueta = _TIPO_ES.get(tipo_actual, tipo_actual) + (f"{lag_actual:+d}" if lag_actual else "")
@@ -5750,14 +5759,14 @@ class GanttWidget(QWidget):
         modo_especial = bool(pct_actual or tgt_pct_actual)
         # Cambiar tipo (no aplica si está en modo % o tgt_pct)
         for t_lbl, t_val, t_desc in [
-            ('FC — Fin a Comienzo (default)', 'FS',
-              'El sucesor inicia cuando la pred. termina'),
-            ('CC — Comienzo a Comienzo',      'SS',
-              'Ambas inician a la vez'),
-            ('FF — Fin a Fin',                'FF',
-              'Ambas terminan a la vez'),
-            ('CF — Comienzo a Fin (raro)',    'SF',
-              'El sucesor termina cuando la pred. inicia'),
+            (tr('FC — Fin a Comienzo (default)'), 'FS',
+              tr('El sucesor inicia cuando la pred. termina')),
+            (tr('CC — Comienzo a Comienzo'),      'SS',
+              tr('Ambas inician a la vez')),
+            (tr('FF — Fin a Fin'),                'FF',
+              tr('Ambas terminan a la vez')),
+            (tr('CF — Comienzo a Fin (raro)'),    'SF',
+              tr('El sucesor termina cuando la pred. inicia')),
         ]:
             marca = ' ✓' if (t_val == tipo_actual and not modo_especial) else ''
             act = menu.addAction(t_lbl + marca)
@@ -5770,8 +5779,8 @@ class GanttWidget(QWidget):
             )
         menu.addSeparator()
         # Editar lag (días)
-        lbl_lag = (f"⏱ Editar lag (días)…   actual: {lag_actual:+d}"
-                    if lag_actual and not modo_especial else "⏱ Editar lag (días)…")
+        lbl_lag = (tr("⏱ Editar lag (días)…   actual: {lag:+d}").format(lag=lag_actual)
+                    if lag_actual and not modo_especial else tr("⏱ Editar lag (días)…"))
         act_lag = menu.addAction(lbl_lag)
         act_lag.triggered.connect(
             lambda: self._edit_dep_lag(source_pid, target_pid, tipo_actual,
@@ -5779,40 +5788,40 @@ class GanttWidget(QWidget):
         )
         # Lag en porcentaje, estilo MS Project: CC+X% (B comienza cuando A
         # lleva X% de avance).
-        lbl_pct = (f"◐ Lag en % — CC+X%…   actual: CC+{int(pct_actual)}%"
-                    if pct_actual else "◐ Lag en % — CC+X%…")
+        lbl_pct = (tr("◐ Lag en % — CC+X%…   actual: CC+{pct}%").format(pct=int(pct_actual))
+                    if pct_actual else tr("◐ Lag en % — CC+X%…"))
         act_pct = menu.addAction(lbl_pct)
-        act_pct.setToolTip("Comenzar B cuando A lleva X% de avance — equivale a "
+        act_pct.setToolTip(tr("Comenzar B cuando A lleva X% de avance — equivale a "
                             "CC+X% en MS Project (p.ej. 50% del encofrado para "
-                            "empezar a vaciar concreto).")
+                            "empezar a vaciar concreto)."))
         act_pct.triggered.connect(
             lambda: self._edit_dep_pct(source_pid, target_pid, pct_actual)
         )
         # Extensión propia (sin equivalente MSP): solo se ofrece para editar/
         # quitar relaciones antiguas que ya la usen.
         if tgt_pct_actual:
-            lbl_tgt = f"◑ Llegar al X% del sucesor (al fin de pred)…   actual: {tgt_pct_actual}%"
+            lbl_tgt = tr("◑ Llegar al X% del sucesor (al fin de pred)…   actual: {tgt_pct}%").format(tgt_pct=tgt_pct_actual)
             act_tgt = menu.addAction(lbl_tgt)
-            act_tgt.setToolTip("Relación heredada sin equivalente en MS Project. "
-                                "Para cuando A termine, B ya debe estar al X%.")
+            act_tgt.setToolTip(tr("Relación heredada sin equivalente en MS Project. "
+                                "Para cuando A termine, B ya debe estar al X%."))
             act_tgt.triggered.connect(
                 lambda: self._edit_dep_tgt_pct(source_pid, target_pid, tgt_pct_actual)
             )
         if modo_especial:
-            act_clr = menu.addAction("⊘ Quitar vínculo especial (volver a FS)")
+            act_clr = menu.addAction(tr("⊘ Quitar vínculo especial (volver a FS)"))
             act_clr.triggered.connect(
                 lambda: self._set_dep(source_pid, target_pid, tipo='FS',
                                         lag=0, pct=0, tgt_pct=0)
             )
         menu.addSeparator()
-        act_del = menu.addAction("✕ Eliminar dependencia")
+        act_del = menu.addAction(tr("✕ Eliminar dependencia"))
         act_del.triggered.connect(lambda: self._remove_dep(source_pid, target_pid))
         menu.exec(global_pos)
 
     def _edit_dep_lag(self, source_pid, target_pid, tipo, lag_actual):
         val, ok = QInputDialog.getInt(
-            self, "Lag de la dependencia",
-            "Días de adelanto (negativo) o retraso (positivo):",
+            self, tr("Lag de la dependencia"),
+            tr("Días de adelanto (negativo) o retraso (positivo):"),
             int(lag_actual), -365, 365, 1
         )
         if not ok:
@@ -5821,9 +5830,9 @@ class GanttWidget(QWidget):
 
     def _edit_dep_pct(self, source_pid, target_pid, pct_actual):
         val, ok = QInputDialog.getInt(
-            self, "Lag en % (CC+X%)",
-            "Porcentaje de avance de la pred. para iniciar este sucesor\n"
-            "— equivale a CC+X% en MS Project (ej. 50 = a la mitad):",
+            self, tr("Lag en % (CC+X%)"),
+            tr("Porcentaje de avance de la pred. para iniciar este sucesor\n"
+            "— equivale a CC+X% en MS Project (ej. 50 = a la mitad):"),
             int(pct_actual) if pct_actual else 50, 1, 100, 5
         )
         if not ok:
@@ -5834,9 +5843,9 @@ class GanttWidget(QWidget):
 
     def _edit_dep_tgt_pct(self, source_pid, target_pid, tgt_pct_actual):
         val, ok = QInputDialog.getInt(
-            self, "Llegar al % del sucesor",
-            "% que debe haber avanzado el SUCESOR cuando la pred. termine\n"
-            "(ej. 50 = sucesor a la mitad, 75 = a 3/4 cuando A termine):",
+            self, tr("Llegar al % del sucesor"),
+            tr("% que debe haber avanzado el SUCESOR cuando la pred. termine\n"
+            "(ej. 50 = sucesor a la mitad, 75 = a 3/4 cuando A termine):"),
             int(tgt_pct_actual) if tgt_pct_actual else 50, 1, 100, 5
         )
         if not ok:
@@ -6116,8 +6125,8 @@ class GanttWidget(QWidget):
     def _draw_months_band(self, y, h, n_dias, f_ini, short=False, target_scene=None):
         """Dibuja bandas mensuales en el rango [y, y+h]."""
         sc = target_scene if target_scene is not None else self.scene
-        MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-                 "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        MESES = [tr("Ene"), tr("Feb"), tr("Mar"), tr("Abr"), tr("May"), tr("Jun"),
+                 tr("Jul"), tr("Ago"), tr("Sep"), tr("Oct"), tr("Nov"), tr("Dic")]
         if not f_ini:
             for i in range((n_dias + 29) // 30):
                 x = i * 30 * self.DAY_W
@@ -6152,8 +6161,8 @@ class GanttWidget(QWidget):
     def _flush_month_band(self, y, h, d_start, d_end, month_key, short, sc=None):
         if sc is None:
             sc = self.scene
-        MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-                 "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        MESES = [tr("Ene"), tr("Feb"), tr("Mar"), tr("Abr"), tr("May"), tr("Jun"),
+                 tr("Jul"), tr("Ago"), tr("Sep"), tr("Oct"), tr("Nov"), tr("Dic")]
         x_start = (d_start - 1) * self.DAY_W
         x_end = d_end * self.DAY_W
         w = x_end - x_start
@@ -6189,7 +6198,7 @@ class GanttWidget(QWidget):
     def _draw_years_band(self, y, h, n_dias, f_ini, target_scene=None):
         sc = target_scene if target_scene is not None else self.scene
         if not f_ini:
-            txt = QGraphicsTextItem("Días 1 → " + str(n_dias))
+            txt = QGraphicsTextItem(tr("Días 1 → {n}").format(n=n_dias))
             f = QFont(); f.setPointSize(9); f.setBold(True); txt.setFont(f)
             txt.setDefaultTextColor(QColor(SLATE_700))
             txt.setPos(8, y + 2)
@@ -6383,7 +6392,7 @@ class GanttWidget(QWidget):
                 cy = y + self.ROW_H / 2
                 ms = _GanttMilestone(cx, cy, self.DAY_W, p['id'],
                                       lambda *a: None, p.get('es_hito', 2))
-                ms.setToolTip(f"{p['descripcion']} · día {dia}")
+                ms.setToolTip(tr("{descripcion} · día {dia}").format(descripcion=p['descripcion'], dia=dia))
                 self.scene.addItem(ms)
                 row_info[p['id']] = {'y_center': cy, 'ES': dia, 'EF': dia,
                                       'critical': False}
@@ -6443,7 +6452,7 @@ class GanttWidget(QWidget):
                 ms = _GanttMilestone(cx, cy, self.DAY_W, p['id'],
                                       self._on_bar_change, max(es_hito, 1),
                                       on_context=self._show_partida_ctx_menu)
-                ms.setToolTip(f"{p['item']} {p['descripcion']}\nHito · día {es}")
+                ms.setToolTip(tr("{item} {descripcion}\nHito · día {es}").format(item=p['item'], descripcion=p['descripcion'], es=es))
                 self.scene.addItem(ms)
                 continue
 
@@ -6474,8 +6483,9 @@ class GanttWidget(QWidget):
                                       gantt_widget=self)
                     bar.setToolTip(
                         f"{p['item']} {p['descripcion']}\n"
-                        f"Segmento {seg_idx+1}: día {s_ini} → {s_ini + s_dur - 1}"
-                        + ("\n⚠ Ruta crítica" if critical else "")
+                        + tr("Segmento {n}: día {ini} → {fin}").format(
+                            n=seg_idx + 1, ini=s_ini, fin=s_ini + s_dur - 1)
+                        + (tr("\n⚠ Ruta crítica") if critical else "")
                     )
                     self.scene.addItem(bar)
                     if w >= 30 and seg_idx == 0:
@@ -6512,11 +6522,11 @@ class GanttWidget(QWidget):
                                   color=cd.get('color', ''),
                                   gantt_widget=self)
                 slack = int(t.get('float', 0) or 0)
-                tip_extra = ("\n⚠ Ruta crítica" if critical
-                              else (f"\nHolgura: {slack}d" if slack > 0 else ""))
+                tip_extra = (tr("\n⚠ Ruta crítica") if critical
+                              else (tr("\nHolgura: {slack}d").format(slack=slack) if slack > 0 else ""))
                 bar.setToolTip(
                     f"{p['item']} {p['descripcion']}\n"
-                    f"Inicio: día {es}  ·  Fin: día {ef}  ·  Dur: {dur}d"
+                    + tr("Inicio: día {es}  ·  Fin: día {ef}  ·  Dur: {dur}d").format(es=es, ef=ef, dur=dur)
                     + tip_extra
                 )
                 self.scene.addItem(bar)
@@ -6530,8 +6540,7 @@ class GanttWidget(QWidget):
                     slack_bar.setPen(QPen(Qt.NoPen))
                     slack_bar.setZValue(0)
                     slack_bar.setToolTip(
-                        f"Holgura libre: {slack}d — la tarea puede atrasarse "
-                        "ese tiempo sin afectar el fin del proyecto."
+                        tr("Holgura libre: {slack}d — la tarea puede atrasarse ese tiempo sin afectar el fin del proyecto.").format(slack=slack)
                     )
                     self.scene.addItem(slack_bar)
                     # Triángulo de cierre en la punta derecha (marca el LF)
@@ -6572,8 +6581,8 @@ class GanttWidget(QWidget):
                 marker.setZValue(4)
                 marker.setToolTip(
                     f"{p['item']} {p['descripcion']}\n"
-                    + ("Marcador de inicio de fase" if es_hito == 2
-                        else "Marcador de fin de fase")
+                    + (tr("Marcador de inicio de fase") if es_hito == 2
+                        else tr("Marcador de fin de fase"))
                 )
                 self.scene.addItem(marker)
 
@@ -6844,8 +6853,8 @@ class _DialogExportarReportePdf(QDialog):
         ("A2 (420 × 594 mm)", "A2"),
         ("A1 (594 × 841 mm)", "A1"),
         ("A0 (841 × 1189 mm)", "A0"),
-        ("Carta / Letter (216 × 279 mm)", "Letter"),
-        ("Tabloide / Ledger (279 × 432 mm)", "Tabloid"),
+        (N_("Carta / Letter (216 × 279 mm)"), "Letter"),
+        (N_("Tabloide / Ledger (279 × 432 mm)"), "Tabloid"),
     ]
 
     def __init__(self, parent=None, titulo: str = "Exportar reporte"):
@@ -6889,14 +6898,14 @@ class _DialogExportarReportePdf(QDialog):
         vl.setContentsMargins(18, 16, 18, 14)
         vl.setSpacing(10)
 
-        ttl = QLabel("Opciones de exportación")
+        ttl = QLabel(tr("Opciones de exportación"))
         f = ttl.font(); f.setPointSize(13); f.setBold(True); ttl.setFont(f)
         ttl.setStyleSheet("color:#1E2635;")
         vl.addWidget(ttl)
 
         # Tamaño de papel
         hh_pap = QHBoxLayout()
-        hh_pap.addWidget(QLabel("Tamaño de papel:"))
+        hh_pap.addWidget(QLabel(tr("Tamaño de papel:")))
         self.cmb_papel = QComboBox()
         for label, _ in self.PAPEL_OPCIONES:
             self.cmb_papel.addItem(label)
@@ -6909,9 +6918,9 @@ class _DialogExportarReportePdf(QDialog):
         vl.addLayout(hh_pap)
 
         # Orientación
-        vl.addWidget(QLabel("Orientación:"))
-        self.rb_port = QRadioButton("Vertical (recomendado)")
-        self.rb_land = QRadioButton("Horizontal")
+        vl.addWidget(QLabel(tr("Orientación:")))
+        self.rb_port = QRadioButton(tr("Vertical (recomendado)"))
+        self.rb_land = QRadioButton(tr("Horizontal"))
         self.rb_port.setChecked(True)
         grp_or = QButtonGroup(self)
         grp_or.addButton(self.rb_port)
@@ -6924,13 +6933,13 @@ class _DialogExportarReportePdf(QDialog):
 
         # Cuántos períodos (semanas/meses) entran por hoja
         from PySide6.QtWidgets import QSpinBox
-        vl.addWidget(QLabel("Períodos por hoja:"))
+        vl.addWidget(QLabel(tr("Períodos por hoja:")))
         self.rb_pag_una = QRadioButton(
-            "Todos los períodos en una hoja (comprime las columnas)")
+            tr("Todos los períodos en una hoja (comprime las columnas)"))
         self.rb_pag_auto = QRadioButton(
-            "Automático (la app decide cuántos caben según el papel)")
+            tr("Automático (la app decide cuántos caben según el papel)"))
         self.rb_pag_auto.setChecked(True)
-        self.rb_pag_man = QRadioButton("Manual:")
+        self.rb_pag_man = QRadioButton(tr("Manual:"))
         grp_pag = QButtonGroup(self)
         for rb in (self.rb_pag_una, self.rb_pag_auto, self.rb_pag_man):
             grp_pag.addButton(rb)
@@ -6948,7 +6957,7 @@ class _DialogExportarReportePdf(QDialog):
             " border-radius:4px; background:white; min-width:60px; }"
         )
         hh_pag.addWidget(self.sp_paginas)
-        hh_pag.addWidget(QLabel("períodos por hoja"))
+        hh_pag.addWidget(QLabel(tr("períodos por hoja")))
         hh_pag.addStretch()
         vl.addLayout(hh_pag)
 
@@ -6961,13 +6970,13 @@ class _DialogExportarReportePdf(QDialog):
 
         # Checkbox: mostrar fechas en columnas (igual que en UI)
         from PySide6.QtWidgets import QCheckBox as _QChk
-        self.chk_fechas = _QChk("Mostrar fechas de inicio/fin en cada columna")
+        self.chk_fechas = _QChk(tr("Mostrar fechas de inicio/fin en cada columna"))
         self.chk_fechas.setChecked(True)
         vl.addWidget(self.chk_fechas)
 
         hint = QLabel(
-            "Logo, nombre de empresa, colores y textos del encabezado/pie "
-            "se toman del formato compartido con el Centro de Reportes."
+            tr("Logo, nombre de empresa, colores y textos del encabezado/pie "
+            "se toman del formato compartido con el Centro de Reportes.")
         )
         hint.setStyleSheet("color:#667885; font-size:10px;")
         hint.setWordWrap(True)
@@ -6978,7 +6987,7 @@ class _DialogExportarReportePdf(QDialog):
         # Botones
         bar = QHBoxLayout()
         bar.setSpacing(8)
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setMinimumWidth(96); btn_cancel.setMinimumHeight(32)
         btn_cancel.setStyleSheet(
             "QPushButton { background:white; color:#485A6C; border:1px solid #D4D4D4;"
@@ -6987,7 +6996,7 @@ class _DialogExportarReportePdf(QDialog):
         )
         btn_cancel.clicked.connect(self.reject)
 
-        btn_img = QPushButton("🖼  Imagen…")
+        btn_img = QPushButton(tr("🖼  Imagen…"))
         btn_img.setMinimumWidth(120); btn_img.setMinimumHeight(32)
         btn_img.setStyleSheet(
             "QPushButton { background:white; color:#273445; border:1px solid #D4D4D4;"
@@ -6996,7 +7005,7 @@ class _DialogExportarReportePdf(QDialog):
         )
         btn_img.clicked.connect(self._emitir_imagen)
 
-        btn_prev = QPushButton("👁  Vista previa")
+        btn_prev = QPushButton(tr("👁  Vista previa"))
         btn_prev.setMinimumWidth(130); btn_prev.setMinimumHeight(32)
         btn_prev.setStyleSheet(
             "QPushButton { background:white; color:#273445; border:1px solid #D4D4D4;"
@@ -7005,7 +7014,7 @@ class _DialogExportarReportePdf(QDialog):
         )
         btn_prev.clicked.connect(self._emitir_preview)
 
-        btn_ok = QPushButton("Exportar PDF…")
+        btn_ok = QPushButton(tr("Exportar PDF…"))
         btn_ok.setMinimumWidth(130); btn_ok.setMinimumHeight(32)
         btn_ok.setDefault(True)
         btn_ok.setStyleSheet(
@@ -7215,12 +7224,12 @@ class ValorizadoWidget(QWidget):
         tb_hl.setContentsMargins(0, 0, 0, 0)
         tb_hl.setSpacing(8)
 
-        lbl = QLabel("Período:")
+        lbl = QLabel(tr("Período:"))
         lbl.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         tb_hl.addWidget(lbl)
 
         cmb = QComboBox()
-        cmb.addItems(["Semanal", "Mensual"])
+        cmb.addItems([tr("Semanal"), tr("Mensual")])
         cmb.setCurrentIndex(1)  # default Mensual (espejo de _period_days=30)
         cmb.currentIndexChanged.connect(self._on_periodo)
         cmb.setStyleSheet(
@@ -7232,7 +7241,7 @@ class ValorizadoWidget(QWidget):
         # Toggle: mostrar fechas de inicio/fin de cada período en el header
         from PySide6.QtWidgets import QCheckBox
         self._show_fechas = True
-        chk_fechas = QCheckBox("Mostrar fechas")
+        chk_fechas = QCheckBox(tr("Mostrar fechas"))
         chk_fechas.setChecked(self._show_fechas)
         chk_fechas.setStyleSheet(
             f"QCheckBox {{ color:{SLATE_500}; font-size:11px; padding:0 8px; }}"
@@ -7255,15 +7264,15 @@ class ValorizadoWidget(QWidget):
         btn_pdf.setStyleSheet(btn_style)
         btn_pdf.clicked.connect(self._exportar_pdf)
         set_tooltip(btn_pdf,
-                     "Exportar el cronograma valorizado a PDF / imagen "
-                     "(con vista previa y selección de papel)")
+                     tr("Exportar el cronograma valorizado a PDF / imagen "
+                     "(con vista previa y selección de papel)"))
         tb_hl.addWidget(btn_pdf)
 
         btn_xls = QPushButton("📊 Excel")
         btn_xls.setCursor(Qt.PointingHandCursor)
         btn_xls.setStyleSheet(btn_style)
         btn_xls.clicked.connect(self._exportar_excel)
-        set_tooltip(btn_xls, "Exportar a hoja de cálculo (.xlsx)")
+        set_tooltip(btn_xls, tr("Exportar a hoja de cálculo (.xlsx)"))
         tb_hl.addWidget(btn_xls)
 
         btn_ods = QPushButton("📑 ODS")
@@ -7271,8 +7280,8 @@ class ValorizadoWidget(QWidget):
         btn_ods.setStyleSheet(btn_style)
         btn_ods.clicked.connect(self._exportar_ods)
         set_tooltip(btn_ods,
-                     "Exportar a OpenDocument Spreadsheet (.ods) — "
-                     "requiere LibreOffice instalado")
+                     tr("Exportar a OpenDocument Spreadsheet (.ods) — "
+                     "requiere LibreOffice instalado"))
         from core.soffice import odf_export_ofrecible
         btn_ods.setVisible(odf_export_ofrecible())   # oculto en Flathub (sin LibreOffice del host)
         tb_hl.addWidget(btn_ods)
@@ -7350,7 +7359,7 @@ class ValorizadoWidget(QWidget):
 
         # Cabecera de 2 niveles: período (Mes/Sem + fecha) abarcando sus 2
         # sub-columnas (Metrado | Valorización) — estilo Delphin Express.
-        self._period_header = _PeriodGroupHeader(('Metrado', 'Valoriz.'))
+        self._period_header = _PeriodGroupHeader((N_('Metrado'), N_('Valoriz.')))
         self.tbl_r.setHorizontalHeader(self._period_header)
 
         # Aplicar delegate de bg (cruza el bypass de QSS para zebra y footers)
@@ -7540,19 +7549,23 @@ class ValorizadoWidget(QWidget):
                     pass
         return None
 
-    def _periodo_label(self, unidad: str, i: int) -> str:
+    def _periodo_label(self, unidad: str, i: int, traducir: bool = False) -> str:
         """Construye el label de un período. Si _show_fechas está activo y
         hay fecha de inicio configurada, añade el rango en una 2ª línea
         (mismo mes: '01-07 May'; cruza mes: '30 Abr - 06 May'; cruza año:
-        '30 Dic 25 - 05 Ene 26')."""
-        base = f"{unidad} {i + 1}"
+        '30 Dic 25 - 05 Ene 26').
+
+        `traducir=True` solo para lo que se PINTA en pantalla: el texto del
+        modelo (el que lee el Excel) sigue en español."""
+        _t = tr if traducir else (lambda s: s)
+        base = f"{_t(unidad)} {i + 1}"
         if not self._show_fechas:
             return base
         f_ini = self._project_start()
         if f_ini is None:
             return base
-        MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-                  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        MESES = [_t(m) for m in ("Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                                 "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")]
         start_day = i * self._period_days + 1
         end_day   = (i + 1) * self._period_days
         d_ini = f_ini + timedelta(days=start_day - 1)
@@ -7634,14 +7647,16 @@ class ValorizadoWidget(QWidget):
         n_dias = max(max_ef, plazo, self._period_days)
         n_periods = (n_dias + self._period_days - 1) // self._period_days
 
-        unidad = "Sem" if self._period_days == 7 else "Mes"
+        unidad = N_("Sem") if self._period_days == 7 else N_("Mes")
         moneda = self._cv._moneda
         per_actual = self._periodo_actual_idx(n_periods)
 
         # ── Estructura de columnas ──────────────────────────────────────
         # Panel izquierdo (frozen): Ítem · Descripción · Und · Cantidad · Precio · % Total
         # Panel derecho (scrollable): [períodos con fechas opcionales] · Total
-        left_headers = ["Ítem", "Descripción", "Und", "Cantidad", "Precio", "Total"]
+        left_headers = [N_("Ítem"), N_("Descripción"), N_("Und"), N_("Cantidad"), N_("Precio"), N_("Total")]
+        # El Excel lee estas cabeceras en español; en pantalla van traducidas.
+        self._hdr_l_es = list(left_headers)
         # Texto de header del MODELO (lo lee el Excel); en pantalla el header
         # personalizado de 2 niveles dibuja el período combinado.
         period_labels = [self._periodo_label(unidad, i) for i in range(n_periods)]
@@ -7659,7 +7674,9 @@ class ValorizadoWidget(QWidget):
         self.tbl_r.horizontalHeader().setFixedHeight(hdr_h)
         self.tbl_l.horizontalHeader().setFixedHeight(hdr_h)
         if hasattr(self, '_period_header'):
-            self._period_header.set_periodos(period_labels, hdr_h)
+            self._period_header.set_periodos(
+                [self._periodo_label(unidad, i, traducir=True) for i in range(n_periods)],
+                hdr_h)
         # Word-wrap habilitado en los headers del panel derecho
         self.tbl_r.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.tbl_l.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
@@ -7669,7 +7686,7 @@ class ValorizadoWidget(QWidget):
             tbl_.setRowCount(0)
             tbl_.clearSpans()
         self.tbl_l.setColumnCount(len(left_headers))
-        self.tbl_l.setHorizontalHeaderLabels(left_headers)
+        self.tbl_l.setHorizontalHeaderLabels([tr(h) for h in left_headers])
         self.tbl_r.setColumnCount(N_RIGHT)
         self.tbl_r.setHorizontalHeaderLabels(right_headers)
         self.tbl_lf.setColumnCount(len(left_headers))
@@ -7905,7 +7922,8 @@ class ValorizadoWidget(QWidget):
             self.tbl_lf.setRowHeight(r, 28); self.tbl_rf.setRowHeight(r, 28)
 
             # Footer izquierdo: label que abarca las 4 columnas
-            it_lbl = QTableWidgetItem(label)
+            it_lbl = QTableWidgetItem(tr(label))
+            it_lbl.setData(_ROL_ES, label)
             it_lbl.setBackground(bg_brush)
             it_lbl.setForeground(lbl_brush)
             f = QFont(); f.setBold(True); f.setPointSize(10)
@@ -7952,20 +7970,20 @@ class ValorizadoWidget(QWidget):
                 it.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.tbl_rf.setItem(r, COL_TOTAL_R, it)
 
-        _add_summary_row("TOTAL", totales_per, total_general, bg=BG_MONTO)
+        _add_summary_row(N_("TOTAL"), totales_per, total_general, bg=BG_MONTO)
         pct_per = [(v / total_general * 100.0 if total_general else 0.0)
                     for v in totales_per]
-        _add_summary_row("% PERÍODO", pct_per, 100.0 if total_general else 0.0,
+        _add_summary_row(N_("% PERÍODO"), pct_per, 100.0 if total_general else 0.0,
                           bg=BG_PCT, pct=True)
         acumulado = []
         s = 0.0
         for v in totales_per:
             s += v
             acumulado.append(s)
-        _add_summary_row("ACUMULADO", acumulado, total_general, bg=BG_MONTO)
+        _add_summary_row(N_("ACUMULADO"), acumulado, total_general, bg=BG_MONTO)
         pct_acum = [(v / total_general * 100.0 if total_general else 0.0)
                      for v in acumulado]
-        _add_summary_row("% ACUMULADO", pct_acum,
+        _add_summary_row(N_("% ACUMULADO"), pct_acum,
                           100.0 if total_general else 0.0,
                           bg=BG_PCT, pct=True)
 
@@ -8005,7 +8023,7 @@ class ValorizadoWidget(QWidget):
         """Abre un diálogo de opciones (papel, orientación, cover, vista
         previa, imagen) y exporta a PDF usando `core.pdf_reports`."""
         opts = _DialogExportarReportePdf.preguntar(
-            self, "Exportar cronograma valorizado",
+            self, tr("Exportar cronograma valorizado"),
             on_preview=self._vista_previa_pdf,
             on_imagen=self._exportar_imagen,
         )
@@ -8018,13 +8036,13 @@ class ValorizadoWidget(QWidget):
         try:
             from core.pdf_reports import generar_pdf_archivo
         except Exception as e:
-            QMessageBox.warning(self, "Exportar PDF",
-                                  f"No se pudo cargar el generador de PDF:\n{e}")
+            QMessageBox.warning(self, tr("Exportar PDF"),
+                                  tr("No se pudo cargar el generador de PDF:\n{e}").format(e=e))
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"valorizado_{self._cv.pid}.pdf")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar cronograma valorizado a PDF",
+            self, tr("Exportar cronograma valorizado a PDF"),
             sugerido, "PDF (*.pdf)"
         )
         if not path:
@@ -8037,11 +8055,11 @@ class ValorizadoWidget(QWidget):
                 orient=opts.get('orient', 'portrait'),
             )
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar PDF",
-                                       f"Cronograma valorizado exportado a:\n{path}")
+            QMessageBox.information(self, tr("Exportar PDF"),
+                                       tr("Cronograma valorizado exportado a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _vista_previa_pdf(self, opts):
         """Genera un PDF temporal y lo muestra en un diálogo con QPdfView
@@ -8053,8 +8071,8 @@ class ValorizadoWidget(QWidget):
             from PySide6.QtPdf import QPdfDocument
             from PySide6.QtPdfWidgets import QPdfView
         except Exception as e:
-            QMessageBox.warning(self, "Vista previa",
-                                  f"No se pudo abrir vista previa:\n{e}")
+            QMessageBox.warning(self, tr("Vista previa"),
+                                  tr("No se pudo abrir vista previa:\n{e}").format(e=e))
             return
         tmp_fd, tmp_pdf = tempfile.mkstemp(suffix='.pdf', prefix='valz_prev_')
         os.close(tmp_fd)
@@ -8074,11 +8092,11 @@ class ValorizadoWidget(QWidget):
                 orient=opts.get('orient', 'portrait'),
             )
             if not os.path.exists(tmp_pdf) or os.path.getsize(tmp_pdf) < 500:
-                QMessageBox.warning(self, "Vista previa", "El PDF generado está vacío.")
+                QMessageBox.warning(self, tr("Vista previa"), tr("El PDF generado está vacío."))
                 return
 
             dlg = QDialog(self)
-            dlg.setWindowTitle("Vista previa — Cronograma Valorizado")
+            dlg.setWindowTitle(tr("Vista previa — Cronograma Valorizado"))
             dlg.setWindowModality(Qt.ApplicationModal)
             dlg.resize(1100, 800)
 
@@ -8088,7 +8106,7 @@ class ValorizadoWidget(QWidget):
 
             # Toolbar superior
             tb = QHBoxLayout()
-            btn_img = QPushButton("🖼  Exportar imagen…")
+            btn_img = QPushButton(tr("🖼  Exportar imagen…"))
             btn_img.setStyleSheet(
                 f"QPushButton {{ background:white; color:{SLATE_700};"
                 f" border:1px solid {SILVER_300}; border-radius:4px;"
@@ -8096,10 +8114,10 @@ class ValorizadoWidget(QWidget):
                 "QPushButton:hover { background:#FEF5EB; border-color:#F37329; color:#C0621A; }"
             )
             btn_img.clicked.connect(lambda: self._exportar_imagen(opts))
-            btn_pdf = QPushButton("📄  Guardar PDF…")
+            btn_pdf = QPushButton(tr("📄  Guardar PDF…"))
             btn_pdf.setStyleSheet(btn_img.styleSheet())
             btn_pdf.clicked.connect(lambda: self._render_pdf_a_archivo_con_dialog(opts))
-            btn_close = QPushButton("Cerrar")
+            btn_close = QPushButton(tr("Cerrar"))
             btn_close.setStyleSheet(
                 f"QPushButton {{ background:{SLATE_500}; color:white; border:none;"
                 f" border-radius:4px; padding:6px 18px; }}"
@@ -8125,8 +8143,8 @@ class ValorizadoWidget(QWidget):
             dlg.exec()
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Vista previa",
-                                  f"No se pudo abrir vista previa: {e}")
+            QMessageBox.warning(self, tr("Vista previa"),
+                                  tr("No se pudo abrir vista previa: {e}").format(e=e))
         finally:
             try: os.unlink(tmp_pdf)
             except Exception: pass
@@ -8140,13 +8158,13 @@ class ValorizadoWidget(QWidget):
             from PySide6.QtPdf import QPdfDocument
             from PySide6.QtGui import QImage
         except Exception as e:
-            QMessageBox.warning(self, "Exportar imagen",
-                                  f"Módulos necesarios no disponibles:\n{e}")
+            QMessageBox.warning(self, tr("Exportar imagen"),
+                                  tr("Módulos necesarios no disponibles:\n{e}").format(e=e))
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"valorizado_{self._cv.pid}.png")
         path, sel = QFileDialog.getSaveFileName(
-            self, "Exportar como imagen", sugerido,
+            self, tr("Exportar como imagen"), sugerido,
             "PNG (*.png);;JPEG (*.jpg *.jpeg)"
         )
         if not path:
@@ -8195,12 +8213,13 @@ class ValorizadoWidget(QWidget):
                     raise RuntimeError(f"No se pudo guardar {out}")
                 outs.append(out)
             self._save_dir(path)
-            msg = ("Imagen exportada:\n" + outs[0]) if n == 1 \
-                else f"{n} páginas exportadas:\n{outs[0]}\n…\n{outs[-1]}"
-            QMessageBox.information(self, "Exportar imagen", msg)
+            msg = (tr("Imagen exportada:\n") + outs[0]) if n == 1 \
+                else tr("{n} páginas exportadas:\n{primera}\n…\n{ultima}").format(
+                    n=n, primera=outs[0], ultima=outs[-1])
+            QMessageBox.information(self, tr("Exportar imagen"), msg)
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Exportar imagen", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Exportar imagen"), tr("No se pudo exportar: {e}").format(e=e))
         finally:
             try: os.unlink(tmp_pdf)
             except Exception: pass
@@ -8214,7 +8233,7 @@ class ValorizadoWidget(QWidget):
         sugerido = os.path.join(self._dir_descargas(),
                                   f"valorizado_{self._cv.pid}.xlsx")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar cronograma valorizado a Excel",
+            self, tr("Exportar cronograma valorizado a Excel"),
             sugerido, "Excel (*.xlsx)"
         )
         if not path:
@@ -8222,11 +8241,11 @@ class ValorizadoWidget(QWidget):
         try:
             self._build_xlsx_valorizado(path)
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar Excel",
-                                       f"Cronograma valorizado exportado a:\n{path}")
+            QMessageBox.information(self, tr("Exportar Excel"),
+                                       tr("Cronograma valorizado exportado a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _exportar_ods(self):
         """Exporta a OpenDocument Spreadsheet (.ods). Genera primero .xlsx
@@ -8235,12 +8254,12 @@ class ValorizadoWidget(QWidget):
         from core.soffice import find_soffice, mensaje_instalacion
         soffice = find_soffice()
         if not soffice:
-            QMessageBox.warning(self, "Exportar ODS", mensaje_instalacion())
+            QMessageBox.warning(self, tr("Exportar ODS"), mensaje_instalacion())
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"valorizado_{self._cv.pid}.ods")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar cronograma valorizado a ODS",
+            self, tr("Exportar cronograma valorizado a ODS"),
             sugerido, "OpenDocument Spreadsheet (*.ods)"
         )
         if not path:
@@ -8261,14 +8280,14 @@ class ValorizadoWidget(QWidget):
             if not os.path.exists(path):
                 raise RuntimeError("LibreOffice no generó el archivo .ods")
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar ODS",
-                                       f"Cronograma valorizado exportado a:\n{path}")
+            QMessageBox.information(self, tr("Exportar ODS"),
+                                       tr("Cronograma valorizado exportado a:\n{path}").format(path=path))
         except subprocess.CalledProcessError as e:
-            QMessageBox.warning(self, "Exportar ODS",
-                f"LibreOffice falló al convertir:\n{e.stderr.decode()[:300]}")
+            QMessageBox.warning(self, tr("Exportar ODS"),
+                tr("LibreOffice falló al convertir:\n{error}").format(error=e.stderr.decode()[:300]))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
         finally:
             try: os.unlink(tmp_xlsx)
             except Exception: pass
@@ -8433,7 +8452,7 @@ class ValorizadoWidget(QWidget):
         # Columnas izquierdas: rótulo merged verticalmente (hdr1:hdr2)
         for c in range(n_left_logical):
             pc = _phys(c)
-            txt = (self.tbl_l.horizontalHeaderItem(c).text() or '').replace('\n', ' ')
+            txt = (self._hdr_l_es[c] or '').replace('\n', ' ')
             if c == 5:   # «% Total» → «Total» (precio total = pu × metrado)
                 txt = 'Total'
             cell = ws.cell(hdr1, pc, txt)
@@ -8690,7 +8709,9 @@ class ValorizadoWidget(QWidget):
             row_bdr = border_total if is_total else border_grid
 
             # Etiqueta merged sobre las n_left cols (espejo del PDF colspan=6)
-            lbl = (_txt(self.tbl_lf.item(r, 0)) or '').strip()
+            _it0 = self.tbl_lf.item(r, 0)
+            lbl = ((_it0.data(_ROL_ES) if _it0 is not None else None)
+                   or _txt(_it0) or '').strip()
             if not lbl:
                 # fallback por si la celda está en col 1 vacía
                 for c in range(n_left):
@@ -8858,11 +8879,11 @@ class CurvaSWidget(QWidget):
         tb.setStyleSheet("background:transparent; border:none;")
         tb_hl = QHBoxLayout(tb)
         tb_hl.setContentsMargins(0, 0, 0, 0); tb_hl.setSpacing(8)
-        lbl = QLabel("Período:")
+        lbl = QLabel(tr("Período:"))
         lbl.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         tb_hl.addWidget(lbl)
         cmb = QComboBox()
-        cmb.addItems(["Semanal", "Mensual"])
+        cmb.addItems([tr("Semanal"), tr("Mensual")])
         cmb.setCurrentIndex(1)  # default Mensual (espejo de _period_days=30)
         cmb.currentIndexChanged.connect(self._on_periodo)
         cmb.setStyleSheet(
@@ -8872,7 +8893,7 @@ class CurvaSWidget(QWidget):
         tb_hl.addWidget(cmb)
 
         from PySide6.QtWidgets import QCheckBox
-        chk_fechas = QCheckBox("Mostrar fechas")
+        chk_fechas = QCheckBox(tr("Mostrar fechas"))
         chk_fechas.setChecked(self._show_fechas)
         chk_fechas.setStyleSheet(
             f"QCheckBox {{ color:{SLATE_500}; font-size:11px; padding:0 8px; }}"
@@ -8880,7 +8901,7 @@ class CurvaSWidget(QWidget):
         chk_fechas.toggled.connect(self._on_toggle_fechas)
         tb_hl.addWidget(chk_fechas)
 
-        chk_smooth = QCheckBox("Suavizar curva")
+        chk_smooth = QCheckBox(tr("Suavizar curva"))
         chk_smooth.setChecked(self._suavizar)
         chk_smooth.setStyleSheet(
             f"QCheckBox {{ color:{SLATE_500}; font-size:11px; padding:0 8px; }}"
@@ -8888,19 +8909,19 @@ class CurvaSWidget(QWidget):
         chk_smooth.toggled.connect(self._on_toggle_suavizar)
         from utils.tooltip import set_tooltip as _set_tt_sm
         _set_tt_sm(chk_smooth,
-                     "Dibuja la curva con un suavizado Bézier en vez de "
-                     "segmentos rectos entre puntos.")
+                     tr("Dibuja la curva con un suavizado Bézier en vez de "
+                     "segmentos rectos entre puntos."))
         tb_hl.addWidget(chk_smooth)
 
-        chk_bars = QCheckBox("Mostrar barras de avance")
+        chk_bars = QCheckBox(tr("Mostrar barras de avance"))
         chk_bars.setChecked(self._show_barras)
         chk_bars.setStyleSheet(
             f"QCheckBox {{ color:{SLATE_500}; font-size:11px; padding:0 8px; }}"
         )
         chk_bars.toggled.connect(self._on_toggle_barras)
         _set_tt_sm(chk_bars,
-                     "Muestra/oculta las barras naranjas que indican el % de "
-                     "avance de cada período (la curva azul queda igual).")
+                     tr("Muestra/oculta las barras naranjas que indican el % de "
+                     "avance de cada período (la curva azul queda igual)."))
         tb_hl.addWidget(chk_bars)
 
         tb_hl.addStretch()
@@ -8917,8 +8938,8 @@ class CurvaSWidget(QWidget):
         btn_pdf.setStyleSheet(btn_style)
         btn_pdf.clicked.connect(self._exportar_pdf)
         set_tooltip(btn_pdf,
-                      "Exportar la Curva S a PDF (con vista previa, "
-                      "tamaño de papel y orientación configurables)")
+                      tr("Exportar la Curva S a PDF (con vista previa, "
+                      "tamaño de papel y orientación configurables)"))
         tb_hl.addWidget(btn_pdf)
 
         btn_word = QPushButton("📝 Word")
@@ -8926,8 +8947,8 @@ class CurvaSWidget(QWidget):
         btn_word.setStyleSheet(btn_style)
         btn_word.clicked.connect(self._exportar_word)
         set_tooltip(btn_word,
-                      "Exportar reporte editable .docx con gráfico embebido "
-                      "+ tabla resumen + notas")
+                      tr("Exportar reporte editable .docx con gráfico embebido "
+                      "+ tabla resumen + notas"))
         tb_hl.addWidget(btn_word)
 
         btn_odt = QPushButton("📰 ODT")
@@ -8935,8 +8956,8 @@ class CurvaSWidget(QWidget):
         btn_odt.setStyleSheet(btn_style)
         btn_odt.clicked.connect(self._exportar_odt)
         set_tooltip(btn_odt,
-                      "Exportar reporte editable .odt (LibreOffice / "
-                      "OpenOffice). Requiere LibreOffice instalado.")
+                      tr("Exportar reporte editable .odt (LibreOffice / "
+                      "OpenOffice). Requiere LibreOffice instalado."))
         from core.soffice import odf_export_ofrecible
         btn_odt.setVisible(odf_export_ofrecible())   # oculto en Flathub (sin LibreOffice del host)
         tb_hl.addWidget(btn_odt)
@@ -9043,9 +9064,10 @@ class CurvaSWidget(QWidget):
     def _project_start(self):
         return self._cv.fecha_dia1()
 
-    def _periodo_label(self, unidad: str, i: int) -> str:
-        """Etiqueta como 'Sem 1\n01/01–07/01' si _show_fechas y hay fecha."""
-        base = f"{unidad} {i + 1}"
+    def _periodo_label(self, unidad: str, i: int, traducir: bool = False) -> str:
+        """Etiqueta como 'Sem 1\n01/01–07/01' si _show_fechas y hay fecha.
+        `traducir=True` solo en pantalla: los reportes la usan en español."""
+        base = f"{tr(unidad) if traducir else unidad} {i + 1}"
         if not self._show_fechas:
             return base
         f_ini = self._project_start()
@@ -9074,7 +9096,7 @@ class CurvaSWidget(QWidget):
                         default=plazo)
         n_dias   = max(max_ef, plazo, self._period_days)
         n_periods = max(1, (n_dias + self._period_days - 1) // self._period_days)
-        unidad   = "Sem" if self._period_days == 7 else "Mes"
+        unidad   = N_("Sem") if self._period_days == 7 else N_("Mes")
         sym      = self._moneda_simbolo()
         dec      = get_decimales_ppto()
 
@@ -9118,8 +9140,8 @@ class CurvaSWidget(QWidget):
         self.tbl.clear()
         self.tbl.setColumnCount(6)
         self.tbl.setHorizontalHeaderLabels(
-            ["#", "Período", f"Avance ({sym})", "% Período",
-             f"Acumulado ({sym})", "% Acumulado"]
+            ["#", tr("Período"), tr("Avance ({sym})").format(sym=sym), tr("% Período"),
+             tr("Acumulado ({sym})").format(sym=sym), tr("% Acumulado")]
         )
         # Anchos de arranque (los de montos se ajustan al contenido al final)
         for c, w in enumerate(self._ANCHOS_BASE):
@@ -9134,7 +9156,7 @@ class CurvaSWidget(QWidget):
                 zebra_bg if i % 2 == 1 else None)
             vals = [
                 (str(i + 1), Qt.AlignCenter),
-                (self._periodo_label(unidad, i).replace("\n", " · "), Qt.AlignLeft),
+                (self._periodo_label(unidad, i, traducir=True).replace("\n", " · "), Qt.AlignLeft),
                 (fmt(total_per[i], self._cv._moneda, dec), Qt.AlignRight),
                 (f"{per_pct[i]:.2f}%", Qt.AlignRight),
                 (fmt(acum[i], self._cv._moneda, dec), Qt.AlignRight),
@@ -9210,8 +9232,13 @@ class CurvaSWidget(QWidget):
         if getattr(self, '_last_data', None):
             QTimer.singleShot(0, self._dibujar_chart)
 
-    def _dibujar_chart(self):
-        """Pinta la curva S en self.scene usando _last_data."""
+    def _dibujar_chart(self, traducir: bool = True):
+        """Pinta la curva S en self.scene usando _last_data.
+
+        La misma escena se incrusta en el PDF y en el Word: esos la vuelven a
+        pintar con `traducir=False` (los reportes salen en español) y luego
+        la restauran (ver `_escena_en_espanol`)."""
+        _t = tr if traducir else (lambda s: s)
         self.scene.clear()
         data = self._last_data or {}
         n_periods = data.get('n_periods', 0)
@@ -9221,9 +9248,9 @@ class CurvaSWidget(QWidget):
         total_general = data.get('total_general', 0)
 
         if total_general <= 0 or n_periods == 0:
-            txt = QGraphicsTextItem(
+            txt = QGraphicsTextItem(_t(N_(
                 "Sin datos. Configura duraciones y precios para ver la curva."
-            )
+            )))
             f = QFont(); f.setPointSize(11); txt.setFont(f)
             txt.setDefaultTextColor(QColor(SLATE_300))
             txt.setPos(40, 40)
@@ -9277,7 +9304,7 @@ class CurvaSWidget(QWidget):
             self.scene.addItem(line)
             step = max(1, n_periods // 10)
             if i % step == 0 or i == n_periods:
-                lbl = f"{unidad} {i}" if i > 0 else "0"
+                lbl = f"{_t(unidad)} {i}" if i > 0 else "0"
                 txt = QGraphicsTextItem(lbl)
                 f = QFont(); f.setPointSize(8); txt.setFont(f)
                 txt.setDefaultTextColor(QColor(SLATE_500))
@@ -9361,7 +9388,7 @@ class CurvaSWidget(QWidget):
         self.scene.addItem(line_x)
 
         # Título
-        ttl = QGraphicsTextItem("CURVA S — Avance financiero acumulado")
+        ttl = QGraphicsTextItem(_t(N_("CURVA S — Avance financiero acumulado")))
         f = QFont(); f.setPointSize(11); f.setBold(True); ttl.setFont(f)
         ttl.setDefaultTextColor(QColor(SLATE_700))
         ttl.setPos(margin_l, 6)
@@ -9376,7 +9403,7 @@ class CurvaSWidget(QWidget):
             sw.setBrush(QBrush(QColor(243, 115, 41, 130)))
             sw.setPen(QPen(QColor("#F37329"), 0.6))
             self.scene.addItem(sw)
-            t1 = QGraphicsTextItem("Avance del período (%)")
+            t1 = QGraphicsTextItem(_t(N_("Avance del período (%)")))
             t1.setFont(f); t1.setDefaultTextColor(QColor(SLATE_500))
             t1.setPos(cur_lx + 14, leg_y - 4)
             self.scene.addItem(t1)
@@ -9384,7 +9411,7 @@ class CurvaSWidget(QWidget):
         ln = QGraphicsLineItem(cur_lx, leg_y + 5, cur_lx + 18, leg_y + 5)
         ln.setPen(QPen(QColor("#3689E6"), 2.5))
         self.scene.addItem(ln)
-        t2 = QGraphicsTextItem("Acumulado (%)")
+        t2 = QGraphicsTextItem(_t(N_("Acumulado (%)")))
         t2.setFont(f); t2.setDefaultTextColor(QColor(SLATE_500))
         t2.setPos(cur_lx + 26, leg_y - 4)
         self.scene.addItem(t2)
@@ -9419,8 +9446,8 @@ class CurvaSWidget(QWidget):
         """Abre un diálogo con tamaño de papel, orientación, vista previa y
         exporta el reporte de Curva S a PDF."""
         if not self._last_data or (self._last_data.get('total_general', 0) <= 0):
-            QMessageBox.information(self, "Exportar PDF",
-                "No hay datos para exportar (configura duraciones y precios).")
+            QMessageBox.information(self, tr("Exportar PDF"),
+                tr("No hay datos para exportar (configura duraciones y precios)."))
             return
         opts = self._dialog_pdf_opciones()
         if opts is None:
@@ -9434,7 +9461,7 @@ class CurvaSWidget(QWidget):
         sugerido = os.path.join(self._dir_descargas(),
                                   f"curva_s_{self._cv.pid}.pdf")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Curva S a PDF", sugerido, "PDF (*.pdf)"
+            self, tr("Exportar Curva S a PDF"), sugerido, "PDF (*.pdf)"
         )
         if not path:
             return
@@ -9442,18 +9469,18 @@ class CurvaSWidget(QWidget):
             self._render_pdf(path, paper=opts.get('papel', 'A4'),
                               orient=opts.get('orient', 'portrait'))
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar PDF",
-                                       f"Curva S exportada a:\n{path}")
+            QMessageBox.information(self, tr("Exportar PDF"),
+                                       tr("Curva S exportada a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _dialog_pdf_opciones(self):
         """Diálogo simple: papel + orientación + vista previa. Devuelve
         un dict con `papel`/`orient` o None si se canceló."""
         from PySide6.QtGui import QPalette as _QPal
         dlg = QDialog(self)
-        dlg.setWindowTitle("Exportar Curva S a PDF")
+        dlg.setWindowTitle(tr("Exportar Curva S a PDF"))
         dlg.setModal(True)
         dlg.resize(440, 280)
         pal = dlg.palette()
@@ -9469,13 +9496,13 @@ class CurvaSWidget(QWidget):
         )
         v = QVBoxLayout(dlg)
         v.setContentsMargins(18, 16, 18, 14); v.setSpacing(10)
-        ttl = QLabel("Opciones de exportación")
+        ttl = QLabel(tr("Opciones de exportación"))
         f = ttl.font(); f.setPointSize(13); f.setBold(True); ttl.setFont(f)
         v.addWidget(ttl)
 
         # Papel
         h1 = QHBoxLayout()
-        h1.addWidget(QLabel("Tamaño de papel:"))
+        h1.addWidget(QLabel(tr("Tamaño de papel:")))
         cmb = QComboBox()
         PAPEL_OPS = [
             ("A4 (210 × 297 mm)", "A4"),
@@ -9483,8 +9510,8 @@ class CurvaSWidget(QWidget):
             ("A2 (420 × 594 mm)", "A2"),
             ("A1 (594 × 841 mm)", "A1"),
             ("A0 (841 × 1189 mm)", "A0"),
-            ("Carta (216 × 279 mm)", "Letter"),
-            ("Tabloide (279 × 432 mm)", "Tabloid"),
+            (tr("Carta (216 × 279 mm)"), "Letter"),
+            (tr("Tabloide (279 × 432 mm)"), "Tabloid"),
         ]
         for lbl, _ in PAPEL_OPS:
             cmb.addItem(lbl)
@@ -9493,9 +9520,9 @@ class CurvaSWidget(QWidget):
         v.addLayout(h1)
 
         # Orientación
-        v.addWidget(QLabel("Orientación:"))
-        rb_p = QRadioButton("Vertical (Portrait) — recomendado")
-        rb_l = QRadioButton("Horizontal (Landscape)")
+        v.addWidget(QLabel(tr("Orientación:")))
+        rb_p = QRadioButton(tr("Vertical (Portrait) — recomendado"))
+        rb_l = QRadioButton(tr("Horizontal (Landscape)"))
         rb_p.setChecked(True)
         grp = QButtonGroup(dlg); grp.addButton(rb_p); grp.addButton(rb_l)
         h2 = QHBoxLayout(); h2.addWidget(rb_p); h2.addWidget(rb_l); h2.addStretch()
@@ -9504,7 +9531,7 @@ class CurvaSWidget(QWidget):
 
         # Botones
         bar = QHBoxLayout(); bar.setSpacing(8)
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setMinimumWidth(96); btn_cancel.setMinimumHeight(32)
         btn_cancel.setStyleSheet(
             "QPushButton { background:white; color:#485A6C;"
@@ -9512,7 +9539,7 @@ class CurvaSWidget(QWidget):
             "QPushButton:hover { background:#F1F5F9; }"
         )
         btn_cancel.clicked.connect(dlg.reject)
-        btn_prev = QPushButton("👁  Vista previa")
+        btn_prev = QPushButton(tr("👁  Vista previa"))
         btn_prev.setMinimumHeight(32)
         btn_prev.setStyleSheet(
             "QPushButton { background:white; color:#273445;"
@@ -9521,7 +9548,7 @@ class CurvaSWidget(QWidget):
             "QPushButton:hover { background:#FEF5EB;"
             " border-color:#F37329; color:#C0621A; }"
         )
-        btn_ok = QPushButton("Exportar PDF…")
+        btn_ok = QPushButton(tr("Exportar PDF…"))
         btn_ok.setDefault(True); btn_ok.setMinimumHeight(32)
         btn_ok.setStyleSheet(
             "QPushButton { background:#F37329; color:white; border:none;"
@@ -9551,8 +9578,8 @@ class CurvaSWidget(QWidget):
             from PySide6.QtPdf import QPdfDocument
             from PySide6.QtPdfWidgets import QPdfView
         except Exception as e:
-            QMessageBox.warning(self, "Vista previa",
-                                  f"No se pudo cargar el visor de PDF:\n{e}")
+            QMessageBox.warning(self, tr("Vista previa"),
+                                  tr("No se pudo cargar el visor de PDF:\n{e}").format(e=e))
             return
         tmp_fd, tmp_pdf = tempfile.mkstemp(suffix='.pdf', prefix='curvaS_prev_')
         os.close(tmp_fd)
@@ -9560,17 +9587,17 @@ class CurvaSWidget(QWidget):
             self._render_pdf(tmp_pdf, paper=opts.get('papel', 'A4'),
                               orient=opts.get('orient', 'portrait'))
             if not os.path.exists(tmp_pdf) or os.path.getsize(tmp_pdf) < 500:
-                QMessageBox.warning(self, "Vista previa",
-                                      "El PDF generado está vacío.")
+                QMessageBox.warning(self, tr("Vista previa"),
+                                      tr("El PDF generado está vacío."))
                 return
             dlg = QDialog(self)
-            dlg.setWindowTitle("Vista previa — Curva S")
+            dlg.setWindowTitle(tr("Vista previa — Curva S"))
             dlg.setWindowModality(Qt.ApplicationModal)
             dlg.resize(1100, 800)
             vv = QVBoxLayout(dlg)
             vv.setContentsMargins(8, 8, 8, 8); vv.setSpacing(6)
             tb = QHBoxLayout()
-            btn_save = QPushButton("📄  Guardar PDF…")
+            btn_save = QPushButton(tr("📄  Guardar PDF…"))
             btn_save.setStyleSheet(
                 f"QPushButton {{ background:white; color:{SLATE_700};"
                 f" border:1px solid {SILVER_300}; border-radius:4px;"
@@ -9581,7 +9608,7 @@ class CurvaSWidget(QWidget):
             btn_save.clicked.connect(lambda: (
                 self._exportar_pdf_a_archivo(opts), dlg.accept()
             ))
-            btn_close = QPushButton("Cerrar")
+            btn_close = QPushButton(tr("Cerrar"))
             btn_close.setStyleSheet(btn_save.styleSheet())
             btn_close.clicked.connect(dlg.accept)
             tb.addStretch(); tb.addWidget(btn_save); tb.addWidget(btn_close)
@@ -9599,8 +9626,8 @@ class CurvaSWidget(QWidget):
             dlg.exec()
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Vista previa",
-                                  f"No se pudo generar la vista previa:\n{e}")
+            QMessageBox.warning(self, tr("Vista previa"),
+                                  tr("No se pudo generar la vista previa:\n{e}").format(e=e))
         finally:
             try: os.unlink(tmp_pdf)
             except Exception: pass
@@ -9838,7 +9865,8 @@ class CurvaSWidget(QWidget):
                 content_x = mm(2)
                 content_y = cur_y + (band_h_chart - content_h) / 2
             target = QRectF(content_x, content_y, content_w, content_h)
-            self.scene.render(painter, target, scene_rect, Qt.KeepAspectRatio)
+            with self._escena_en_espanol():
+                self.scene.render(painter, target, scene_rect, Qt.KeepAspectRatio)
             cur_y = cur_y + band_h_chart + mm(4)
 
             # ── Tabla resumen ──────────────────────────────────────────
@@ -9994,6 +10022,20 @@ class CurvaSWidget(QWidget):
                           int(al) | Qt.AlignVCenter, str(txt))
 
     # ── Word (.docx) y ODT ─────────────────────────────────────────────
+    @contextlib.contextmanager
+    def _escena_en_espanol(self):
+        """Repinta la escena sin traducir mientras un reporte la incrusta y
+        la deja como estaba al salir. En español no hace nada."""
+        from utils.i18n import idioma_actual
+        if idioma_actual() == 'es' or not self._last_data:
+            yield
+            return
+        self._dibujar_chart(traducir=False)
+        try:
+            yield
+        finally:
+            self._dibujar_chart()
+
     def _scene_png_bytes(self, target_w_px: int = 1400) -> bytes:
         """Rasteriza la escena de la curva a PNG (ancho target_w_px).
         Mantiene el aspect ratio. Devuelve los bytes PNG."""
@@ -10019,24 +10061,24 @@ class CurvaSWidget(QWidget):
     def _exportar_word(self):
         import os
         if not self._last_data or (self._last_data.get('total_general', 0) <= 0):
-            QMessageBox.information(self, "Exportar Word",
-                "No hay datos para exportar.")
+            QMessageBox.information(self, tr("Exportar Word"),
+                tr("No hay datos para exportar."))
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"curva_s_{self._cv.pid}.docx")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Curva S a Word", sugerido, "Word (*.docx)"
+            self, tr("Exportar Curva S a Word"), sugerido, "Word (*.docx)"
         )
         if not path:
             return
         try:
             self._build_docx(path)
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar Word",
-                                       f"Curva S exportada a:\n{path}")
+            QMessageBox.information(self, tr("Exportar Word"),
+                                       tr("Curva S exportada a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _build_docx(self, path: str):
         """Genera un .docx apaisado — espejo VISUAL del PDF de Curva S.
@@ -10218,7 +10260,8 @@ class CurvaSWidget(QWidget):
         doc.add_paragraph()
 
         # ── Chart embebido ────────────────────────────────────────────────
-        png_bytes = self._scene_png_bytes(target_w_px=1800)
+        with self._escena_en_espanol():
+            png_bytes = self._scene_png_bytes(target_w_px=1800)
         p_img = doc.add_paragraph()
         p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p_img.paragraph_format.space_after = Pt(8)
@@ -10311,15 +10354,15 @@ class CurvaSWidget(QWidget):
         from core.soffice import find_soffice, mensaje_instalacion
         soffice = find_soffice()
         if not soffice:
-            QMessageBox.warning(self, "Exportar ODT", mensaje_instalacion())
+            QMessageBox.warning(self, tr("Exportar ODT"), mensaje_instalacion())
             return
         if not self._last_data or (self._last_data.get('total_general', 0) <= 0):
-            QMessageBox.information(self, "Exportar ODT", "No hay datos para exportar.")
+            QMessageBox.information(self, tr("Exportar ODT"), tr("No hay datos para exportar."))
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"curva_s_{self._cv.pid}.odt")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Curva S a ODT", sugerido, "OpenDocument Text (*.odt)"
+            self, tr("Exportar Curva S a ODT"), sugerido, "OpenDocument Text (*.odt)"
         )
         if not path:
             return
@@ -10341,14 +10384,14 @@ class CurvaSWidget(QWidget):
             if not os.path.exists(path):
                 raise RuntimeError("LibreOffice no generó el archivo .odt")
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar ODT",
-                                       f"Curva S exportada a:\n{path}")
+            QMessageBox.information(self, tr("Exportar ODT"),
+                                       tr("Curva S exportada a:\n{path}").format(path=path))
         except subprocess.CalledProcessError as e:
-            QMessageBox.warning(self, "Exportar ODT",
-                f"LibreOffice falló al convertir:\n{e.stderr.decode()[:300]}")
+            QMessageBox.warning(self, tr("Exportar ODT"),
+                tr("LibreOffice falló al convertir:\n{error}").format(error=e.stderr.decode()[:300]))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
         finally:
             try: os.unlink(tmp_docx)
             except Exception: pass
@@ -10356,24 +10399,24 @@ class CurvaSWidget(QWidget):
     def _exportar_excel(self):
         import os
         if not self._last_data or (self._last_data.get('total_general', 0) <= 0):
-            QMessageBox.information(self, "Exportar Excel",
-                "No hay datos para exportar.")
+            QMessageBox.information(self, tr("Exportar Excel"),
+                tr("No hay datos para exportar."))
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"curva_s_{self._cv.pid}.xlsx")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Curva S a Excel", sugerido, "Excel (*.xlsx)"
+            self, tr("Exportar Curva S a Excel"), sugerido, "Excel (*.xlsx)"
         )
         if not path:
             return
         try:
             self._build_xlsx(path)
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar Excel",
-                                       f"Curva S exportada a:\n{path}")
+            QMessageBox.information(self, tr("Exportar Excel"),
+                                       tr("Curva S exportada a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _build_xlsx(self, path: str):
         """Construye .xlsx — espejo VISUAL del PDF de Curva S.
@@ -10549,15 +10592,15 @@ class CurvaSWidget(QWidget):
         from core.soffice import find_soffice, mensaje_instalacion
         soffice = find_soffice()
         if not soffice:
-            QMessageBox.warning(self, "Exportar ODS", mensaje_instalacion())
+            QMessageBox.warning(self, tr("Exportar ODS"), mensaje_instalacion())
             return
         if not self._last_data or (self._last_data.get('total_general', 0) <= 0):
-            QMessageBox.information(self, "Exportar ODS", "No hay datos para exportar.")
+            QMessageBox.information(self, tr("Exportar ODS"), tr("No hay datos para exportar."))
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"curva_s_{self._cv.pid}.ods")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Curva S a ODS", sugerido, "OpenDocument Spreadsheet (*.ods)"
+            self, tr("Exportar Curva S a ODS"), sugerido, "OpenDocument Spreadsheet (*.ods)"
         )
         if not path:
             return
@@ -10579,11 +10622,11 @@ class CurvaSWidget(QWidget):
             if not os.path.exists(path):
                 raise RuntimeError("LibreOffice no generó el archivo .ods")
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar ODS",
-                                       f"Curva S exportada a:\n{path}")
+            QMessageBox.information(self, tr("Exportar ODS"),
+                                       tr("Curva S exportada a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
         finally:
             try: os.unlink(tmp_xlsx)
             except Exception: pass
@@ -10656,7 +10699,7 @@ class _PeriodGroupHeader(QHeaderView):
                 xs = self.sectionViewportPosition(c0 + j)
                 ws = self.sectionSize(c0 + j)
                 painter.drawText(QRect(xs, top_h, ws, sub_h),
-                                  Qt.AlignCenter, self._subs[j])
+                                  Qt.AlignCenter, tr(self._subs[j]))
             # Divisor vertical al inicio del período
             painter.setPen(QPen(line))
             painter.drawLine(x0, 0, x0, h)
@@ -10667,7 +10710,7 @@ class _PeriodGroupHeader(QHeaderView):
         wt = self.sectionSize(ti)
         painter.setPen(QPen(line)); painter.drawLine(xt, 0, xt, h)
         painter.setPen(QPen(fg)); painter.setFont(f_top)
-        painter.drawText(QRect(xt, 0, wt, h), Qt.AlignCenter, self._total_label)
+        painter.drawText(QRect(xt, 0, wt, h), Qt.AlignCenter, tr(self._total_label))
         # Borde inferior
         painter.setPen(QPen(line))
         painter.drawLine(0, h - 1, self.viewport().width(), h - 1)
@@ -10701,11 +10744,11 @@ class InsumosWidget(QWidget):
         tb.setStyleSheet("background:transparent; border:none;")
         tb_hl = QHBoxLayout(tb)
         tb_hl.setContentsMargins(0, 0, 0, 0); tb_hl.setSpacing(8)
-        lbl = QLabel("Período:")
+        lbl = QLabel(tr("Período:"))
         lbl.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         tb_hl.addWidget(lbl)
         cmb = QComboBox()
-        cmb.addItems(["Semanal", "Mensual"])
+        cmb.addItems([tr("Semanal"), tr("Mensual")])
         cmb.setCurrentIndex(1)  # default Mensual (espejo de _period_days=30)
         cmb.currentIndexChanged.connect(self._on_periodo)
         cmb.setStyleSheet(
@@ -10715,7 +10758,7 @@ class InsumosWidget(QWidget):
         tb_hl.addWidget(cmb)
 
         from PySide6.QtWidgets import QCheckBox as _QChk
-        chk_fechas = _QChk("Mostrar fechas")
+        chk_fechas = _QChk(tr("Mostrar fechas"))
         chk_fechas.setChecked(self._show_fechas)
         chk_fechas.setStyleSheet(f"QCheckBox {{ color:{SLATE_500}; font-size:11px; padding:0 8px; }}")
         chk_fechas.toggled.connect(self._on_toggle_fechas)
@@ -10732,19 +10775,19 @@ class InsumosWidget(QWidget):
         btn_pdf = QPushButton("📄 PDF"); btn_pdf.setStyleSheet(btn_style)
         btn_pdf.setCursor(Qt.PointingHandCursor)
         btn_pdf.clicked.connect(self._exportar_pdf)
-        set_tooltip(btn_pdf, "Exportar adquisiciones a PDF / imagen")
+        set_tooltip(btn_pdf, tr("Exportar adquisiciones a PDF / imagen"))
         tb_hl.addWidget(btn_pdf)
 
         btn_xls = QPushButton("📊 Excel"); btn_xls.setStyleSheet(btn_style)
         btn_xls.setCursor(Qt.PointingHandCursor)
         btn_xls.clicked.connect(self._exportar_excel)
-        set_tooltip(btn_xls, "Exportar a Excel (.xlsx)")
+        set_tooltip(btn_xls, tr("Exportar a Excel (.xlsx)"))
         tb_hl.addWidget(btn_xls)
 
         btn_ods = QPushButton("📑 ODS"); btn_ods.setStyleSheet(btn_style)
         btn_ods.setCursor(Qt.PointingHandCursor)
         btn_ods.clicked.connect(self._exportar_ods)
-        set_tooltip(btn_ods, "Exportar a ODS — requiere LibreOffice")
+        set_tooltip(btn_ods, tr("Exportar a ODS — requiere LibreOffice"))
         from core.soffice import odf_export_ofrecible
         btn_ods.setVisible(odf_export_ofrecible())   # oculto en Flathub (sin LibreOffice del host)
         tb_hl.addWidget(btn_ods)
@@ -10807,7 +10850,7 @@ class InsumosWidget(QWidget):
 
         # Cabecera de 2 niveles: período (Mes/Sem + fecha) abarcando sus 2
         # sub-columnas (Cantidad | Valorización) — estilo Delphin Express.
-        self._period_header = _PeriodGroupHeader(('Cantidad', 'Valoriz.'))
+        self._period_header = _PeriodGroupHeader((N_('Cantidad'), N_('Valoriz.')))
         self.tbl_r.setHorizontalHeader(self._period_header)
 
         self._bg_delegate = _BgFillDelegate(self)
@@ -10900,15 +10943,17 @@ class InsumosWidget(QWidget):
                     pass
         return None
 
-    def _periodo_label(self, unidad: str, i: int) -> str:
-        base = f"{unidad} {i + 1}"
+    def _periodo_label(self, unidad: str, i: int, traducir: bool = False) -> str:
+        # traducir=True solo para lo que se pinta: el modelo (Excel) va en español.
+        _t = tr if traducir else (lambda s: s)
+        base = f"{_t(unidad)} {i + 1}"
         if not self._show_fechas:
             return base
         f_ini = self._project_start()
         if f_ini is None:
             return base
-        MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-                  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        MESES = [_t(m) for m in ("Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                                 "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")]
         s_day = i * self._period_days + 1
         e_day = (i + 1) * self._period_days
         d_i = f_ini + timedelta(days=s_day - 1)
@@ -10956,7 +11001,7 @@ class InsumosWidget(QWidget):
         n_dias = max(max_ef, plazo, self._period_days)
         n_periods = max(1, (n_dias + self._period_days - 1) // self._period_days)
 
-        unidad = "Sem" if self._period_days == 7 else "Mes"
+        unidad = N_("Sem") if self._period_days == 7 else N_("Mes")
         moneda = self._cv._moneda
 
         # Cargar items vía `get_acu_items` para incluir overhead `%MO`/`%MAT`.
@@ -11032,7 +11077,9 @@ class InsumosWidget(QWidget):
 
         # Headers — dos sub-columnas por período: Cantidad y Valorización.
         # Panel izquierdo: Cantidad y Precio = TOTALES del insumo en el proyecto.
-        left_headers = ["Tipo", "Código", "Descripción", "Und", "Cantidad", "Precio"]
+        left_headers = [N_("Tipo"), N_("Código"), N_("Descripción"), N_("Und"), N_("Cantidad"), N_("Precio")]
+        # El Excel lee estas cabeceras en español; en pantalla van traducidas.
+        self._hdr_l_es = list(left_headers)
         # Texto de header del MODELO (lo lee el Excel); en pantalla el header
         # personalizado de 2 niveles dibuja el período combinado.
         period_labels = [self._periodo_label(unidad, i) for i in range(n_periods)]
@@ -11048,7 +11095,7 @@ class InsumosWidget(QWidget):
         for t_ in (self.tbl_l, self.tbl_r, self.tbl_lf, self.tbl_rf):
             t_.setUpdatesEnabled(False); t_.setRowCount(0); t_.clearSpans()
         self.tbl_l.setColumnCount(len(left_headers))
-        self.tbl_l.setHorizontalHeaderLabels(left_headers)
+        self.tbl_l.setHorizontalHeaderLabels([tr(h) for h in left_headers])
         self.tbl_r.setColumnCount(N_RIGHT)
         self.tbl_r.setHorizontalHeaderLabels(right_headers)
         self.tbl_lf.setColumnCount(len(left_headers))
@@ -11060,7 +11107,9 @@ class InsumosWidget(QWidget):
         self.tbl_l.horizontalHeader().setFixedHeight(hdr_h)
         # Cargar la estructura de 2 niveles en el header personalizado.
         if hasattr(self, '_period_header'):
-            self._period_header.set_periodos(period_labels, hdr_h)
+            self._period_header.set_periodos(
+                [self._periodo_label(unidad, i, traducir=True) for i in range(n_periods)],
+                hdr_h)
         self.tbl_r.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.tbl_l.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
 
@@ -11114,10 +11163,10 @@ class InsumosWidget(QWidget):
 
         # Etiquetas de grupos por tipo (orden y nombre)
         TIPO_LABEL = {
-            'MO':  'MANO DE OBRA',
-            'MAT': 'MATERIALES',
-            'EQ':  'EQUIPOS Y HERRAMIENTAS',
-            'SC':  'SUB-CONTRATOS / SERVICIOS',
+            'MO':  N_('MANO DE OBRA'),
+            'MAT': N_('MATERIALES'),
+            'EQ':  N_('EQUIPOS Y HERRAMIENTAS'),
+            'SC':  N_('SUB-CONTRATOS / SERVICIOS'),
         }
         # Título de grupo = banda con tinte suave del tipo + texto del color
         # del tipo (igual que el reporte de Insumos). MO naranja/ámbar, MAT
@@ -11140,7 +11189,8 @@ class InsumosWidget(QWidget):
             titulo_rows.append(rr)
             bg_brush = QBrush(QColor(TIPO_SOFT.get(tipo, "#D8E0EC")))
 
-            it = QTableWidgetItem(label_txt)
+            it = QTableWidgetItem(tr(label_txt))
+            it.setData(_ROL_ES, label_txt)
             it.setBackground(bg_brush)
             it.setForeground(QBrush(QColor(TIPO_FG.get(tipo, SLATE_700))))
             it.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -11237,7 +11287,8 @@ class InsumosWidget(QWidget):
             r = self.tbl_lf.rowCount()
             self.tbl_lf.insertRow(r); self.tbl_rf.insertRow(r)
             self.tbl_lf.setRowHeight(r, 28); self.tbl_rf.setRowHeight(r, 28)
-            it_lbl = QTableWidgetItem(label_txt)
+            it_lbl = QTableWidgetItem(tr(label_txt))
+            it_lbl.setData(_ROL_ES, label_txt)
             it_lbl.setBackground(bg_brush); it_lbl.setForeground(lbl_brush)
             f = QFont(); f.setBold(True); f.setPointSize(10); it_lbl.setFont(f)
             it_lbl.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -11272,17 +11323,17 @@ class InsumosWidget(QWidget):
                 it.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.tbl_rf.setItem(r, COL_TOTAL_R, it)
 
-        _add_summary("TOTAL", totales_per, total_general, bg=BG_MONTO)
+        _add_summary(N_("TOTAL"), totales_per, total_general, bg=BG_MONTO)
         pct_per = [(v / total_general * 100.0 if total_general else 0.0) for v in totales_per]
-        _add_summary("% PERÍODO", pct_per, 100.0 if total_general else 0.0,
+        _add_summary(N_("% PERÍODO"), pct_per, 100.0 if total_general else 0.0,
                        bg=BG_PCT, pct=True)
         acumulado = []
         s = 0.0
         for v in totales_per:
             s += v; acumulado.append(s)
-        _add_summary("ACUMULADO", acumulado, total_general, bg=BG_MONTO)
+        _add_summary(N_("ACUMULADO"), acumulado, total_general, bg=BG_MONTO)
         pct_acum = [(v / total_general * 100.0 if total_general else 0.0) for v in acumulado]
-        _add_summary("% ACUMULADO", pct_acum, 100.0 if total_general else 0.0,
+        _add_summary(N_("% ACUMULADO"), pct_acum, 100.0 if total_general else 0.0,
                        bg=BG_PCT, pct=True)
 
         # Ancho dinámico para que TOTAL/ACUMULADO (montos grandes) no se
@@ -11342,7 +11393,7 @@ class InsumosWidget(QWidget):
 
     def _exportar_pdf(self):
         opts = _DialogExportarReportePdf.preguntar(
-            self, "Exportar adquisición de insumos",
+            self, tr("Exportar adquisición de insumos"),
             on_preview=self._vista_previa_pdf,
             on_imagen=self._exportar_imagen,
         )
@@ -11355,11 +11406,11 @@ class InsumosWidget(QWidget):
         try:
             from core.pdf_reports import generar_pdf_archivo
         except Exception as e:
-            QMessageBox.warning(self, "Exportar PDF", f"{e}"); return
+            QMessageBox.warning(self, tr("Exportar PDF"), f"{e}"); return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"adquisiciones_{self._cv.pid}.pdf")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar adquisición de insumos a PDF",
+            self, tr("Exportar adquisición de insumos a PDF"),
             sugerido, "PDF (*.pdf)")
         if not path:
             return
@@ -11375,11 +11426,11 @@ class InsumosWidget(QWidget):
                 orient=opts.get('orient', 'portrait'),
             )
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar PDF",
-                                       f"Adquisiciones exportadas a:\n{path}")
+            QMessageBox.information(self, tr("Exportar PDF"),
+                                       tr("Adquisiciones exportadas a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"No se pudo exportar: {e}")
+            QMessageBox.warning(self, tr("Error"), tr("No se pudo exportar: {e}").format(e=e))
 
     def _vista_previa_pdf(self, opts):
         import os, tempfile
@@ -11388,7 +11439,7 @@ class InsumosWidget(QWidget):
             from PySide6.QtPdf import QPdfDocument
             from PySide6.QtPdfWidgets import QPdfView
         except Exception as e:
-            QMessageBox.warning(self, "Vista previa", f"{e}"); return
+            QMessageBox.warning(self, tr("Vista previa"), f"{e}"); return
         tmp_fd, tmp_pdf = tempfile.mkstemp(suffix='.pdf', prefix='insumos_prev_')
         os.close(tmp_fd)
         try:
@@ -11403,10 +11454,10 @@ class InsumosWidget(QWidget):
                 orient=opts.get('orient', 'portrait'),
             )
             if not os.path.exists(tmp_pdf) or os.path.getsize(tmp_pdf) < 500:
-                QMessageBox.warning(self, "Vista previa", "PDF vacío.")
+                QMessageBox.warning(self, tr("Vista previa"), tr("PDF vacío."))
                 return
             dlg = QDialog(self)
-            dlg.setWindowTitle("Vista previa — Adquisición de Insumos")
+            dlg.setWindowTitle(tr("Vista previa — Adquisición de Insumos"))
             dlg.setWindowModality(Qt.ApplicationModal)
             dlg.resize(1100, 800)
             v = QVBoxLayout(dlg); v.setContentsMargins(8, 8, 8, 8); v.setSpacing(6)
@@ -11415,11 +11466,11 @@ class InsumosWidget(QWidget):
                    f" border:1px solid {SILVER_300}; border-radius:4px;"
                    f" padding:6px 14px; }} QPushButton:hover {{ background:#FEF5EB;"
                    " border-color:#F37329; color:#C0621A; }}")
-            b1 = QPushButton("🖼  Exportar imagen…"); b1.setStyleSheet(bn)
+            b1 = QPushButton(tr("🖼  Exportar imagen…")); b1.setStyleSheet(bn)
             b1.clicked.connect(lambda: self._exportar_imagen(opts))
-            b2 = QPushButton("📄  Guardar PDF…"); b2.setStyleSheet(bn)
+            b2 = QPushButton(tr("📄  Guardar PDF…")); b2.setStyleSheet(bn)
             b2.clicked.connect(lambda: self._render_pdf_a_archivo(opts))
-            b3 = QPushButton("Cerrar")
+            b3 = QPushButton(tr("Cerrar"))
             b3.setStyleSheet(f"QPushButton {{ background:{SLATE_500}; color:white;"
                               f" border:none; border-radius:4px; padding:6px 18px; }}"
                               f"QPushButton:hover {{ background:{SLATE_700}; }}")
@@ -11434,7 +11485,7 @@ class InsumosWidget(QWidget):
             dlg.exec()
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Vista previa", f"{e}")
+            QMessageBox.warning(self, tr("Vista previa"), f"{e}")
         finally:
             try: os.unlink(tmp_pdf)
             except Exception: pass
@@ -11446,11 +11497,11 @@ class InsumosWidget(QWidget):
             from PySide6.QtPdf import QPdfDocument
             from PySide6.QtGui import QImage
         except Exception as e:
-            QMessageBox.warning(self, "Exportar imagen", f"{e}"); return
+            QMessageBox.warning(self, tr("Exportar imagen"), f"{e}"); return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"adquisiciones_{self._cv.pid}.png")
         path, sel = QFileDialog.getSaveFileName(
-            self, "Exportar como imagen", sugerido,
+            self, tr("Exportar como imagen"), sugerido,
             "PNG (*.png);;JPEG (*.jpg *.jpeg)")
         if not path:
             return
@@ -11498,12 +11549,13 @@ class InsumosWidget(QWidget):
                     raise RuntimeError(f"No se pudo guardar {out}")
                 outs.append(out)
             self._save_dir(path)
-            msg = ("Imagen exportada:\n" + outs[0]) if n == 1 \
-                else f"{n} páginas exportadas:\n{outs[0]}\n…\n{outs[-1]}"
-            QMessageBox.information(self, "Exportar imagen", msg)
+            msg = (tr("Imagen exportada:\n") + outs[0]) if n == 1 \
+                else tr("{n} páginas exportadas:\n{primera}\n…\n{ultima}").format(
+                    n=n, primera=outs[0], ultima=outs[-1])
+            QMessageBox.information(self, tr("Exportar imagen"), msg)
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Exportar imagen", f"{e}")
+            QMessageBox.warning(self, tr("Exportar imagen"), f"{e}")
         finally:
             try: os.unlink(tmp_pdf)
             except Exception: pass
@@ -11513,29 +11565,29 @@ class InsumosWidget(QWidget):
         sugerido = os.path.join(self._dir_descargas(),
                                   f"adquisiciones_{self._cv.pid}.xlsx")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar adquisición de insumos a Excel",
+            self, tr("Exportar adquisición de insumos a Excel"),
             sugerido, "Excel (*.xlsx)")
         if not path: return
         try:
             self._build_xlsx(path)
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar Excel",
-                                       f"Adquisiciones exportadas a:\n{path}")
+            QMessageBox.information(self, tr("Exportar Excel"),
+                                       tr("Adquisiciones exportadas a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"{e}")
+            QMessageBox.warning(self, tr("Error"), f"{e}")
 
     def _exportar_ods(self):
         import os, subprocess, tempfile
         from core.soffice import find_soffice, mensaje_instalacion
         soffice = find_soffice()
         if not soffice:
-            QMessageBox.warning(self, "Exportar ODS", mensaje_instalacion())
+            QMessageBox.warning(self, tr("Exportar ODS"), mensaje_instalacion())
             return
         sugerido = os.path.join(self._dir_descargas(),
                                   f"adquisiciones_{self._cv.pid}.ods")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar adquisición de insumos a ODS",
+            self, tr("Exportar adquisición de insumos a ODS"),
             sugerido, "OpenDocument Spreadsheet (*.ods)")
         if not path: return
         tmp_fd, tmp_xlsx = tempfile.mkstemp(suffix='.xlsx', prefix='insumos_ods_')
@@ -11554,11 +11606,11 @@ class InsumosWidget(QWidget):
             if not os.path.exists(path):
                 raise RuntimeError("LibreOffice no generó el archivo .ods")
             self._save_dir(path)
-            QMessageBox.information(self, "Exportar ODS",
-                                       f"Adquisiciones exportadas a:\n{path}")
+            QMessageBox.information(self, tr("Exportar ODS"),
+                                       tr("Adquisiciones exportadas a:\n{path}").format(path=path))
         except Exception as e:
             import traceback; traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"{e}")
+            QMessageBox.warning(self, tr("Error"), f"{e}")
         finally:
             try: os.unlink(tmp_xlsx)
             except Exception: pass
@@ -11706,7 +11758,7 @@ class InsumosWidget(QWidget):
         for c in range(n_left_logical):
             pc = _phys(c)
             pc_end = (_phys(c + 1) - 1) if (c + 1) < n_left_logical else n_left
-            txt = (self.tbl_l.horizontalHeaderItem(c).text() or '').replace('\n', ' ')
+            txt = (self._hdr_l_es[c] or '').replace('\n', ' ')
             cell = ws.cell(hdr1, pc, txt)
             cell.font = head_font; cell.alignment = align_center
             ws.merge_cells(start_row=hdr1, start_column=pc, end_row=hdr2, end_column=pc_end)
@@ -11790,7 +11842,9 @@ class InsumosWidget(QWidget):
             # Título de grupo: columnSpan(0) cubre todo el panel izquierdo
             is_titulo = self.tbl_l.columnSpan(r, 0) > 1
             if is_titulo:
-                label_val = (_t(self.tbl_l.item(r, 0)) or '').upper()
+                _it0 = self.tbl_l.item(r, 0)
+                label_val = ((_it0.data(_ROL_ES) if _it0 is not None else None)
+                             or _t(_it0) or '').upper()
                 ws.merge_cells(start_row=row, start_column=1,
                                   end_row=row, end_column=n_cols)
                 cell = ws.cell(row=row, column=1, value=label_val)
@@ -11864,7 +11918,9 @@ class InsumosWidget(QWidget):
             fill     = PatternFill('solid', fgColor=bg)
             row_bdr  = border_total if is_total else border_grid
 
-            lbl = (_t(self.tbl_lf.item(r, 0)) or '').strip()
+            _it0 = self.tbl_lf.item(r, 0)
+            lbl = ((_it0.data(_ROL_ES) if _it0 is not None else None)
+                   or _t(_it0) or '').strip()
             if not lbl:
                 for c in range(n_left):
                     t = _t(self.tbl_lf.item(r, c))

@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.database import get_db
+from utils.i18n import N_, tr
 from utils.icons import icon
 
 
@@ -55,9 +56,11 @@ COLORES_PROY = [
 COL_HITO = {1: "#9333EA", 2: "#2563EB", 3: "#16A34A"}
 
 DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+# N_ solo marca: la lista sigue en español (el mapa de abajo la usa para leer
+# «costo_al»); se traduce con tr() donde se pinta.
 MESES_LARGOS = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    N_("Enero"), N_("Febrero"), N_("Marzo"), N_("Abril"), N_("Mayo"), N_("Junio"),
+    N_("Julio"), N_("Agosto"), N_("Septiembre"), N_("Octubre"), N_("Noviembre"), N_("Diciembre"),
 ]
 MESES_CORTOS = [m[:3] for m in MESES_LARGOS]
 
@@ -189,7 +192,8 @@ class _MesCanvas(QWidget):
 
         f = QFont(); f.setBold(False); f.setPointSize(9)
         p.setFont(f)
-        for i, nombre in enumerate(DIAS_SEMANA):
+        # Una sola clave para los siete: «Mar» (martes) chocaría con «Mar» (marzo).
+        for i, nombre in enumerate(tr("Lun Mar Mié Jue Vie Sáb Dom").split(" ")):
             r = QRect(int(x0 + i * cw), self.PADDING, int(cw), self.HEADER_H)
             # Header uniforme estilo Maya/elementary: todos los días con el
             # mismo gris, sin destacar fines de semana ni MAYÚSCULAS.
@@ -460,7 +464,7 @@ class _AnioCanvas(QWidget):
         f = QFont(); f.setBold(True); f.setPointSize(10)
         p.setFont(f)
         p.setPen(QColor(SLATE_700))
-        p.drawText(title, Qt.AlignLeft, MESES_LARGOS[mes - 1])
+        p.drawText(title, Qt.AlignLeft, tr(MESES_LARGOS[mes - 1]))
 
         hoy = date.today()
         es_mes_hoy = (hoy.year == self._year and hoy.month == mes)
@@ -474,7 +478,7 @@ class _AnioCanvas(QWidget):
 
         f_dn = QFont(); f_dn.setPointSize(7); f_dn.setBold(True)
         p.setFont(f_dn)
-        for i, n in enumerate(["L", "M", "M", "J", "V", "S", "D"]):
+        for i, n in enumerate(tr("L M M J V S D").split(" ")):
             r = QRect(int(gx + i * cw), int(gy), int(cw), int(rh))
             p.setPen(QColor(SLATE_300 if i < 5 else ORANGE_DARK))
             p.drawText(r, Qt.AlignCenter, n)
@@ -574,7 +578,7 @@ class CalendarioView(QWidget):
         ico_t.setPixmap(icon("calendario").pixmap(28, 28))
         top.addWidget(ico_t)
 
-        title = QLabel("Calendario de Proyectos")
+        title = QLabel(tr("Calendario de Proyectos"))
         f = QFont(); f.setPointSize(15); f.setWeight(QFont.DemiBold)
         title.setFont(f)
         title.setStyleSheet(f"color:{SLATE_700};")
@@ -582,8 +586,8 @@ class CalendarioView(QWidget):
         top.addStretch(1)
 
         # Toggle Mes / Año
-        self.btn_mes = QPushButton("Mes")
-        self.btn_anio = QPushButton("Año")
+        self.btn_mes = QPushButton(tr("Mes"))
+        self.btn_anio = QPushButton(tr("Año"))
         for b, v in ((self.btn_mes, "mes"), (self.btn_anio, "anio")):
             b.setCheckable(True)
             b.setCursor(Qt.PointingHandCursor)
@@ -615,7 +619,7 @@ class CalendarioView(QWidget):
         nl.setContentsMargins(12, 8, 12, 8)
         nl.setSpacing(6)
 
-        self.btn_hoy = QPushButton("Hoy")
+        self.btn_hoy = QPushButton(tr("Hoy"))
         self.btn_hoy.setCursor(Qt.PointingHandCursor)
         self.btn_hoy.setStyleSheet(
             f"QPushButton {{ background:{WHITE}; color:{SLATE_700};"
@@ -707,7 +711,7 @@ class CalendarioView(QWidget):
         ico_p = QLabel(); ico_p.setPixmap(icon("folder").pixmap(14, 14))
         ico_p.setStyleSheet("background:transparent; border:none;")
         phl.addWidget(ico_p)
-        ttl_p = QLabel("Proyectos")
+        ttl_p = QLabel(tr("Proyectos"))
         ttl_p.setStyleSheet(
             "color:white; font-weight:600; font-size:12px;"
             " background:transparent; border:none;"
@@ -738,16 +742,16 @@ class CalendarioView(QWidget):
         lv = QVBoxLayout(card_leg)
         lv.setContentsMargins(10, 8, 10, 8)
         lv.setSpacing(6)
-        ttl_l = QLabel("Referencias")
+        ttl_l = QLabel(tr("Referencias"))
         f = QFont(); f.setBold(True)
         ttl_l.setFont(f)
         ttl_l.setStyleSheet(f"color:{SLATE_700};")
         lv.addWidget(ttl_l)
         for color, txt in (
-            ("#3689E6", "Barra de duración del proyecto"),
-            (COL_HITO[1], "Hito genérico"),
-            (COL_HITO[2], "Hito de inicio"),
-            (COL_HITO[3], "Hito de fin"),
+            ("#3689E6", tr("Barra de duración del proyecto")),
+            (COL_HITO[1], tr("Hito genérico")),
+            (COL_HITO[2], tr("Hito de inicio")),
+            (COL_HITO[3], tr("Hito de fin")),
         ):
             row = QHBoxLayout()
             dot = QLabel()
@@ -760,11 +764,11 @@ class CalendarioView(QWidget):
             lv.addLayout(row)
         v.addWidget(card_leg)
 
-        tip = QLabel(
+        tip = QLabel(tr(
             "<b>Tip:</b> haz clic en una barra de proyecto para abrirlo.<br>"
             "Para que aparezca, el proyecto debe tener <b>Costo a</b> y "
             "<b>Plazo</b> configurados."
-        )
+        ))
         tip.setWordWrap(True)
         tip.setStyleSheet(f"color:{SLATE_300}; font-size:11px; padding:4px 2px;")
         tip.setTextFormat(Qt.RichText)
@@ -829,7 +833,7 @@ class CalendarioView(QWidget):
     def _poblar_sidebar(self):
         self.lst_proy.clear()
         if not self._eventos:
-            it = QListWidgetItem("Sin proyectos con fecha")
+            it = QListWidgetItem(tr("Sin proyectos con fecha"))
             it.setForeground(QColor(SLATE_300))
             it.setFlags(Qt.NoItemFlags)
             self.lst_proy.addItem(it)
@@ -907,7 +911,7 @@ class CalendarioView(QWidget):
     def _actualizar_titulo(self):
         if self._vista == "mes":
             self.lbl_titulo.setText(
-                f"{MESES_LARGOS[self._month - 1]} {self._year}"
+                f"{tr(MESES_LARGOS[self._month - 1])} {self._year}"
             )
         else:
             self.lbl_titulo.setText(str(self._year))

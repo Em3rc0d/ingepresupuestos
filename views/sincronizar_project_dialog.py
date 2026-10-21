@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.msproject_importer import resumen
+from utils.i18n import N_, tr
 from utils.theme import BTN_PRIMARY_SS, btn_secondary
 
 SLATE_700 = "#2E3C52"
@@ -27,7 +28,7 @@ SLATE_100 = "#E2E8F0"
 SILVER_100 = "#F8F9FA"
 WHITE = "#FFFFFF"
 
-PASOS_PROJECT = (
+PASOS_PROJECT = N_(
     "En Project: abre el XML exportado con «MPP», edita duraciones y "
     "predecesoras, y guarda con Archivo → Guardar como → tipo XML "
     "(Ctrl+S guarda en .mpp, que este programa no lee)."
@@ -43,7 +44,7 @@ class SincronizarProjectDialog(QDialog):
         self.plan = plan
         self.aplicar_duraciones = True
         self.aplicar_predecesoras = True
-        self.setWindowTitle("Sincronizar con Microsoft Project")
+        self.setWindowTitle(tr("Sincronizar con Microsoft Project"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumSize(720, 420)
         self.resize(860, 560)
@@ -60,7 +61,7 @@ class SincronizarProjectDialog(QDialog):
         hdr.setStyleSheet(f"background:{SLATE_700};")
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(18, 0, 18, 0)
-        t = QLabel("Sincronizar con Microsoft Project")
+        t = QLabel(tr("Sincronizar con Microsoft Project"))
         t.setStyleSheet("color:white; font-size:14px; font-weight:700;"
                         " background:transparent; border:none;")
         hl.addWidget(t)
@@ -84,31 +85,31 @@ class SincronizarProjectDialog(QDialog):
 
         p = self.plan
         if p.get('emparejadas', 0) == 0:
-            aviso = QLabel(
+            aviso = QLabel(tr(
                 "Ninguna tarea del archivo corresponde a una partida de este "
                 "proyecto. Esto pasa si el archivo no salió de aquí con el botón "
                 "«MPP» (no trae el identificador de cada partida) o si es de otro "
-                "proyecto.")
+                "proyecto."))
             aviso.setWordWrap(True)
             aviso.setStyleSheet(f"color:#B71C1C; font-size:12px;")
             cl.addWidget(aviso)
 
-        self.chk_dur = QCheckBox(f"Aplicar duraciones ({len(p.get('duraciones', []))})")
+        self.chk_dur = QCheckBox(tr("Aplicar duraciones ({n})").format(n=len(p.get('duraciones', []))))
         self.chk_dur.setChecked(bool(p.get('duraciones')))
         self.chk_dur.setEnabled(bool(p.get('duraciones')))
         cl.addWidget(self.chk_dur)
-        self.tbl_dur = self._tabla(["Ítem", "Partida", "Ahora", "Desde Project"])
+        self.tbl_dur = self._tabla([tr("Ítem"), tr("Partida"), tr("Ahora"), tr("Desde Project")])
         for c in p.get('duraciones', []):
             self._fila(self.tbl_dur, [c['item'], c['descripcion'],
                                       f"{c['antes']} d", f"{c['despues']} d"])
         self.tbl_dur.setVisible(bool(p.get('duraciones')))
         cl.addWidget(self.tbl_dur, 1)
 
-        self.chk_pre = QCheckBox(f"Aplicar predecesoras ({len(p.get('predecesoras', []))})")
+        self.chk_pre = QCheckBox(tr("Aplicar predecesoras ({n})").format(n=len(p.get('predecesoras', []))))
         self.chk_pre.setChecked(bool(p.get('predecesoras')))
         self.chk_pre.setEnabled(bool(p.get('predecesoras')))
         cl.addWidget(self.chk_pre)
-        self.tbl_pre = self._tabla(["Ítem", "Partida", "Ahora", "Desde Project"])
+        self.tbl_pre = self._tabla([tr("Ítem"), tr("Partida"), tr("Ahora"), tr("Desde Project")])
         for c in p.get('predecesoras', []):
             self._fila(self.tbl_pre, [c['item'], c['descripcion'],
                                       c['antes'] or '—', c['despues'] or '—'])
@@ -118,22 +119,22 @@ class SincronizarProjectDialog(QDialog):
         avisos = []
         if p.get('sin_correspondencia'):
             sc = p['sin_correspondencia']
-            avisos.append("No se tocan (no son partidas de aquí): "
-                          + ", ".join(sc[:6]) + (f" y {len(sc) - 6} más" if len(sc) > 6 else "") + ".")
+            avisos.append(tr("No se tocan (no son partidas de aquí): ")
+                          + ", ".join(sc[:6]) + (tr(" y {n} más").format(n=len(sc) - 6) if len(sc) > 6 else "") + ".")
         for ig in p.get('ignoradas', [])[:4]:
-            avisos.append("Vínculo ignorado — " + ig + ".")
+            avisos.append(tr("Vínculo ignorado — {detalle}.").format(detalle=ig))
         if p.get('no_en_archivo'):
-            avisos.append(f"{p['no_en_archivo']} partida(s) de aquí no están en el archivo: "
-                          "conservan lo que tienen.")
+            avisos.append(tr("{n} partida(s) de aquí no están en el archivo: "
+                             "conservan lo que tienen.").format(n=p['no_en_archivo']))
         if avisos:
             lbl_av = QLabel("\n".join(avisos))
             lbl_av.setWordWrap(True)
             lbl_av.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
             cl.addWidget(lbl_av)
 
-        pasos = QLabel(PASOS_PROJECT + " Las predecesoras se traducen a la numeración "
+        pasos = QLabel(tr(PASOS_PROJECT) + tr(" Las predecesoras se traducen a la numeración "
                        "de este Gantt por el identificador de cada partida, no por el "
-                       "número de fila de Project.")
+                       "número de fila de Project."))
         pasos.setWordWrap(True)
         pasos.setStyleSheet(f"color:{SLATE_300}; font-size:10px; font-style:italic;")
         cl.addWidget(pasos)
@@ -146,12 +147,12 @@ class SincronizarProjectDialog(QDialog):
         bl.setContentsMargins(18, 8, 18, 8)
         bl.setSpacing(10)
         bl.addStretch(1)
-        b_cancel = QPushButton("Cancelar")
+        b_cancel = QPushButton(tr("Cancelar"))
         b_cancel.setCursor(Qt.PointingHandCursor)
         b_cancel.setStyleSheet(btn_secondary())
         b_cancel.clicked.connect(self.reject)
         bl.addWidget(b_cancel)
-        self.b_ok = QPushButton("Aplicar al cronograma")
+        self.b_ok = QPushButton(tr("Aplicar al cronograma"))
         self.b_ok.setCursor(Qt.PointingHandCursor)
         self.b_ok.setStyleSheet(BTN_PRIMARY_SS)
         self.b_ok.clicked.connect(self._aceptar)

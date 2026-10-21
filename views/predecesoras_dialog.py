@@ -27,12 +27,14 @@ from PySide6.QtWidgets import (
     QPushButton, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout,
 )
 
+from utils.i18n import N_, tr
+
 # (etiqueta española, código interno) — mismo orden que el menú de la flecha.
 TIPOS_DEP = [
-    ("FC  Fin → Comienzo",      'FS'),
-    ("CC  Comienzo → Comienzo", 'SS'),
-    ("FF  Fin → Fin",           'FF'),
-    ("CF  Comienzo → Fin",      'SF'),
+    (N_("FC  Fin → Comienzo"),      'FS'),
+    (N_("CC  Comienzo → Comienzo"), 'SS'),
+    (N_("FF  Fin → Fin"),           'FF'),
+    (N_("CF  Comienzo → Fin"),      'SF'),
 ]
 
 # Filas virtuales que ocupan «#» pero no tienen sentido como predecesora.
@@ -64,7 +66,7 @@ class PredecesorasDialog(QDialog):
         super().__init__(parent)
         self._g = gantt
         self._pid = target_pid
-        self.setWindowTitle("Predecesoras")
+        self.setWindowTitle(tr("Predecesoras"))
         self.setWindowModality(Qt.WindowModal)
         self.resize(720, 560)
 
@@ -105,9 +107,9 @@ class PredecesorasDialog(QDialog):
         partes = [f"#{c['num']}"]
         if c['item']:
             partes.append(c['item'])
-        partes.append(c['desc'] or '(sin descripción)')
+        partes.append(c['desc'] or tr('(sin descripción)'))
         txt = "  ·  ".join(partes)
-        return txt + ("   [título]" if c['es_titulo'] else "")
+        return txt + (tr("   [título]") if c['es_titulo'] else "")
 
     # ── UI ───────────────────────────────────────────────────────────────
 
@@ -122,14 +124,14 @@ class PredecesorasDialog(QDialog):
             if p['id'] == self._pid:
                 desc = f"{(p.get('item') or '').strip()} {(p.get('descripcion') or '').strip()}"
                 break
-        cab = QLabel(f"<b>Predecesoras de #{num or '?'}</b> · {desc.strip()}")
+        cab = QLabel(tr("<b>Predecesoras de #{num}</b> · {desc}").format(num=num or '?', desc=desc.strip()))
         cab.setWordWrap(True)
         lay.addWidget(cab)
 
         # ── Predecesoras actuales ──
-        lay.addWidget(QLabel("Predecesoras actuales:"))
+        lay.addWidget(QLabel(tr("Predecesoras actuales:")))
         self.tbl = QTableWidget(0, 4)
-        self.tbl.setHorizontalHeaderLabels(["#", "Tarea", "Tipo", "Desfase (días)"])
+        self.tbl.setHorizontalHeaderLabels(["#", tr("Tarea"), tr("Tipo"), tr("Desfase (días)")])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tbl.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -144,16 +146,16 @@ class PredecesorasDialog(QDialog):
 
         row_btn = QHBoxLayout()
         row_btn.addStretch(1)
-        self.btn_quitar = QPushButton("Quitar seleccionada")
+        self.btn_quitar = QPushButton(tr("Quitar seleccionada"))
         self.btn_quitar.setCursor(Qt.PointingHandCursor)
         self.btn_quitar.clicked.connect(self._quitar)
         row_btn.addWidget(self.btn_quitar)
         lay.addLayout(row_btn)
 
         # ── Agregar ──
-        lay.addWidget(QLabel("Agregar predecesora — busca por número, ítem o descripción:"))
+        lay.addWidget(QLabel(tr("Agregar predecesora — busca por número, ítem o descripción:")))
         self.inp_buscar = QLineEdit()
-        self.inp_buscar.setPlaceholderText("Ej.: concreto, 02.01, 12…")
+        self.inp_buscar.setPlaceholderText(tr("Ej.: concreto, 02.01, 12…"))
         self.inp_buscar.setClearButtonEnabled(True)
         self.inp_buscar.textChanged.connect(self._filtrar)
         self.inp_buscar.returnPressed.connect(self._agregar)
@@ -166,15 +168,15 @@ class PredecesorasDialog(QDialog):
 
         row_add = QHBoxLayout()
         row_add.addStretch(1)
-        self.btn_agregar = QPushButton("Agregar")
+        self.btn_agregar = QPushButton(tr("Agregar"))
         self.btn_agregar.setCursor(Qt.PointingHandCursor)
         self.btn_agregar.clicked.connect(self._agregar)
         row_add.addWidget(self.btn_agregar)
         lay.addLayout(row_add)
 
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Ok).setText("Aceptar")
-        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        bb.button(QDialogButtonBox.Ok).setText(tr("Aceptar"))
+        bb.button(QDialogButtonBox.Cancel).setText(tr("Cancelar"))
         bb.accepted.connect(self.accept)
         bb.rejected.connect(self.reject)
         lay.addWidget(bb)
@@ -210,19 +212,19 @@ class PredecesorasDialog(QDialog):
         if cand:
             txt = "  ·  ".join(x for x in (cand['item'], cand['desc']) if x)
         else:
-            txt = f"(no encontrada — se conserva «{raw}»)"
+            txt = tr("(no encontrada — se conserva «{raw}»)").format(raw=raw)
         self.tbl.setItem(r, 1, QTableWidgetItem(txt))
 
         if avanzado:
             it_t = QTableWidgetItem(raw)
-            it_t.setToolTip("Token avanzado (lag en % o referencia por ítem): "
-                            "se conserva tal cual.")
+            it_t.setToolTip(tr("Token avanzado (lag en % o referencia por ítem): "
+                               "se conserva tal cual."))
             self.tbl.setItem(r, 2, it_t)
             self.tbl.setItem(r, 3, QTableWidgetItem("—"))
         else:
             cb = QComboBox()
             for label, code in TIPOS_DEP:
-                cb.addItem(label, code)
+                cb.addItem(tr(label), code)
             idx = max(0, [c for _l, c in TIPOS_DEP].index(tipo)
                       if tipo in [c for _l, c in TIPOS_DEP] else 0)
             cb.setCurrentIndex(idx)
@@ -231,7 +233,7 @@ class PredecesorasDialog(QDialog):
             sp = QSpinBox()
             sp.setRange(-999, 999)
             sp.setValue(int(lag or 0))
-            sp.setToolTip("Días de adelanto (negativo) o retraso (positivo).")
+            sp.setToolTip(tr("Días de adelanto (negativo) o retraso (positivo)."))
             self.tbl.setCellWidget(r, 3, sp)
 
     # ── Acciones ─────────────────────────────────────────────────────────
@@ -272,9 +274,9 @@ class PredecesorasDialog(QDialog):
         # no al aceptar, para que el aviso llegue en el momento.
         if self._g._evita_ciclo(cand['pid'], self._pid):
             QMessageBox.warning(
-                self, "Dependencia circular",
-                f"«{cand['desc']}» no puede ser predecesora: crearía un ciclo "
-                f"con esta tarea.")
+                self, tr("Dependencia circular"),
+                tr("«{desc}» no puede ser predecesora: crearía un ciclo "
+                   "con esta tarea.").format(desc=cand['desc']))
             return
         self._añadir_fila(num=cand['num'], cand=cand)
         self._filtrar(self.inp_buscar.text())
