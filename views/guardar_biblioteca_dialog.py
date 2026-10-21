@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 
 from core.database import get_db
 from utils.formatting import fmt, norm_busqueda
+from utils.i18n import tr
 from utils.theme import BTN_PRIMARY_SS, btn_secondary
 
 # Grupos del catálogo base (seed): no se deben sobrescribir a la ligera.
@@ -72,7 +73,7 @@ class GuardarBibliotecaDialog(QDialog):
     def __init__(self, descripcion: str, grupo_partida: str = '',
                  moneda: str = 'S/', parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Guardar en Biblioteca")
+        self.setWindowTitle(tr("Guardar en Biblioteca"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumWidth(520)
         self.modo: str | None = None
@@ -101,13 +102,13 @@ class GuardarBibliotecaDialog(QDialog):
         if self._coinc:
             n = len(self._coinc)
             self.rb_actualizar.setText(
-                "Actualizar la que ya existe" if n == 1 else
-                f"Actualizar una de las {n} que ya existen — elige el grupo:")
+                tr("Actualizar la que ya existe") if n == 1 else
+                tr("Actualizar una de las {n} que ya existen — elige el grupo:").format(n=n))
             v.addWidget(self.rb_actualizar)
             self.lst.setSelectionMode(QAbstractItemView.SingleSelection)
             for r in self._coinc:
-                grupo = (r['grupo'] or '').strip() or '(sin grupo)'
-                extra = "  ·  catálogo base" if es_grupo_seed(r['grupo']) else ''
+                grupo = (r['grupo'] or '').strip() or tr('(sin grupo)')
+                extra = "  ·  " + tr("catálogo base") if es_grupo_seed(r['grupo']) else ''
                 it = QListWidgetItem(
                     f"{grupo}   ·   {r['unidad'] or '—'}   ·   "
                     f"{fmt(r['costo_unitario'] or 0, moneda)}{extra}")
@@ -117,11 +118,11 @@ class GuardarBibliotecaDialog(QDialog):
             self.lst.itemClicked.connect(lambda _i: self.rb_actualizar.setChecked(True))
             v.addWidget(self.lst)
             self._grp.addButton(self.rb_actualizar)
-            self.rb_nuevo.setText("Guardar como copia nueva en el grupo:")
+            self.rb_nuevo.setText(tr("Guardar como copia nueva en el grupo:"))
         else:
-            self.rb_nuevo.setText("Guardar en el grupo:")
+            self.rb_nuevo.setText(tr("Guardar en el grupo:"))
             self.rb_nuevo.hide()     # una sola opción: no hace falta elegir
-            v.addWidget(QLabel("Grupo:"))
+            v.addWidget(QLabel(tr("Grupo:")))
         self._grp.addButton(self.rb_nuevo)
         v.addWidget(self.rb_nuevo)
 
@@ -149,10 +150,10 @@ class GuardarBibliotecaDialog(QDialog):
 
         fila = QHBoxLayout()
         fila.addStretch(1)
-        btn_cancelar = QPushButton("Cancelar")
+        btn_cancelar = QPushButton(tr("Cancelar"))
         btn_cancelar.setStyleSheet(btn_secondary())
         btn_cancelar.clicked.connect(self.reject)
-        self.btn_guardar = QPushButton("Guardar")
+        self.btn_guardar = QPushButton(tr("Guardar"))
         self.btn_guardar.setStyleSheet(BTN_PRIMARY_SS)
         self.btn_guardar.setDefault(True)
         self.btn_guardar.clicked.connect(self._aceptar)
