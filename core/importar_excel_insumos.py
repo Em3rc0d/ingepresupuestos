@@ -37,6 +37,7 @@ from dataclasses import asdict, dataclass, field
 
 from core.config import INEI_DEFAULT, TIPOS_RECURSO
 from utils.formatting import parse_num, parse_num_opt
+from utils.i18n import N_, tr
 
 # Campos de destino, en el orden en que se muestran.
 CAMPOS = ('codigo', 'descripcion', 'unidad', 'precio', 'tipo', 'inei')
@@ -48,10 +49,10 @@ FILAS_BUSQUEDA_CABECERA = 30
 
 # Motivos de omisión (clave → texto del resumen).
 MOTIVOS = {
-    'sin_precio':      "sin precio (0 o vacío)",
-    'sin_descripcion': "sin descripción",
-    'tipo_invalido':   "tipo no reconocido (MO/MAT/EQ/SC)",
-    'texto':           "notas o subtítulos (sin código ni precio)",
+    'sin_precio':      N_("sin precio (0 o vacío)"),
+    'sin_descripcion': N_("sin descripción"),
+    'tipo_invalido':   N_("tipo no reconocido (MO/MAT/EQ/SC)"),
+    'texto':           N_("notas o subtítulos (sin código ni precio)"),
 }
 
 
@@ -403,13 +404,14 @@ def configuracion_inicial(filas: list[list], hoja: str, *,
         op.tipo_fijo = 'MAT'           # sin columna de tipo, lo normal es una lista de materiales
     op.cantidad_en_unidad = detectar_cantidad_en_unidad(datos, op.columnas['unidad'])
     if op.cantidad_en_unidad:
-        op.motivos['cantidad'] = ("La columna de unidad trae la cantidad "
-                                  "(«100 Kg»): el precio se divide por ella.")
+        op.motivos['cantidad'] = tr("La columna de unidad trae la cantidad "
+                                    "(«100 Kg»): el precio se divide por ella.")
     cp = op.columnas['precio']
     if cp is not None and detectar_impuesto(_celda(cab, cp)):
         op.quitar_impuesto = True
-        op.motivos['impuesto'] = (f"El título de la columna de precio "
-                                  f"(«{_texto(_celda(cab, cp))}») dice que incluye el impuesto.")
+        op.motivos['impuesto'] = tr("El título de la columna de precio («{t}») "
+                                    "dice que incluye el impuesto.").format(
+                                        t=_texto(_celda(cab, cp)))
     if formato_propio(cab):
         op.omitir_sin_precio = False
     if es_lista_mtop(filas):
@@ -421,8 +423,9 @@ def configuracion_inicial(filas: list[list], hoja: str, *,
         op.impuesto_pct = float(perfil('UY')['imp'][1])
         op.omitir_sin_precio = True
         op.motivos['mtop'] = True
-        op.motivos['impuesto'] = (f"La Lista Oficial del MTOP publica precios "
-                                  f"con IVA ({op.impuesto_pct:g} % en Uruguay).")
+        op.motivos['impuesto'] = tr("La Lista Oficial del MTOP publica precios "
+                                    "con IVA ({p} % en Uruguay).").format(
+                                        p=f"{op.impuesto_pct:g}")
     return op
 
 
@@ -509,9 +512,10 @@ def preparar_insumos(filas: list[list], op: Opciones):
         precio = pre / cant / divisor_imp
         original = ''
         if cant != 1 or divisor_imp != 1:
-            original = f"{_texto(und_raw)} a {pre:,.2f}"
+            original = tr("{und} a {precio}").format(und=_texto(und_raw),
+                                                    precio=f"{pre:,.2f}")
             if divisor_imp != 1:
-                original += f" (con {op.impuesto_pct:g} %)"
+                original += " " + tr("(con {p} %)").format(p=f"{op.impuesto_pct:g}")
         if cod and op.prefijo:
             cod = op.prefijo + cod
         inei_raw = _texto(_celda(f, cols.get('inei')))
@@ -579,7 +583,6 @@ def importar_insumos(insumos: list[Insumo], conn=None) -> dict:
 
 def resumen(res: dict, omitidos: list[tuple[int, str]]) -> str:
     """Texto final para el usuario: nuevos / actualizados / omitidos y por qué."""
-    from utils.i18n import tr
     lineas = [tr("{n} nuevos").format(n=res.get('nuevos', 0)),
               tr("{n} actualizados").format(n=res.get('actualizados', 0))]
     if res.get('precio_conservado'):

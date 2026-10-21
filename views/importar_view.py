@@ -1076,7 +1076,11 @@ class ImportarView(QWidget):
             "por capítulo, y sus insumos al catálogo.")
         b_proy = box.addButton("Crear proyecto", QMessageBox.AcceptRole)
         b_bib = box.addButton("Añadir a la Biblioteca", QMessageBox.AcceptRole)
-        box.addButton("Cancelar", QMessageBox.RejectRole)
+        b_cancelar = box.addButton("Cancelar", QMessageBox.RejectRole)
+        # QMessageBox no se ensancha por sus botones: con el texto largo
+        # quedaba en 400 px y «Añadir a la Biblioteca» salía cortado.
+        for b in (b_proy, b_bib, b_cancelar):
+            b.setMinimumWidth(b.sizeHint().width())
         box.setDefaultButton(b_proy if es_ppto else b_bib)
         box.exec()
         if box.clickedButton() is b_proy:
