@@ -6824,7 +6824,7 @@ class GanttWidget(QWidget):
             lbl.setHtml(
                 "<div style='background:rgba(255,255,255,0.9); color:#C62828;"
                 " padding:0 3px; border:1px solid #E0A0A0; border-radius:2px;"
-                " font-size:7pt; font-weight:700;'>Fin plazo</div>"
+                " font-size:7pt; font-weight:700;'>" + tr("Fin plazo") + "</div>"
             )
             lbl.setPos(xf + 3, 2)
             lbl.setZValue(4)
