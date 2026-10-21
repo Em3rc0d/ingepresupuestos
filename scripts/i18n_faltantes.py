@@ -16,9 +16,10 @@ el archivo hace `from utils.i18n import tr as _x`— y los compara con
                                                      # {texto: ""} para traducir
     python3 scripts/i18n_faltantes.py --por-archivo  # llamadas a tr() por archivo
 
-Avisa también de las llamadas a `tr()` con un argumento que no es un literal
-(variable, f-string): esas no se pueden traducir — la clave tiene que ser el
-texto fijo, con marcadores `{n}` y `.format(n=…)` después.
+Lista también las llamadas a `tr()` sobre una variable: están bien si ese
+texto se marcó con `N_()` donde se define (constantes); si no, el script no lo
+ve. Nunca pasar un f-string a `tr()`: la clave tiene que ser el texto fijo,
+con marcadores `{n}` y `.format(n=…)` después.
 """
 
 from __future__ import annotations
@@ -136,7 +137,8 @@ def main() -> int:
             print(f"  {n:5d}  {rel}")
 
     if dinamicas:
-        print("\nLlamadas a tr() con argumento NO literal (no se pueden traducir):")
+        print("\nLlamadas a tr() sobre una variable (bien si su texto se marcó con N_() donde se define;\n"
+              "si no, el script no lo ve y no se traduce):")
         for rel, lineas in dinamicas.items():
             print(f"  {rel}: líneas {', '.join(map(str, lineas))}")
 

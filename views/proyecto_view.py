@@ -8501,7 +8501,7 @@ class ProyectoView(QWidget):
         if not self._require_editable(N_("agregar insumos al ACU")):
             return
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "ACU", tr("Seleccione una partida primero."))
+            QMessageBox.information(self, tr("ACU"), tr("Seleccione una partida primero."))
             return
         from views.recurso_selector_dialog import RecursoSelectorDialog
         dlg = RecursoSelectorDialog(self._partida_actual_id, self._proy, parent=self)
@@ -9323,7 +9323,7 @@ class ProyectoView(QWidget):
     def _metrado_fila_btn(self):
         """Botón '+ Fila': agrega una fila al final y empieza a editarla."""
         if self._partida_actual_id is None:
-            QMessageBox.information(self, "Metrados", tr("Seleccione una partida primero."))
+            QMessageBox.information(self, tr("Metrados"), tr("Seleccione una partida primero."))
             return
         if not self._ed_presupuesto:
             return
