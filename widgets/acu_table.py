@@ -17,6 +17,7 @@ from PySide6.QtGui import QColor
 from core.config import DB_PATH
 from core.database import get_decimales_cant_acu
 from utils.formatting import fmt
+from utils.i18n import tr
 
 
 TIPO_COLOR = {'MO': '#ffeeba', 'MAT': '#d4edda', 'EQ': '#cce5ff'}
@@ -39,18 +40,18 @@ class AcuTable(QWidget):
 
         # Encabezado
         hl = QHBoxLayout()
-        self.lbl_titulo = QLabel("ACU")
+        self.lbl_titulo = QLabel(tr("ACU"))
         self.lbl_titulo.setStyleSheet("font-weight:bold; font-size:13px;")
         hl.addWidget(self.lbl_titulo)
         hl.addStretch()
-        btn_add = QPushButton("+ Recurso")
+        btn_add = QPushButton(tr("+ Recurso"))
         btn_add.setFixedHeight(28)
         btn_add.clicked.connect(self._agregar_recurso)
         hl.addWidget(btn_add)
         vl.addLayout(hl)
 
         # Tabla
-        cols = ["Código", "Descripción", "Tipo", "Unidad", "Cuadrilla", "Cantidad", "Precio", "Parcial"]
+        cols = [tr("Código"), tr("Descripción"), tr("Tipo"), tr("Unidad"), tr("Cuadrilla"), tr("Cantidad"), tr("Precio"), tr("Parcial")]
         self.tabla = QTableWidget(0, len(cols))
         self.tabla.setHorizontalHeaderLabels(cols)
         self.tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
@@ -62,7 +63,7 @@ class AcuTable(QWidget):
         # Total
         hl2 = QHBoxLayout()
         hl2.addStretch()
-        self.lbl_total = QLabel("P.U.: —")
+        self.lbl_total = QLabel(tr("P.U.: —"))
         self.lbl_total.setStyleSheet("font-weight:bold; font-size:13px; color:#485a6c;")
         hl2.addWidget(self.lbl_total)
         vl.addLayout(hl2)
@@ -75,7 +76,7 @@ class AcuTable(QWidget):
         # Obtener descripción y rendimiento de la partida
         p = conn.execute("SELECT descripcion, rendimiento FROM partidas WHERE id=?", (partida_id,)).fetchone()
         if p:
-            self.lbl_titulo.setText(f"ACU — {p['descripcion']}")
+            self.lbl_titulo.setText(tr("ACU — {desc}").format(desc=p['descripcion']))
 
         rows = conn.execute("""
             SELECT ai.id, r.codigo, r.descripcion, r.tipo, r.unidad,
@@ -122,7 +123,7 @@ class AcuTable(QWidget):
                     it.setFlags(it.flags() & ~Qt.ItemIsEditable)
                 self.tabla.setItem(r, c, it)
 
-        self.lbl_total.setText(f"P.U.: {fmt(total, moneda)}")
+        self.lbl_total.setText(tr("P.U.: {monto}").format(monto=fmt(total, moneda)))
         self._loading = False
 
     def _on_item_changed(self, item):

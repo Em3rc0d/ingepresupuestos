@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QPushButton, QFileDialog, QMessageBox,
 )
 
+from utils.i18n import tr
+
 _ORANGE = "#F37329"
 _SLATE_700 = "#273445"
 _SLATE_500 = "#485A6C"
@@ -36,7 +38,7 @@ class FichasDialog(QDialog):
         self._listar = listar
         self._agregar_cb = agregar
         self._quitar_cb = quitar
-        self.setWindowTitle("Fichas técnicas adjuntas")
+        self.setWindowTitle(tr("Fichas técnicas adjuntas"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumSize(480, 320)
         v = QVBoxLayout(self)
@@ -60,14 +62,14 @@ class FichasDialog(QDialog):
         v.addWidget(self.lista, 1)
 
         fila = QHBoxLayout(); fila.setSpacing(6)
-        b_add = QPushButton("＋ Agregar PDF…")
+        b_add = QPushButton(tr("＋ Agregar PDF…"))
         b_add.setStyleSheet(
             f"QPushButton {{ background:{_ORANGE}; color:white; border:none;"
             f" border-radius:6px; padding:6px 14px; font-weight:600; }}")
         b_add.clicked.connect(self._agregar)
-        b_del = QPushButton("Quitar")
+        b_del = QPushButton(tr("Quitar"))
         b_del.clicked.connect(self._quitar)
-        b_ok = QPushButton("Cerrar")
+        b_ok = QPushButton(tr("Cerrar"))
         b_ok.clicked.connect(self.accept)
         for b in (b_del, b_ok):
             b.setStyleSheet(
@@ -86,7 +88,7 @@ class FichasDialog(QDialog):
             legible = bool(texto_adjunto_pdf(a.get('ruta') or '',
                                              max_pags=1, max_chars=200))
             marca = "📄" if legible else "🖼"
-            extra = "" if legible else "   (escaneado: solo anexo, la IA no lo lee)"
+            extra = "" if legible else tr("   (escaneado: solo anexo, la IA no lo lee)")
             it = QListWidgetItem(f"{marca}  {a.get('nombre')}{extra}")
             it.setData(Qt.UserRole, a.get('nombre'))
             it.setToolTip(a.get('ruta') or '')
@@ -95,19 +97,20 @@ class FichasDialog(QDialog):
     def _agregar(self):
         from core.adjuntos import texto_adjunto_pdf
         rutas, _ = QFileDialog.getOpenFileNames(
-            self, "Fichas técnicas (PDF)", "", "PDF (*.pdf)")
+            self, tr("Fichas técnicas (PDF)"), "", "PDF (*.pdf)")
         escaneadas = []
         for ruta in rutas:
             a = self._agregar_cb(ruta)
             if not texto_adjunto_pdf(a['ruta'], max_pags=1, max_chars=200):
                 escaneadas.append(a['nombre'])
         if escaneadas:
-            QMessageBox.information(self, "Ficha escaneada",
-                "Estas fichas no tienen texto legible (parecen escaneadas):\n\n"
-                + "\n".join(f"• {n}" for n in escaneadas)
-                + "\n\nIrán como ANEXO en el PDF, pero la IA no podrá leer su "
-                  "contenido. Si quieres que la IA las use, busca la versión "
-                  "digital del fabricante.")
+            QMessageBox.information(self, tr("Ficha escaneada"),
+                tr("Estas fichas no tienen texto legible (parecen escaneadas):\n\n"
+                   "{lista}"
+                   "\n\nIrán como ANEXO en el PDF, pero la IA no podrá leer su "
+                   "contenido. Si quieres que la IA las use, busca la versión "
+                   "digital del fabricante.").format(
+                    lista="\n".join(f"• {n}" for n in escaneadas)))
         self._recargar()
 
     def _quitar(self):

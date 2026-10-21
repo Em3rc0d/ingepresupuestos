@@ -16,6 +16,7 @@ import re as _re
 from core.config import DB_PATH
 from core.database import get_db
 from models.usuario import Usuario
+from utils.i18n import tr
 
 
 class PartidaFormDialog(QDialog):
@@ -33,9 +34,9 @@ class PartidaFormDialog(QDialog):
         self._grupos          = self._cargar_grupos()
 
         if part_id is None:
-            titulo_ventana = "Agregar título / sección" if es_titulo_default else "Agregar partida"
+            titulo_ventana = tr("Agregar título / sección") if es_titulo_default else tr("Agregar partida")
         else:
-            titulo_ventana = "Editar partida"
+            titulo_ventana = tr("Editar partida")
         self.setWindowTitle(titulo_ventana)
         self.setMinimumWidth(620)
         self.resize(680, 320)
@@ -75,13 +76,13 @@ class PartidaFormDialog(QDialog):
 
         # Ítem
         self.inp_item = QLineEdit()
-        self.inp_item.setPlaceholderText("Ej: 01.02.03")
+        self.inp_item.setPlaceholderText(tr("Ej: 01.02.03"))
         self.inp_item.setMinimumHeight(32)
-        form.addRow("Ítem *:", self.inp_item)
+        form.addRow(tr("Ítem *:"), self.inp_item)
 
         # Descripción + botón cambio de caso
         self.inp_desc = QLineEdit()
-        self.inp_desc.setPlaceholderText("Descripción de la partida")
+        self.inp_desc.setPlaceholderText(tr("Descripción de la partida"))
         self.inp_desc.setMinimumHeight(40)
         self.inp_desc.setStyleSheet(
             "QLineEdit { font-size:13px; padding:0 8px; }"
@@ -91,7 +92,7 @@ class PartidaFormDialog(QDialog):
         hl_desc.addWidget(self.inp_desc)
         btn_caso = QPushButton("Aa")
         btn_caso.setFixedSize(34, 40)
-        btn_caso.setToolTip("Ciclar: MAYÚSCULAS → minúsculas → Primera Mayúscula")
+        btn_caso.setToolTip(tr("Ciclar: MAYÚSCULAS → minúsculas → Primera Mayúscula"))
         btn_caso.setStyleSheet(
             "QPushButton { background:#F0F2F5; border:1px solid #D4D4D4;"
             " border-radius:6px; font-size:12px; font-weight:700; color:#485A6C; }"
@@ -107,16 +108,16 @@ class PartidaFormDialog(QDialog):
             self._caso_idx += 1
         btn_caso.clicked.connect(_ciclar_caso)
         hl_desc.addWidget(btn_caso)
-        form.addRow("Descripción *:", hl_desc)
+        form.addRow(tr("Descripción *:"), hl_desc)
 
         # Es título
-        self.chk_titulo = QCheckBox("Es título de sección (sin metrado ni precio)")
+        self.chk_titulo = QCheckBox(tr("Es título de sección (sin metrado ni precio)"))
         self.chk_titulo.stateChanged.connect(self._toggle_titulo)
         form.addRow("", self.chk_titulo)
 
         # Unidad con autocompletado
         self.inp_unidad = QLineEdit()
-        self.inp_unidad.setPlaceholderText("m², m³, kg, glb, …")
+        self.inp_unidad.setPlaceholderText(tr("m², m³, kg, glb, …"))
         self.inp_unidad.setMinimumHeight(32)
         _UNIDADES = [
             "m", "m²", "m³", "ml", "km", "cm", "mm",
@@ -152,17 +153,17 @@ class PartidaFormDialog(QDialog):
                 ))
         self.inp_unidad.textEdited.connect(_auto_sup)
 
-        form.addRow("Unidad:", self.inp_unidad)
+        form.addRow(tr("Unidad:"), self.inp_unidad)
 
         # Grupo
         self.inp_grupo = QLineEdit()
-        self.inp_grupo.setPlaceholderText("Grupo de análisis (opcional)")
+        self.inp_grupo.setPlaceholderText(tr("Grupo de análisis (opcional)"))
         self.inp_grupo.setMinimumHeight(32)
         if self._grupos:
             self.inp_grupo.setCompleter(
                 self._make_completer(self._grupos)
             )
-        form.addRow("Grupo:", self.inp_grupo)
+        form.addRow(tr("Grupo:"), self.inp_grupo)
 
         vl.addLayout(form)
 
@@ -176,10 +177,10 @@ class PartidaFormDialog(QDialog):
         # Botones
         btns = QHBoxLayout()
         btns.addStretch()
-        btn_can = QPushButton("Cancelar")
+        btn_can = QPushButton(tr("Cancelar"))
         btn_can.clicked.connect(self.reject)
         btns.addWidget(btn_can)
-        btn_ok = QPushButton("Guardar")
+        btn_ok = QPushButton(tr("Guardar"))
         btn_ok.setStyleSheet(
             "background:#485a6c; color:white; border-radius:6px; padding:6px 20px;"
         )
@@ -210,7 +211,7 @@ class PartidaFormDialog(QDialog):
         item = self.inp_item.text().strip()
         desc = self.inp_desc.text().strip()
         if not item or not desc:
-            self.lbl_error.setText("Ítem y descripción son obligatorios")
+            self.lbl_error.setText(tr("Ítem y descripción son obligatorios"))
             return
 
         es_titulo = 1 if self.chk_titulo.isChecked() else 0
@@ -235,7 +236,7 @@ class PartidaFormDialog(QDialog):
                 )
             conn.commit()
         except sqlite3.IntegrityError as e:
-            self.lbl_error.setText(f"Error: {e}")
+            self.lbl_error.setText(tr("Error: {e}").format(e=e))
             conn.close()
             return
         conn.close()

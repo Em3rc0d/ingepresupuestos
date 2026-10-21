@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from core.config import (MONEDAS, SEPARADORES, guardar_monedas_propias,
                          monedas_propias)
+from utils.i18n import N_, tr
 from utils.theme import BTN_PRIMARY_SS, SLATE_500
 
 
@@ -48,7 +49,7 @@ def moneda_en_uso(nombre: str) -> int:
 class _MonedaForm(QDialog):
     def __init__(self, parent=None, nombre='', cfg=None, nombre_fijo=False):
         super().__init__(parent)
-        self.setWindowTitle("Moneda")
+        self.setWindowTitle(tr("Moneda"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumWidth(380)
         cfg = cfg or {'simbolo': '', 'sep_miles': ',', 'sep_dec': '.'}
@@ -56,35 +57,35 @@ class _MonedaForm(QDialog):
         form = QFormLayout()
         form.setSpacing(10)
         self.inp_nombre = QLineEdit(nombre)
-        self.inp_nombre.setPlaceholderText("Ej.: Dólares (Ecuador)")
+        self.inp_nombre.setPlaceholderText(tr("Ej.: Dólares (Ecuador)"))
         self.inp_nombre.setEnabled(not nombre_fijo)
         if nombre_fijo:
             self.inp_nombre.setToolTip(
-                "Hay proyectos con esta moneda: el nombre no se cambia para no dejarlos sin ella.")
-        form.addRow("Nombre:", self.inp_nombre)
+                tr("Hay proyectos con esta moneda: el nombre no se cambia para no dejarlos sin ella."))
+        form.addRow(tr("Nombre:"), self.inp_nombre)
         self.inp_simbolo = QLineEdit(cfg['simbolo'])
-        self.inp_simbolo.setPlaceholderText("Ej.: $")
+        self.inp_simbolo.setPlaceholderText(tr("Ej.: $"))
         self.inp_simbolo.setMaxLength(8)
         self.inp_simbolo.setMaximumWidth(120)
-        form.addRow("Símbolo:", self.inp_simbolo)
+        form.addRow(tr("Símbolo:"), self.inp_simbolo)
         self.cmb_formato = QComboBox()
         for miles, dec in SEPARADORES:
             self.cmb_formato.addItem(_nombre_formato(miles, dec), (miles, dec))
         i = self.cmb_formato.findData((cfg['sep_miles'], cfg['sep_dec']))
         self.cmb_formato.setCurrentIndex(max(i, 0))
-        form.addRow("Formato:", self.cmb_formato)
+        form.addRow(tr("Formato:"), self.cmb_formato)
         self.lbl_ejemplo = QLabel()
         self.lbl_ejemplo.setStyleSheet("font-weight:700;")
-        form.addRow("Se verá así:", self.lbl_ejemplo)
+        form.addRow(tr("Se verá así:"), self.lbl_ejemplo)
         vl.addLayout(form)
-        nota = QLabel("Solo cambia cómo se escriben los montos: los precios no se convierten.")
+        nota = QLabel(tr("Solo cambia cómo se escriben los montos: los precios no se convierten."))
         nota.setWordWrap(True)
         nota.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         vl.addWidget(nota)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        bb.button(QDialogButtonBox.Ok).setText("Guardar")
+        bb.button(QDialogButtonBox.Ok).setText(tr("Guardar"))
         bb.button(QDialogButtonBox.Ok).setStyleSheet(BTN_PRIMARY_SS)
-        bb.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        bb.button(QDialogButtonBox.Cancel).setText(tr("Cancelar"))
         bb.accepted.connect(self._aceptar)
         bb.rejected.connect(self.reject)
         vl.addWidget(bb)
@@ -98,7 +99,7 @@ class _MonedaForm(QDialog):
 
     def _aceptar(self):
         if not self.inp_nombre.text().strip() or not self.inp_simbolo.text().strip():
-            QMessageBox.warning(self, "Moneda", "Escribe el nombre y el símbolo.")
+            QMessageBox.warning(self, tr("Moneda"), tr("Escribe el nombre y el símbolo."))
             return
         self.accept()
 
@@ -114,19 +115,19 @@ class MonedasDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Monedas propias")
+        self.setWindowTitle(tr("Monedas propias"))
         self.setWindowModality(Qt.WindowModal)
         self.resize(560, 360)
         self._propias = monedas_propias()
         vl = QVBoxLayout(self)
-        intro = QLabel(
+        intro = QLabel(tr(
             "Añade una moneda que no está en la lista, o corrige una de fábrica "
-            "creando otra con el mismo nombre. Solo es formato: no hay tipo de cambio.")
+            "creando otra con el mismo nombre. Solo es formato: no hay tipo de cambio."))
         intro.setWordWrap(True)
         intro.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
         vl.addWidget(intro)
         self.tbl = QTableWidget(0, 3)
-        self.tbl.setHorizontalHeaderLabels(["Nombre", "Símbolo", "Se verá así"])
+        self.tbl.setHorizontalHeaderLabels([tr("Nombre"), tr("Símbolo"), tr("Se verá así")])
         self.tbl.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.tbl.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.tbl.verticalHeader().setVisible(False)
@@ -136,13 +137,13 @@ class MonedasDialog(QDialog):
         self.tbl.doubleClicked.connect(lambda *_: self._editar())
         vl.addWidget(self.tbl, 1)
         fila = QHBoxLayout()
-        for texto, fn in (("Agregar…", self._agregar), ("Editar…", self._editar),
-                          ("Quitar", self._quitar)):
-            b = QPushButton(texto)
+        for texto, fn in ((N_("Agregar…"), self._agregar), (N_("Editar…"), self._editar),
+                          (N_("Quitar"), self._quitar)):
+            b = QPushButton(tr(texto))
             b.clicked.connect(fn)
             fila.addWidget(b)
         fila.addStretch(1)
-        b_cerrar = QPushButton("Cerrar")
+        b_cerrar = QPushButton(tr("Cerrar"))
         b_cerrar.clicked.connect(self.accept)
         fila.addWidget(b_cerrar)
         vl.addLayout(fila)
@@ -153,7 +154,7 @@ class MonedasDialog(QDialog):
         for nombre, c in sorted(self._propias.items()):
             r = self.tbl.rowCount()
             self.tbl.insertRow(r)
-            etiqueta = nombre + ("  (reemplaza la de fábrica)" if nombre in MONEDAS else "")
+            etiqueta = nombre + (tr("  (reemplaza la de fábrica)") if nombre in MONEDAS else "")
             it = QTableWidgetItem(etiqueta)
             it.setData(Qt.UserRole, nombre)
             self.tbl.setItem(r, 0, it)
@@ -176,7 +177,7 @@ class MonedasDialog(QDialog):
             return
         nombre, cfg = dlg.valor()
         if nombre in self._propias and QMessageBox.question(
-                self, "Moneda", f"Ya tienes «{nombre}». ¿Reemplazarla?") != QMessageBox.Yes:
+                self, tr("Moneda"), tr("Ya tienes «{nombre}». ¿Reemplazarla?").format(nombre=nombre)) != QMessageBox.Yes:
             return
         self._propias[nombre] = cfg
         self._guardar()
@@ -201,11 +202,11 @@ class MonedasDialog(QDialog):
             return
         if nombre not in MONEDAS and moneda_en_uso(nombre):
             QMessageBox.information(
-                self, "Moneda",
-                f"«{nombre}» la usan proyectos (o es la moneda por defecto). "
-                "Cámbiales la moneda antes de quitarla.")
+                self, tr("Moneda"),
+                tr("«{nombre}» la usan proyectos (o es la moneda por defecto). "
+                   "Cámbiales la moneda antes de quitarla.").format(nombre=nombre))
             return
-        if QMessageBox.question(self, "Moneda", f"¿Quitar «{nombre}»?") != QMessageBox.Yes:
+        if QMessageBox.question(self, tr("Moneda"), tr("¿Quitar «{nombre}»?").format(nombre=nombre)) != QMessageBox.Yes:
             return
         del self._propias[nombre]
         self._guardar()

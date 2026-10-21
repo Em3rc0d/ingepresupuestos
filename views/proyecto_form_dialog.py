@@ -15,6 +15,7 @@ from core.config import monedas, ESTADOS_PROYECTO
 from core.database import get_db, _recalcular_pu
 from models.usuario import Usuario
 from utils.formatting import parse_num
+from utils.i18n import tr
 
 
 class ProyectoFormDialog(QDialog):
@@ -24,7 +25,7 @@ class ProyectoFormDialog(QDialog):
         self.proyecto_id = proyecto_id
         self._proy       = self._cargar_proyecto()
 
-        self.setWindowTitle("Nuevo proyecto" if proyecto_id is None else "Editar proyecto")
+        self.setWindowTitle(tr("Nuevo proyecto") if proyecto_id is None else tr("Editar proyecto"))
         self.resize(500, 500)
         self.setModal(True)
         self._build_ui()
@@ -45,8 +46,8 @@ class ProyectoFormDialog(QDialog):
         vl.setSpacing(12)
 
         tabs = QTabWidget()
-        tabs.addTab(self._tab_general(), "General")
-        tabs.addTab(self._tab_financiero(), "Financiero")
+        tabs.addTab(self._tab_general(), tr("General"))
+        tabs.addTab(self._tab_financiero(), tr("Financiero"))
         vl.addWidget(tabs)
 
         self.lbl_error = QLabel("")
@@ -55,10 +56,10 @@ class ProyectoFormDialog(QDialog):
 
         btns = QHBoxLayout()
         btns.addStretch()
-        btn_can = QPushButton("Cancelar")
+        btn_can = QPushButton(tr("Cancelar"))
         btn_can.clicked.connect(self.reject)
         btns.addWidget(btn_can)
-        btn_ok = QPushButton("Guardar")
+        btn_ok = QPushButton(tr("Guardar"))
         btn_ok.setStyleSheet(
             "background:#485a6c; color:white; border-radius:6px; padding:6px 20px;"
         )
@@ -91,14 +92,14 @@ class ProyectoFormDialog(QDialog):
 
         self.inp_modalidad = QLineEdit("Contrata"); self.inp_modalidad.setMinimumHeight(32)
 
-        form.addRow("Nombre *:", self.inp_nombre)
-        form.addRow("Cliente:", self.inp_cliente)
-        form.addRow("Ubicación:", self.inp_ubic)
-        form.addRow("Sub-presupuesto:", self.inp_sub)
-        form.addRow("Costo al:", self.inp_costo_al)
-        form.addRow("Moneda:", self.cmb_moneda)
-        form.addRow("Estado:", self.cmb_estado)
-        form.addRow("Modalidad:", self.inp_modalidad)
+        form.addRow(tr("Nombre *:"), self.inp_nombre)
+        form.addRow(tr("Cliente:"), self.inp_cliente)
+        form.addRow(tr("Ubicación:"), self.inp_ubic)
+        form.addRow(tr("Sub-presupuesto:"), self.inp_sub)
+        form.addRow(tr("Costo al:"), self.inp_costo_al)
+        form.addRow(tr("Moneda:"), self.cmb_moneda)
+        form.addRow(tr("Estado:"), self.cmb_estado)
+        form.addRow(tr("Modalidad:"), self.inp_modalidad)
         return w
 
     def _tab_financiero(self) -> QWidget:
@@ -110,7 +111,7 @@ class ProyectoFormDialog(QDialog):
 
         self.inp_plazo = QSpinBox()
         self.inp_plazo.setRange(1, 9999)
-        self.inp_plazo.setSuffix(" días")
+        self.inp_plazo.setSuffix(tr(" días"))
 
         self.inp_gf = QDoubleSpinBox()
         self.inp_gf.setRange(0, 100)
@@ -131,7 +132,7 @@ class ProyectoFormDialog(QDialog):
         self.inp_jorn = QComboBox()
         self.inp_jorn.setEditable(True)
         self.inp_jorn.lineEdit().setValidator(QIntValidator(1, 24))
-        self.inp_jorn.lineEdit().setPlaceholderText("h/día")
+        self.inp_jorn.lineEdit().setPlaceholderText(tr("h/día"))
         for h in range(4, 13):
             self.inp_jorn.addItem(f"{h}", h)
         self.inp_jorn.setCurrentIndex(4)  # 8 h/día por defecto
@@ -142,12 +143,12 @@ class ProyectoFormDialog(QDialog):
             w2.setMinimumHeight(32)
         self.inp_jorn.setMinimumHeight(32)
 
-        form.addRow("Plazo:", self.inp_plazo)
-        form.addRow("Gastos Generales %:", self.inp_gf)
-        form.addRow("Utilidad %:", self.inp_util)
-        form.addRow("IGV %:", self.inp_igv)
-        form.addRow("Jornada laboral:", self.inp_jorn)
-        form.addRow("Grupo de análisis:", self.inp_grupo_analisis)
+        form.addRow(tr("Plazo:"), self.inp_plazo)
+        form.addRow(tr("Gastos Generales %:"), self.inp_gf)
+        form.addRow(tr("Utilidad %:"), self.inp_util)
+        form.addRow(tr("IGV %:"), self.inp_igv)
+        form.addRow(tr("Jornada laboral:"), self.inp_jorn)
+        form.addRow(tr("Grupo de análisis:"), self.inp_grupo_analisis)
         return w
 
     def _poblar(self):
@@ -179,7 +180,7 @@ class ProyectoFormDialog(QDialog):
     def _guardar(self):
         nombre = self.inp_nombre.text().strip()
         if not nombre:
-            self.lbl_error.setText("El nombre del proyecto es obligatorio")
+            self.lbl_error.setText(tr("El nombre del proyecto es obligatorio"))
             return
 
         datos = (

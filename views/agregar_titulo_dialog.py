@@ -17,6 +17,7 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont
 
 from core.database import get_db
+from utils.i18n import tr
 
 BLUE_500   = "#F37329"
 BLUE_700   = "#C0621A"
@@ -100,7 +101,7 @@ class AgregarTituloDialog(QDialog):
 
         root.addWidget(self._make_header())
 
-        self._tabs = _TabBar(["🔍  Buscar", "✎  Nuevo"])
+        self._tabs = _TabBar([tr("🔍  Buscar"), tr("✎  Nuevo")])
         self._tabs.changed.connect(self._on_tab)
         root.addWidget(self._tabs)
 
@@ -117,7 +118,7 @@ class AgregarTituloDialog(QDialog):
         )
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(20, 0, 16, 0)
-        lbl = QLabel(self._tr("Agregar título"))
+        lbl = QLabel(tr("Agregar título"))
         lbl.setStyleSheet("color:white; font-size:15px; font-weight:700; border:none;")
         hl.addWidget(lbl, stretch=1)
         btn_x = QPushButton("✕")
@@ -141,7 +142,7 @@ class AgregarTituloDialog(QDialog):
 
         # Buscador
         self.inp_buscar = QLineEdit()
-        self.inp_buscar.setPlaceholderText(self._tr("Buscar") + "…")
+        self.inp_buscar.setPlaceholderText(tr("Buscar") + "…")
         self.inp_buscar.setMinimumHeight(36)
         self.inp_buscar.setStyleSheet(
             f"border:1px solid {SILVER_300}; border-radius:8px;"
@@ -166,7 +167,7 @@ class AgregarTituloDialog(QDialog):
         # Botón agregar
         hl = QHBoxLayout()
         hl.addStretch()
-        self.btn_agregar_bib = QPushButton("  " + self._tr("Agregar"))
+        self.btn_agregar_bib = QPushButton("  " + tr("Agregar"))
         self.btn_agregar_bib.setFixedHeight(36)
         self.btn_agregar_bib.setEnabled(False)
         self.btn_agregar_bib.setStyleSheet(
@@ -244,14 +245,14 @@ class AgregarTituloDialog(QDialog):
         vl.setContentsMargins(20, 20, 20, 14)
         vl.setSpacing(12)
 
-        lbl = QLabel(self._tr("Descripción") + " *")
+        lbl = QLabel(tr("Descripción") + " *")
         lbl.setStyleSheet(
             f"color:{SLATE_500}; font-size:12px; font-weight:600; border:none;"
         )
         vl.addWidget(lbl)
 
         self.inp_n_desc = QLineEdit()
-        self.inp_n_desc.setPlaceholderText(self._tr("Descripción"))
+        self.inp_n_desc.setPlaceholderText(tr("Descripción"))
         self.inp_n_desc.setMinimumHeight(38)
         self.inp_n_desc.setStyleSheet(
             f"border:1px solid {SILVER_300}; border-radius:8px;"
@@ -264,7 +265,7 @@ class AgregarTituloDialog(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        btn_ag = QPushButton("  " + self._tr("Agregar"))
+        btn_ag = QPushButton("  " + tr("Agregar"))
         btn_ag.setFixedHeight(38)
         btn_ag.setStyleSheet(
             f"QPushButton {{ background:{BLUE_500}; color:white; border:none;"
@@ -284,7 +285,7 @@ class AgregarTituloDialog(QDialog):
     def _agregar_nuevo(self):
         desc = self.inp_n_desc.text().strip()
         if not desc:
-            self.lbl_n_error.setText("La descripción es obligatoria")
+            self.lbl_n_error.setText(tr("La descripción es obligatoria"))
             return
         self._insertar_titulo(desc)
 
@@ -308,7 +309,7 @@ class AgregarTituloDialog(QDialog):
             conn.close()
         except Exception as e:
             lbl = self.lbl_b_error if self._stack.currentIndex() == 0 else self.lbl_n_error
-            lbl.setText(f"Error: {e}")
+            lbl.setText(tr("Error: {e}").format(e=e))
             return
         self.partidas_agregadas.emit()
         self.accept()

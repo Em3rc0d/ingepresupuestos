@@ -12,6 +12,7 @@ from PySide6.QtGui import QColor
 
 from core.config import DB_PATH
 from utils.formatting import fmt
+from utils.i18n import tr
 
 TIPO_COLOR = {'MO': '#fff3cd', 'MAT': '#d1e7dd', 'EQ': '#cfe2ff'}
 
@@ -24,11 +25,11 @@ class InsumosTable(QWidget):
     def _build_ui(self):
         vl = QVBoxLayout(self)
         vl.setContentsMargins(4, 4, 4, 4)
-        lbl = QLabel("INSUMOS TOTALES")
+        lbl = QLabel(tr("INSUMOS TOTALES"))
         lbl.setStyleSheet("font-weight:bold; font-size:12px; background:#485a6c; color:white; padding:4px 8px;")
         vl.addWidget(lbl)
 
-        cols = ["Descripción", "Tipo", "Unidad", "Cantidad", "Precio", "Parcial", "%"]
+        cols = [tr("Descripción"), tr("Tipo"), tr("Unidad"), tr("Cantidad"), tr("Precio"), tr("Parcial"), "%"]
         self.tabla = QTableWidget(0, len(cols))
         self.tabla.setHorizontalHeaderLabels(cols)
         self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)

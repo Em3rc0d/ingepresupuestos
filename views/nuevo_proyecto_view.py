@@ -18,6 +18,7 @@ from PySide6.QtGui import QFont, QColor, QIntValidator
 from core.config import monedas, ESTADOS_PROYECTO
 from core.database import get_db, get_config
 from models.usuario import Usuario
+from utils.i18n import N_, tr
 from utils.icons import icon, icon_colored
 
 # ── Paleta Elementary ─────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ def _inp(placeholder: str = "", min_h: int = 30) -> QLineEdit:
 
 # Prompt de ejemplo para las Notas del proyecto (se muestra DENTRO del cuadro
 # como texto «fantasma» gris; al hacer clic para escribir se borra solo).
-_EJEMPLO_NOTAS = (
+_EJEMPLO_NOTAS = N_(
     "Ejemplo:\n\n"
     "Presupuesto de un colegio de 2 pisos (6 aulas + losa deportiva) en "
     "Yanaquihua, provincia de Condesuyos, Arequipa, a 2,800 msnm. Clima frío "
@@ -250,7 +251,7 @@ class _DialogMapa(QDialog):
         self._lon = mark[1] if mark else None
         self._altitud = mark[2] if (mark and len(mark) > 2) else None
         self._elev_worker = None
-        self.setWindowTitle("Ubicar el proyecto en el mapa")
+        self.setWindowTitle(tr("Ubicar el proyecto en el mapa"))
         self.setWindowModality(Qt.ApplicationModal)  # bloquea la app sin acoplar geometría
         self.resize(760, 580)
         vl = QVBoxLayout(self)
@@ -259,16 +260,16 @@ class _DialogMapa(QDialog):
 
         self._root = None
         top = QHBoxLayout()
-        info = QLabel("Haz clic en el mapa para marcar dónde queda la obra. "
-                      "Arrastra para moverte, rueda para el zoom.")
+        info = QLabel(tr("Haz clic en el mapa para marcar dónde queda la obra. "
+                         "Arrastra para moverte, rueda para el zoom."))
         info.setWordWrap(True)
         info.setStyleSheet("font-size:11px; color:#667885;")
         top.addWidget(info, 1)
-        self._btn_sat = QPushButton("🛰  Satélite")
+        self._btn_sat = QPushButton(tr("🛰  Satélite"))
         self._btn_sat.setCheckable(True)
         self._btn_sat.setFixedHeight(26)
         self._btn_sat.setCursor(Qt.PointingHandCursor)
-        self._btn_sat.setToolTip("Alternar entre mapa de calles e imagen satelital")
+        self._btn_sat.setToolTip(tr("Alternar entre mapa de calles e imagen satelital"))
         self._btn_sat.setStyleSheet(
             "QPushButton { background:#F0F1F2; color:#273445; border:1px solid #CBD5E1;"
             " border-radius:6px; padding:2px 12px; font-size:11px; }"
@@ -282,12 +283,12 @@ class _DialogMapa(QDialog):
         # todo fuera del Perú, donde no hay distrito UBIGEO para centrar.
         busq = QHBoxLayout()
         self._inp_buscar = QLineEdit()
-        self._inp_buscar.setPlaceholderText("Buscar dirección, ciudad o lugar…  (Enter)")
+        self._inp_buscar.setPlaceholderText(tr("Buscar dirección, ciudad o lugar…  (Enter)"))
         self._inp_buscar.setMinimumHeight(30)
         self._inp_buscar.setText(texto_busqueda or "")
         self._inp_buscar.returnPressed.connect(self._buscar_lugar)
         busq.addWidget(self._inp_buscar, 1)
-        self._btn_buscar = QPushButton("Buscar")
+        self._btn_buscar = QPushButton(tr("Buscar"))
         self._btn_buscar.setMinimumHeight(30)
         self._btn_buscar.setCursor(Qt.PointingHandCursor)
         self._btn_buscar.clicked.connect(self._buscar_lugar)
@@ -369,9 +370,9 @@ class _DialogMapa(QDialog):
             root.picked.connect(self._on_picked)
             vl.addWidget(self._qw, 1)
         except Exception as e:
-            err = QLabel("No se pudo cargar el mapa (revisa tu conexión a "
-                         "internet). Puedes seguir usando solo la ubicación "
-                         "por distrito.\n\n" + str(e)[:200])
+            err = QLabel(tr("No se pudo cargar el mapa (revisa tu conexión a "
+                            "internet). Puedes seguir usando solo la ubicación "
+                            "por distrito.\n\n") + str(e)[:200])
             err.setWordWrap(True)
             err.setStyleSheet("color:#C6262E; font-size:11px; padding:24px;")
             vl.addWidget(err, 1)
@@ -382,11 +383,11 @@ class _DialogMapa(QDialog):
 
         hl = QHBoxLayout()
         hl.addStretch()
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setMinimumHeight(32)
         btn_cancel.clicked.connect(self.reject)
         hl.addWidget(btn_cancel)
-        self._btn_use = QPushButton("Usar esta ubicación")
+        self._btn_use = QPushButton(tr("Usar esta ubicación"))
         self._btn_use.setMinimumHeight(32)
         from utils.theme import BTN_PRIMARY_SS
         self._btn_use.setStyleSheet(BTN_PRIMARY_SS)
@@ -411,11 +412,11 @@ class _DialogMapa(QDialog):
 
     def _fmt_coords(self) -> str:
         if self._lat is None:
-            return "Sin marcar — haz clic en el mapa"
+            return tr("Sin marcar — haz clic en el mapa")
         if self._altitud == "...":
-            alt_txt = " · Altitud: obteniendo…"
+            alt_txt = tr(" · Altitud: obteniendo…")
         elif isinstance(self._altitud, (int, float)):
-            alt_txt = f" · Altitud: {int(round(self._altitud))} msnm"
+            alt_txt = tr(" · Altitud: {alt} msnm").format(alt=int(round(self._altitud)))
         else:
             alt_txt = ""
         try:
@@ -423,7 +424,8 @@ class _DialogMapa(QDialog):
             u = latlon_a_utm(self._lat, self._lon)
             if u:
                 return (f"📍  UTM WGS84:  {u['etiqueta']}{alt_txt}\n"
-                        f"      (geográficas: {self._lat:.6f}, {self._lon:.6f})")
+                        + tr("      (geográficas: {lat:.6f}, {lon:.6f})").format(
+                            lat=self._lat, lon=self._lon))
         except Exception:
             pass
         return f"📍  Lat {self._lat:.6f},  Lon {self._lon:.6f}{alt_txt}"
@@ -462,7 +464,7 @@ class _DialogMapa(QDialog):
         if not texto or self._root is None:
             return
         self._btn_buscar.setEnabled(False)
-        self._lbl_busq.setText("Buscando…")
+        self._lbl_busq.setText(tr("Buscando…"))
         self._lbl_busq.show()
         w = _WorkerBusquedaLugar(texto)
         _ELEV_WORKERS.add(w)   # referencia fuerte, igual que la altitud
@@ -484,14 +486,14 @@ class _DialogMapa(QDialog):
 
     def _mostrar_resultados(self, res: list):
         if not res:
-            self._lbl_busq.setText("No se encontró ese lugar (o no hay conexión). "
-                                   "Prueba con «ciudad, país».")
+            self._lbl_busq.setText(tr("No se encontró ese lugar (o no hay conexión). "
+                                      "Prueba con «ciudad, país»."))
             return
         if len(res) == 1:
             self._ir_a_lugar(res[0])
             return
         from PySide6.QtWidgets import QMenu
-        self._lbl_busq.setText(f"{len(res)} resultados: elige uno.")
+        self._lbl_busq.setText(tr("{n} resultados: elige uno.").format(n=len(res)))
         menu = QMenu(self)
         for r in res:
             nombre = r['nombre'] if len(r['nombre']) <= 90 else r['nombre'][:87] + '…'
@@ -770,18 +772,18 @@ class NuevoProyectoView(QWidget):
         # Fila 4: Estado | Modalidad
         grid.addWidget(_label(tr("Estado")), 4, 0)
         self.cmb_estado = _cmb([
-            ("En elaboración", "elaboracion"),
-            ("En revisión",    "revision"),
-            ("Aprobado",       "aprobado"),
-            ("En ejecución",   "ejecutado"),
+            (tr("En elaboración"), "elaboracion"),
+            (tr("En revisión"),    "revision"),
+            (tr("Aprobado"),       "aprobado"),
+            (tr("En ejecución"),   "ejecutado"),
         ])
         grid.addWidget(self.cmb_estado, 4, 1)
         grid.addWidget(_label(tr("Modalidad")), 4, 2)
         self.cmb_modalidad = _cmb([
-            ("Contrata",               "Contrata"),
-            ("Administración directa", "Administración directa"),
-            ("Concurso oferta",        "Concurso oferta"),
-            ("Llave en mano",          "Llave en mano"),
+            (tr("Contrata"),               "Contrata"),
+            (tr("Administración directa"), "Administración directa"),
+            (tr("Concurso oferta"),        "Concurso oferta"),
+            (tr("Llave en mano"),          "Llave en mano"),
         ])
         grid.addWidget(self.cmb_modalidad, 4, 3)
 
@@ -847,9 +849,11 @@ class NuevoProyectoView(QWidget):
             if lat is not None:
                 self._latitud, self._longitud, self._altitud = lat, lon, alt
                 self.btn_mapa.setIcon(icon_colored("ubicacion", "#3a9e23"))
-                _alt = f", {int(round(alt))} msnm" if alt is not None else ""
+                _alt = (tr(", {alt} msnm").format(alt=int(round(alt)))
+                        if alt is not None else "")
                 self.btn_mapa.setToolTip(
-                    f"Ubicación marcada: {lat:.5f}, {lon:.5f}{_alt} — clic para cambiar")
+                    tr("Ubicación marcada: {lat:.5f}, {lon:.5f}{alt} — clic para cambiar").format(
+                        lat=lat, lon=lon, alt=_alt))
 
     def _setup_ubigeo_completer(self):
         """Autocompletado UBIGEO (INEI) en el campo Ubicación: al escribir un
@@ -961,7 +965,7 @@ class NuevoProyectoView(QWidget):
         self.inp_plazo = QSpinBox()
         self.inp_plazo.setRange(1, 9999)
         self.inp_plazo.setValue(60)
-        self.inp_plazo.setSuffix(" días")
+        self.inp_plazo.setSuffix(tr(" días"))
         self.inp_plazo.setMinimumHeight(30)
         grid.addWidget(self.inp_plazo, 0, 1)
 
@@ -970,7 +974,7 @@ class NuevoProyectoView(QWidget):
         self.inp_jorn.setMinimumHeight(30)
         self.inp_jorn.setEditable(True)
         self.inp_jorn.lineEdit().setValidator(QIntValidator(1, 24))
-        self.inp_jorn.lineEdit().setPlaceholderText("h/día")
+        self.inp_jorn.lineEdit().setPlaceholderText(tr("h/día"))
         for h in range(4, 13):
             self.inp_jorn.addItem(f"{h}", h)
         _jornada_def = int(get_config('jornada_defecto', '8'))
@@ -985,7 +989,7 @@ class NuevoProyectoView(QWidget):
 
         vl.addLayout(grid)
 
-        nota = QLabel("Los gastos generales, utilidad e IGV se configuran en Pie de presupuesto.")
+        nota = QLabel(tr("Los gastos generales, utilidad e IGV se configuran en Pie de presupuesto."))
         nota.setStyleSheet(
             f"color:{SLATE_100}; font-size:11px; border:none; background:transparent;"
         )
@@ -1020,11 +1024,11 @@ class NuevoProyectoView(QWidget):
         vl.addWidget(sep)
 
         # Hint visible para el usuario sobre cómo se usan las notas
-        lbl_hint = QLabel(
+        lbl_hint = QLabel(tr(
             "✨ <b>Mientras más describas tu proyecto, mayor será la "
             "precisión con la que la IA te apoyará</b> al sugerir partidas, "
             "validar tu presupuesto o responder en el chat de Tuxia."
-        )
+        ))
         lbl_hint.setWordWrap(True)
         lbl_hint.setTextFormat(Qt.RichText)
         lbl_hint.setStyleSheet(
@@ -1036,7 +1040,7 @@ class NuevoProyectoView(QWidget):
 
         # Cuadro de notas con el prompt de ejemplo DENTRO (texto fantasma gris):
         # el usuario lo lee y al hacer clic para escribir se borra solo.
-        self.txt_notas = _GhostTextEdit(_EJEMPLO_NOTAS)
+        self.txt_notas = _GhostTextEdit(tr(_EJEMPLO_NOTAS))
         self.txt_notas.setMinimumHeight(140)
         vl.addWidget(self.txt_notas, 1)
 
@@ -1105,10 +1109,11 @@ class NuevoProyectoView(QWidget):
         self._altitud = p.get('altitud')
         if self._latitud is not None and self._longitud is not None:
             self.btn_mapa.setIcon(icon_colored("ubicacion", "#3a9e23"))
-            _alt = (f", {int(round(self._altitud))} msnm"
+            _alt = (tr(", {alt} msnm").format(alt=int(round(self._altitud)))
                     if self._altitud is not None else "")
             self.btn_mapa.setToolTip(
-                f"Ubicación marcada: {self._latitud:.5f}, {self._longitud:.5f}{_alt}")
+                tr("Ubicación marcada: {lat:.5f}, {lon:.5f}{alt}").format(
+                    lat=self._latitud, lon=self._longitud, alt=_alt))
         self.inp_sub.setText(p.get('sub_presupuesto', '') or '')
         _ca = (p.get('costo_al', '') or '').strip()
         # Mostrar solo la fecha (algunos proyectos importados traen «… 00:00:00»).
@@ -1163,7 +1168,7 @@ class NuevoProyectoView(QWidget):
         self._altitud = None
         if hasattr(self, 'btn_mapa'):
             self.btn_mapa.setIcon(icon("ubicacion"))
-            self.btn_mapa.setToolTip("Ubicar en el mapa (opcional, requiere internet)")
+            self.btn_mapa.setToolTip(tr("Ubicar en el mapa (opcional, requiere internet)"))
         self.inp_sub.clear()
         self.inp_costo_al.setText(QDate.currentDate().toString('dd/MM/yyyy'))
         self.inp_grupo.clear()
@@ -1183,7 +1188,7 @@ class NuevoProyectoView(QWidget):
     def _crear(self):
         nombre = self.inp_nombre.text().strip()
         if not nombre:
-            self.lbl_error.setText("El nombre del proyecto es obligatorio")
+            self.lbl_error.setText(tr("El nombre del proyecto es obligatorio"))
             self.inp_nombre.setFocus()
             return
 
@@ -1196,7 +1201,7 @@ class NuevoProyectoView(QWidget):
         try:
             if self._proyecto_id is None:
                 # ── Modo crear ────────────────────────────────────────────────
-                self.btn_crear.setText("  Creando…")
+                self.btn_crear.setText(tr("  Creando…"))
                 notas = self.txt_notas.texto_real()
                 cur = conn.execute(
                     """INSERT INTO proyectos
@@ -1227,12 +1232,12 @@ class NuevoProyectoView(QWidget):
                 conn.commit()
                 conn.close()
                 self.btn_crear.setEnabled(True)
-                self.btn_crear.setText("  Crear proyecto  →")
+                self.btn_crear.setText(tr("  Crear proyecto  →"))
                 self.proyecto_creado.emit(nuevo_id)
 
             else:
                 # ── Modo editar ───────────────────────────────────────────────
-                self.btn_crear.setText("  Guardando…")
+                self.btn_crear.setText(tr("  Guardando…"))
                 notas = self.txt_notas.texto_real()
                 conn.execute(
                     """UPDATE proyectos SET nombre=?, cliente=?, ubicacion=?,
@@ -1295,13 +1300,13 @@ class NuevoProyectoView(QWidget):
                 conn.commit()
                 conn.close()
                 self.btn_crear.setEnabled(True)
-                self.btn_crear.setText("  Guardar cambios  →")
+                self.btn_crear.setText(tr("  Guardar cambios  →"))
                 self.proyecto_editado.emit(self._proyecto_id)
 
         except Exception as e:
-            self.lbl_error.setText(f"Error: {e}")
+            self.lbl_error.setText(tr("Error: {e}").format(e=e))
             self.btn_crear.setEnabled(True)
             self.btn_crear.setText(
-                "  Guardar cambios  →" if self._proyecto_id else "  Crear proyecto  →"
+                tr("  Guardar cambios  →") if self._proyecto_id else tr("  Crear proyecto  →")
             )
             conn.close()

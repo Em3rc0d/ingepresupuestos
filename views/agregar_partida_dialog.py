@@ -23,6 +23,7 @@ from PySide6.QtGui import QFont, QColor, QCursor
 
 from core.database import get_db, _recalcular_pu, copiar_items_acu
 from utils.formatting import fmt, moneda_defecto
+from utils.i18n import N_, tr
 
 # Los CU vienen de la Biblioteca (catálogo global, sin moneda propia): se
 # muestran con la moneda de Configuración. Se refresca al abrir el diálogo (#1).
@@ -222,7 +223,7 @@ class AgregarPartidaDialog(QDialog):
         root.setSpacing(0)
 
         root.addWidget(self._make_header())
-        self._tabs = _TabBar([f"☰  {self._tr('Biblioteca')}", f"✎  {self._tr('Manual')}"])
+        self._tabs = _TabBar([f"☰  {tr('Biblioteca')}", f"✎  {tr('Manual')}"])
         self._tabs.changed.connect(self._on_tab)
         root.addWidget(self._tabs)
 
@@ -241,7 +242,7 @@ class AgregarPartidaDialog(QDialog):
         hdr.setStyleSheet(f"background:{SLATE_700};")
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(16, 0, 12, 0)
-        lbl = QLabel(self._tr("Agregar partida"))
+        lbl = QLabel(tr("Agregar partida"))
         lbl.setStyleSheet("color:white; font-size:13px; font-weight:700; border:none;")
         hl.addWidget(lbl)
         hl.addStretch()
@@ -275,7 +276,7 @@ class AgregarPartidaDialog(QDialog):
 
         # Fila 1: campo búsqueda grande
         self.inp_bib = QLineEdit()
-        self.inp_bib.setPlaceholderText(self._tr("Buscar") + "…")
+        self.inp_bib.setPlaceholderText(tr("Buscar") + "…")
         self.inp_bib.setFixedHeight(38)
         self.inp_bib.setStyleSheet(
             f"QLineEdit {{"
@@ -291,7 +292,7 @@ class AgregarPartidaDialog(QDialog):
         # Fila 2: grupo dropdown + contador
         hl2 = QHBoxLayout()
         hl2.setSpacing(8)
-        lbl_g = QLabel(self._tr("Grupo") + ":")
+        lbl_g = QLabel(tr("Grupo") + ":")
         lbl_g.setStyleSheet(f"color:{SLATE_300}; font-size:11px; border:none;")
         hl2.addWidget(lbl_g)
 
@@ -345,7 +346,7 @@ class AgregarPartidaDialog(QDialog):
         vl.addWidget(split, stretch=1)
 
         # Placeholder (se muestra hasta que haya resultados)
-        self._lbl_placeholder = QLabel("Cargando…")
+        self._lbl_placeholder = QLabel(tr("Cargando…"))
         self._lbl_placeholder.setAlignment(Qt.AlignCenter)
         self._lbl_placeholder.setStyleSheet(
             f"color:{SLATE_100}; font-size:13px; padding:40px; border:none;"
@@ -393,10 +394,10 @@ class AgregarPartidaDialog(QDialog):
         )
 
         # ── Descripción ───────────────────────────────────────────────────────
-        vl.addWidget(self._lbl_campo("Descripción de la partida  *"))
+        vl.addWidget(self._lbl_campo(tr("Descripción de la partida  *")))
         self.inp_m_desc = QLineEdit()
         self.inp_m_desc.setPlaceholderText(
-            self._tr("Descripción")
+            tr("Descripción")
         )
         self.inp_m_desc.setMinimumHeight(42)
         self.inp_m_desc.setStyleSheet(
@@ -415,7 +416,7 @@ class AgregarPartidaDialog(QDialog):
 
         # Unidad — combobox con filtro mientras se escribe
         col_u = QVBoxLayout(); col_u.setSpacing(4)
-        col_u.addWidget(self._lbl_campo("Unidad de medida"))
+        col_u.addWidget(self._lbl_campo(tr("Unidad de medida")))
         self.cmb_m_unidad = QComboBox()
         self.cmb_m_unidad.setEditable(True)
         self.cmb_m_unidad.setInsertPolicy(QComboBox.NoInsert)
@@ -450,7 +451,7 @@ class AgregarPartidaDialog(QDialog):
 
         # Grupo — combobox editable con grupos del proyecto y biblioteca
         col_g = QVBoxLayout(); col_g.setSpacing(4)
-        col_g.addWidget(self._lbl_campo("Grupo  (opcional)"))
+        col_g.addWidget(self._lbl_campo(tr("Grupo  (opcional)")))
         self.cmb_m_grupo = QComboBox()
         self.cmb_m_grupo.setEditable(True)
         self.cmb_m_grupo.setInsertPolicy(QComboBox.NoInsert)
@@ -475,7 +476,7 @@ class AgregarPartidaDialog(QDialog):
         vl.addStretch()
 
         # ── Botón agregar ─────────────────────────────────────────────────────
-        btn_ag = QPushButton("  " + self._tr("Agregar partida"))
+        btn_ag = QPushButton("  " + tr("Agregar partida"))
         btn_ag.setFixedHeight(40)
         btn_ag.setMaximumWidth(200)
         btn_ag.setStyleSheet(
@@ -544,7 +545,7 @@ class AgregarPartidaDialog(QDialog):
         hl.setSpacing(8)
         hl.addStretch()
 
-        self.btn_agregar_bib = QPushButton(self._tr("Agregar"))
+        self.btn_agregar_bib = QPushButton(tr("Agregar"))
         self.btn_agregar_bib.setFixedHeight(34)
         self.btn_agregar_bib.setStyleSheet(
             f"QPushButton {{ background:{BLUE_500}; color:white; border:none;"
@@ -555,7 +556,7 @@ class AgregarPartidaDialog(QDialog):
         self.btn_agregar_bib.clicked.connect(self._agregar_desde_biblioteca)
         hl.addWidget(self.btn_agregar_bib)
 
-        btn_cancel = QPushButton(self._tr("Cancelar"))
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setFixedHeight(34)
         btn_cancel.setStyleSheet(
             f"QPushButton {{ background:white; color:{SLATE_500}; border:1px solid {SILVER_300};"
@@ -596,7 +597,7 @@ class AgregarPartidaDialog(QDialog):
         except Exception:
             grupos = []
         self.cmb_grupo.blockSignals(True)
-        self.cmb_grupo.addItem("Todos los grupos", "")
+        self.cmb_grupo.addItem(tr("Todos los grupos"), "")
         for g in grupos:
             self.cmb_grupo.addItem(g, g)
         self.cmb_grupo.blockSignals(False)
@@ -632,7 +633,8 @@ class AgregarPartidaDialog(QDialog):
             self._preview_placeholder()   # la lista cambió → limpiar preview
 
         if not rows:
-            msg = f"Sin resultados para «{texto}»" if texto else "Sin registros en la biblioteca"
+            msg = (tr("Sin resultados para «{texto}»").format(texto=texto) if texto
+                   else tr("Sin registros en la biblioteca"))
             self._lbl_placeholder.setText(msg)
             self._lbl_placeholder.show()
             return
@@ -687,7 +689,7 @@ class AgregarPartidaDialog(QDialog):
 
     def _preview_placeholder(self):
         self._clear_preview()
-        lbl = QLabel(self._tr("Haz clic en una partida\npara ver su análisis (ACU)"))
+        lbl = QLabel(tr("Haz clic en una partida\npara ver su análisis (ACU)"))
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(f"color:{SLATE_100}; font-size:12px; border:none;"
                           f" background:transparent; padding:40px 10px;")
@@ -702,8 +704,8 @@ class AgregarPartidaDialog(QDialog):
                 self._focused_row = fila
         self._preview_acu(cu_id)
 
-    _TIPO_NOM = {'MO': 'Mano de obra', 'MAT': 'Materiales',
-                 'EQ': 'Equipos', 'SC': 'Subcontratos'}
+    _TIPO_NOM = {'MO': N_('Mano de obra'), 'MAT': N_('Materiales'),
+                 'EQ': N_('Equipos'), 'SC': N_('Subcontratos')}
     _TIPO_COLOR = {'MO': '#F39C12', 'MAT': '#27AE60', 'EQ': '#607D8B', 'SC': '#7A36B1'}
 
     def _preview_acu(self, cu_id: int):
@@ -730,14 +732,14 @@ class AgregarPartidaDialog(QDialog):
         self._prev_layout.addWidget(h)
         rend = cu.get('rendimiento') or 0
         meta = QLabel(f"{(cu.get('unidad') or '—')}   ·   "
-                      f"{self._tr('Rend')} {rend:g}/{self._tr('día')}   ·   "
-                      f"CU {fmt(cu.get('costo_unitario') or 0, _MONEDA)}")
+                      f"{tr('Rend')} {rend:g}/{tr('día')}   ·   "
+                      f"{tr('CU')} {fmt(cu.get('costo_unitario') or 0, _MONEDA)}")
         meta.setStyleSheet(f"color:{SLATE_300}; font-size:11px; border:none;"
                            f" background:transparent; padding:2px 0 8px 0;")
         self._prev_layout.addWidget(meta)
 
         if not items:
-            v = QLabel(self._tr("Esta partida no tiene análisis en la biblioteca."))
+            v = QLabel(tr("Esta partida no tiene análisis en la biblioteca."))
             v.setWordWrap(True)
             v.setStyleSheet(f"color:{SLATE_100}; font-size:11px; border:none;"
                             f" background:transparent; padding:8px 0;")
@@ -771,7 +773,7 @@ class AgregarPartidaDialog(QDialog):
             grupos.setdefault(d['tipo'] if d['tipo'] in orden else 'MAT', []).append(d)
         for tipo in sorted(grupos, key=lambda t: orden.get(t, 9)):
             col = self._TIPO_COLOR.get(tipo, SLATE_300)
-            cab = QLabel(self._TIPO_NOM.get(tipo, tipo))
+            cab = QLabel(tr(self._TIPO_NOM.get(tipo, tipo)))
             cab.setStyleSheet(f"color:{col}; font-size:10px; font-weight:700;"
                               f" border:none; background:transparent; padding:8px 0 2px 0;")
             self._prev_layout.addWidget(cab)
@@ -783,7 +785,7 @@ class AgregarPartidaDialog(QDialog):
         sep.setStyleSheet(f"background:{SILVER_300}; border:none;")
         self._prev_layout.addSpacing(6); self._prev_layout.addWidget(sep)
         tot_row = QHBoxLayout()
-        lt = QLabel(self._tr("Costo unitario")); lt.setStyleSheet(
+        lt = QLabel(tr("Costo unitario")); lt.setStyleSheet(
             f"color:{SLATE_700}; font-size:12px; font-weight:700; border:none; background:transparent;")
         lv = QLabel(fmt(cu.get('costo_unitario') or 0, _MONEDA)); lv.setStyleSheet(
             f"color:{SLATE_700}; font-size:12px; font-weight:700; border:none; background:transparent;")
@@ -824,9 +826,10 @@ class AgregarPartidaDialog(QDialog):
             self._seleccionados.discard(cu_id)
         n = len(self._seleccionados)
         if n == 0:
-            self.lbl_sel.setText("Ninguna partida seleccionada")
+            self.lbl_sel.setText(tr("Ninguna partida seleccionada"))
         else:
-            self.lbl_sel.setText(f"{n} partida{'s' if n>1 else ''} seleccionada{'s' if n>1 else ''}")
+            self.lbl_sel.setText(tr("{n} partidas seleccionadas").format(n=n) if n > 1
+                                 else tr("{n} partida seleccionada").format(n=n))
         self.btn_agregar_bib.setEnabled(n > 0)
 
     # ── Agregar desde biblioteca ──────────────────────────────────────────────
@@ -890,8 +893,8 @@ class AgregarPartidaDialog(QDialog):
             conn.commit()
             conn.close()
         except Exception as e:
-            QMessageBox.critical(self, "Error al agregar",
-                                 f"No se pudo insertar la partida:\n{e}")
+            QMessageBox.critical(self, tr("Error al agregar"),
+                                 tr("No se pudo insertar la partida:\n{e}").format(e=e))
             return
 
         self._seleccionados.clear()
@@ -903,7 +906,7 @@ class AgregarPartidaDialog(QDialog):
     def _agregar_manual(self):
         desc = self.inp_m_desc.text().strip()
         if not desc:
-            self.lbl_m_error.setText("La descripción es obligatoria")
+            self.lbl_m_error.setText(tr("La descripción es obligatoria"))
             return
 
         unidad = self.cmb_m_unidad.currentText().strip()
@@ -925,7 +928,7 @@ class AgregarPartidaDialog(QDialog):
             conn.commit()
             conn.close()
         except Exception as e:
-            self.lbl_m_error.setText(f"Error: {e}")
+            self.lbl_m_error.setText(tr("Error: {e}").format(e=e))
             return
 
         self.lbl_m_error.clear()

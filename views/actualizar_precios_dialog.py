@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from core.database import actualizar_precios_desde_catalogo, get_db, precios_desactualizados
 from utils.formatting import fmt
+from utils.i18n import tr
 from utils.theme import BTN_PRIMARY_SS, btn_secondary
 
 SLATE_700 = "#2E3C52"
@@ -51,7 +52,7 @@ class ActualizarPreciosDialog(QDialog):
         self.moneda = moneda
         self.partidas_afectadas: list[int] = []
         self.n_aplicados = 0
-        self.setWindowTitle("Actualizar precios desde el catálogo")
+        self.setWindowTitle(tr("Actualizar precios desde el catálogo"))
         self.setWindowModality(Qt.WindowModal)
         self.setMinimumSize(720, 380)
         self.resize(860, 520)
@@ -80,7 +81,7 @@ class ActualizarPreciosDialog(QDialog):
         hdr.setStyleSheet(f"background:{SLATE_700};")
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(18, 0, 18, 0)
-        t = QLabel("Actualizar precios desde el catálogo")
+        t = QLabel(tr("Actualizar precios desde el catálogo"))
         t.setStyleSheet("color:white; font-size:14px; font-weight:700;"
                         " background:transparent; border:none;")
         hl.addWidget(t)
@@ -95,13 +96,13 @@ class ActualizarPreciosDialog(QDialog):
 
         n = len(self._items)
         if n:
-            texto = (f"{n} insumo(s) de este proyecto tienen un precio distinto al del "
-                     "catálogo. Marca los que quieras traer al proyecto: el precio se "
-                     "fija en todas las partidas donde aparece el insumo y se recalcula "
-                     "su precio unitario.")
+            texto = tr("{n} insumo(s) de este proyecto tienen un precio distinto al del "
+                       "catálogo. Marca los que quieras traer al proyecto: el precio se "
+                       "fija en todas las partidas donde aparece el insumo y se recalcula "
+                       "su precio unitario.").format(n=n)
         else:
-            texto = ("Todos los insumos de este proyecto ya tienen el precio del "
-                     "catálogo. No hay nada que actualizar.")
+            texto = tr("Todos los insumos de este proyecto ya tienen el precio del "
+                       "catálogo. No hay nada que actualizar.")
         intro = QLabel(texto)
         intro.setWordWrap(True)
         intro.setStyleSheet(f"color:{SLATE_500}; font-size:11px;")
@@ -109,8 +110,8 @@ class ActualizarPreciosDialog(QDialog):
 
         self.tbl = QTableWidget(0, 8)
         self.tbl.setHorizontalHeaderLabels(
-            ["", "Tipo", "Insumo", "Und", "En el proyecto", "En el catálogo",
-             "Diferencia", "Partidas"])
+            ["", tr("Tipo"), tr("Insumo"), tr("Und"), tr("En el proyecto"), tr("En el catálogo"),
+             tr("Diferencia"), tr("Partidas")])
         self.tbl.verticalHeader().setVisible(False)
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -131,11 +132,11 @@ class ActualizarPreciosDialog(QDialog):
         cl.addWidget(self.tbl, 1)
 
         pie = QHBoxLayout()
-        self.btn_todos = QPushButton("Marcar todos")
+        self.btn_todos = QPushButton(tr("Marcar todos"))
         self.btn_todos.setCursor(Qt.PointingHandCursor)
         self.btn_todos.setStyleSheet(btn_secondary(height=26))
         self.btn_todos.clicked.connect(lambda: self._marcar(True))
-        self.btn_nada = QPushButton("Desmarcar todos")
+        self.btn_nada = QPushButton(tr("Desmarcar todos"))
         self.btn_nada.setCursor(Qt.PointingHandCursor)
         self.btn_nada.setStyleSheet(btn_secondary(height=26))
         self.btn_nada.clicked.connect(lambda: self._marcar(False))
@@ -147,11 +148,11 @@ class ActualizarPreciosDialog(QDialog):
         pie.addWidget(self.lbl_resumen)
         cl.addLayout(pie)
 
-        nota = QLabel(
+        nota = QLabel(tr(
             "Los insumos cuyo precio de catálogo es 0 no se listan: «sin precio» en el "
             "catálogo no es una orden de poner a cero el proyecto. Los porcentajes "
             "(%MO, %MT, %EQ) tampoco: su precio se deriva."
-        )
+        ))
         nota.setWordWrap(True)
         nota.setStyleSheet(f"color:{SLATE_300}; font-size:10px; font-style:italic;")
         cl.addWidget(nota)
@@ -164,12 +165,12 @@ class ActualizarPreciosDialog(QDialog):
         bl.setContentsMargins(18, 8, 18, 8)
         bl.setSpacing(10)
         bl.addStretch(1)
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(tr("Cancelar"))
         btn_cancel.setCursor(Qt.PointingHandCursor)
         btn_cancel.setStyleSheet(btn_secondary())
         btn_cancel.clicked.connect(self.reject)
         bl.addWidget(btn_cancel)
-        self.btn_aplicar = QPushButton("Actualizar precios")
+        self.btn_aplicar = QPushButton(tr("Actualizar precios"))
         self.btn_aplicar.setCursor(Qt.PointingHandCursor)
         self.btn_aplicar.setStyleSheet(BTN_PRIMARY_SS)
         self.btn_aplicar.clicked.connect(self._aplicar)
@@ -234,10 +235,10 @@ class ActualizarPreciosDialog(QDialog):
         if total == 0:
             self.lbl_resumen.setText("")
         else:
-            self.lbl_resumen.setText(f"{n} de {total} marcados")
+            self.lbl_resumen.setText(tr("{n} de {total} marcados").format(n=n, total=total))
         self.btn_aplicar.setEnabled(n > 0)
         self.btn_aplicar.setText(
-            f"Actualizar {n} precio(s)" if n else "Actualizar precios")
+            tr("Actualizar {n} precio(s)").format(n=n) if n else tr("Actualizar precios"))
 
     # ── Aplicar ─────────────────────────────────────────────────────────────
 

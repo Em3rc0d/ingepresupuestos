@@ -22,6 +22,7 @@ from core.database import (get_db, _rn, _recalcular_pu, _siguiente_codigo_inei,
                            recurso_por_dia as _es_por_dia,
                            partida_global as _es_partida_global)
 from utils.formatting import parse_num
+from utils.i18n import tr
 
 # Precio, cuadrilla y cantidad solo aceptan un número. Sin esto el campo
 # tragaba texto y `parse_num` lo convertía en 0.0 SIN avisar: el recurso
@@ -71,7 +72,7 @@ class RecursoSelectorDialog(QDialog):
         super().__init__(parent)
         self.part_id  = part_id
         self.proyecto = proyecto
-        self.setWindowTitle("Agregar recursos al ACU")
+        self.setWindowTitle(tr("Agregar recursos al ACU"))
         self.resize(680, 520)
         self.setModal(True)
         self._recurso_ids: list[int] = []
@@ -106,14 +107,14 @@ class RecursoSelectorDialog(QDialog):
         vl.setSpacing(10)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._tab_buscar(), "Buscar en catálogo")
-        self.tabs.addTab(self._tab_nuevo(),  "Crear nuevo recurso")
+        self.tabs.addTab(self._tab_buscar(), tr("Buscar en catálogo"))
+        self.tabs.addTab(self._tab_nuevo(),  tr("Crear nuevo recurso"))
         vl.addWidget(self.tabs)
 
         # Barra inferior: contador + botones
         btns = QHBoxLayout()
 
-        self.lbl_sel = QLabel("Sin selección")
+        self.lbl_sel = QLabel(tr("Sin selección"))
         self.lbl_sel.setStyleSheet(
             "color:#485a6c; font-size:11px; font-weight:600;"
             " background:#E9ECEF; border-radius:4px; padding:2px 10px;"
@@ -121,12 +122,12 @@ class RecursoSelectorDialog(QDialog):
         btns.addWidget(self.lbl_sel)
         btns.addStretch()
 
-        btn_can = QPushButton("Cancelar")
+        btn_can = QPushButton(tr("Cancelar"))
         btn_can.setFixedHeight(32)
         btn_can.clicked.connect(self.reject)
         btns.addWidget(btn_can)
 
-        self.btn_agregar = QPushButton("✚  Agregar al ACU")
+        self.btn_agregar = QPushButton(tr("✚  Agregar al ACU"))
         self.btn_agregar.setFixedHeight(32)
         self.btn_agregar.setStyleSheet(
             "background:#485a6c; color:white; border:none;"
@@ -145,7 +146,7 @@ class RecursoSelectorDialog(QDialog):
         # Barra de búsqueda
         hl = QHBoxLayout()
         self.inp_buscar = QLineEdit()
-        self.inp_buscar.setPlaceholderText("Buscar por descripción, código…")
+        self.inp_buscar.setPlaceholderText(tr("Buscar por descripción, código…"))
         self.inp_buscar.setMinimumHeight(32)
         self.inp_buscar.textChanged.connect(self._buscar)
         hl.addWidget(self.inp_buscar)
@@ -153,7 +154,7 @@ class RecursoSelectorDialog(QDialog):
         self.cmb_tipo = QComboBox()
         self.cmb_tipo.setMinimumHeight(32)
         self.cmb_tipo.setFixedWidth(90)
-        self.cmb_tipo.addItem("Todos", "")
+        self.cmb_tipo.addItem(tr("Todos"), "")
         for t in TIPOS_RECURSO:
             self.cmb_tipo.addItem(t, t)
         self.cmb_tipo.currentIndexChanged.connect(self._buscar)
@@ -161,24 +162,24 @@ class RecursoSelectorDialog(QDialog):
 
         # Sin ancho fijo: con 70/80 px y el padding del QSS global el texto
         # salía entrecortado (Marco, 8 sep 2026). Alto del combo de al lado.
-        btn_all = QPushButton("☑ Todos")
+        btn_all = QPushButton(tr("☑ Todos"))
         btn_all.setFixedHeight(32)
         btn_all.setStyleSheet("QPushButton { font-size:11px; padding:0 10px; min-height:0; }")
         btn_all.clicked.connect(self._marcar_todos)
         hl.addWidget(btn_all)
 
-        btn_none = QPushButton("☐ Ninguno")
+        btn_none = QPushButton(tr("☐ Ninguno"))
         btn_none.setFixedHeight(32)
         btn_none.setStyleSheet("QPushButton { font-size:11px; padding:0 10px; min-height:0; }")
         btn_none.clicked.connect(self._desmarcar_todos)
         hl.addWidget(btn_none)
         vl.addLayout(hl)
 
-        hint = QLabel(
+        hint = QLabel(tr(
             "Los recursos ya usados en este proyecto aparecen primero y resaltados "
             "en verde — reutilízalos para no duplicar insumos.  ·  Clic derecho "
             "sobre un insumo: editarlo o duplicarlo sin salir de acá."
-        )
+        ))
         hint.setWordWrap(True)
         hint.setStyleSheet(
             "color:#0F5132; font-size:10px; background:transparent; border:none;"
@@ -186,7 +187,7 @@ class RecursoSelectorDialog(QDialog):
         vl.addWidget(hint)
 
         # Tabla con checkbox en col 0
-        cols = ["", "Código", "Descripción", "Tipo", "Unidad", "Precio ref."]
+        cols = ["", tr("Código"), tr("Descripción"), tr("Tipo"), tr("Unidad"), tr("Precio ref.")]
         self.tbl = QTableWidget(0, len(cols))
         self.tbl.setHorizontalHeaderLabels(cols)
         self.tbl.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
@@ -224,14 +225,14 @@ class RecursoSelectorDialog(QDialog):
         form = QHBoxLayout()
         form.setSpacing(16)
 
-        lbl_mo = QLabel("MO — Cuadrilla:")
+        lbl_mo = QLabel(tr("MO — Cuadrilla:"))
         lbl_mo.setStyleSheet("color:#856404; font-size:11px; font-weight:600;")
         self.inp_cuad_b = QLineEdit("1.000")
         self.inp_cuad_b.setFixedWidth(72)
         form.addWidget(lbl_mo)
         form.addWidget(self.inp_cuad_b)
 
-        lbl_mat = QLabel("MAT/EQ — Cantidad:")
+        lbl_mat = QLabel(tr("MAT/EQ — Cantidad:"))
         lbl_mat.setStyleSheet("color:#0F5132; font-size:11px; font-weight:600;")
         self.inp_cant_b = QLineEdit("0.0000")
         self.inp_cant_b.setFixedWidth(72)
@@ -249,18 +250,18 @@ class RecursoSelectorDialog(QDialog):
         form.setSpacing(10)
 
         self.inp_n_desc = QLineEdit()
-        self.inp_n_desc.setPlaceholderText("Descripción del recurso")
-        form.addRow("Descripción *:", self.inp_n_desc)
+        self.inp_n_desc.setPlaceholderText(tr("Descripción del recurso"))
+        form.addRow(tr("Descripción *:"), self.inp_n_desc)
 
         self.cmb_n_tipo = QComboBox()
         for t in TIPOS_RECURSO:
             self.cmb_n_tipo.addItem(t, t)
         self.cmb_n_tipo.currentIndexChanged.connect(self._on_tipo_nuevo)
-        form.addRow("Tipo *:", self.cmb_n_tipo)
+        form.addRow(tr("Tipo *:"), self.cmb_n_tipo)
 
         # ── Índice INEI — obligatorio ──────────────��─────────────────
         _INEI_OPTS = [
-            ("",    "— Seleccione índice INEI —"),
+            ("",    tr("— Seleccione índice INEI —")),
             ("01",  "01 — Aceite"),
             ("02",  "02 — Acero de construcción liso"),
             ("03",  "03 — Acero de construcción corrugado"),
@@ -333,20 +334,20 @@ class RecursoSelectorDialog(QDialog):
             ("78",  "78 — Válvula de fierro fundido nacional"),
             ("79",  "79 — Vidrio incoloro nacional"),
             ("80",  "80 — Concreto premezclado"),
-            ("OTRO", "Otro (ingresar manualmente)"),
+            ("OTRO", tr("Otro (ingresar manualmente)")),
         ]
         self.cmb_n_inei = QComboBox()
         for val, lbl in _INEI_OPTS:
             self.cmb_n_inei.addItem(lbl, val)
         self.cmb_n_inei.currentIndexChanged.connect(self._on_inei_nuevo)
 
-        lbl_inei = QLabel("Índice INEI *:")
+        lbl_inei = QLabel(tr("Índice INEI *:"))
         lbl_inei.setStyleSheet("font-weight:600;")
         form.addRow(lbl_inei, self.cmb_n_inei)
 
         # Campo libre para índice manual (visible solo con "Otro")
         self.inp_n_inei = QLineEdit()
-        self.inp_n_inei.setPlaceholderText("Código 2 dígitos, ej: 15")
+        self.inp_n_inei.setPlaceholderText(tr("Código 2 dígitos, ej: 15"))
         self.inp_n_inei.setMaxLength(2)
         self.inp_n_inei.setVisible(False)
         self.inp_n_inei.textChanged.connect(self._auto_codigo_nuevo)
@@ -354,16 +355,16 @@ class RecursoSelectorDialog(QDialog):
 
         # Código generado automáticamente (solo lectura)
         self.inp_n_codigo = QLineEdit()
-        self.inp_n_codigo.setPlaceholderText("Se genera al seleccionar INEI")
+        self.inp_n_codigo.setPlaceholderText(tr("Se genera al seleccionar INEI"))
         self.inp_n_codigo.setMaxLength(7)
         self.inp_n_codigo.setReadOnly(True)
         self.inp_n_codigo.setStyleSheet(
             "QLineEdit { background:#F5F5F5; color:#667885; border-radius:4px; padding:2px 6px; }"
         )
-        form.addRow("Código INEI:", self.inp_n_codigo)
+        form.addRow(tr("Código INEI:"), self.inp_n_codigo)
 
         self.inp_n_unidad = QLineEdit()
-        self.inp_n_unidad.setPlaceholderText("hh, m³, kg, glb, …")
+        self.inp_n_unidad.setPlaceholderText(tr("hh, m³, kg, glb, …"))
         _UNIDADES = sorted({
             "m","m²","m³","ml","km","cm","mm",
             "kg","tn","ton","lb",
@@ -384,26 +385,26 @@ class RecursoSelectorDialog(QDialog):
         )
         self.inp_n_unidad.setCompleter(comp_u)
         self.inp_n_unidad.textChanged.connect(self._sync_cuadrilla_nuevo)
-        form.addRow("Unidad:", self.inp_n_unidad)
+        form.addRow(tr("Unidad:"), self.inp_n_unidad)
 
         self.inp_n_precio = _solo_numero(QLineEdit("0.00"))
-        form.addRow("Precio:", self.inp_n_precio)
+        form.addRow(tr("Precio:"), self.inp_n_precio)
 
         # Cuadrilla O cantidad, nunca las dos: la misma regla que decide qué
         # celda se edita en la tabla del ACU (ver _sync_cuadrilla_nuevo).
         self.inp_n_cuad = _solo_numero(QLineEdit("1.000"))
         self.inp_n_cuad.setMaximumWidth(80)
-        self.inp_n_cuad.setToolTip(
+        self.inp_n_cuad.setToolTip(tr(
             "Solo mano de obra y equipo por hora o por día: la cantidad se "
-            "calcula como cuadrilla / rendimiento × jornada.")
-        form.addRow("Cuadrilla:", self.inp_n_cuad)
+            "calcula como cuadrilla / rendimiento × jornada."))
+        form.addRow(tr("Cuadrilla:"), self.inp_n_cuad)
 
         self.inp_n_cant = _solo_numero(QLineEdit("0.0000"))
         self.inp_n_cant.setMaximumWidth(80)
-        self.inp_n_cant.setToolTip(
+        self.inp_n_cant.setToolTip(tr(
             "Cantidad directa por unidad de partida: materiales, subcontratos "
-            "y equipo que no va por hora.")
-        form.addRow("Cantidad:", self.inp_n_cant)
+            "y equipo que no va por hora."))
+        form.addRow(tr("Cantidad:"), self.inp_n_cant)
 
         self.lbl_n_error = QLabel("")
         self.lbl_n_error.setStyleSheet("color:#dc3545; font-size:11px;")
@@ -481,7 +482,7 @@ class RecursoSelectorDialog(QDialog):
             if es_usado:
                 it_desc.setForeground(QColor('#0F5132'))
                 it_desc.setFont(QFont('', 10, QFont.Bold))
-                it_desc.setToolTip("Ya usado en este proyecto — reutilízalo para no duplicar")
+                it_desc.setToolTip(tr("Ya usado en este proyecto — reutilízalo para no duplicar"))
             self.tbl.setItem(r, 2, it_desc)
 
             # Col 3: tipo badge con color
@@ -576,13 +577,14 @@ class RecursoSelectorDialog(QDialog):
             return
         n = len(self._checked_ids)
         if n == 0:
-            self.lbl_sel.setText("Sin selección")
+            self.lbl_sel.setText(tr("Sin selección"))
             self.lbl_sel.setStyleSheet(
                 "color:#6c757d; font-size:11px; font-weight:600;"
                 " background:#E9ECEF; border-radius:4px; padding:2px 10px;"
             )
         else:
-            self.lbl_sel.setText(f"✔  {n} recurso{'s' if n > 1 else ''} seleccionado{'s' if n > 1 else ''}")
+            self.lbl_sel.setText(tr("✔  {n} recursos seleccionados").format(n=n) if n > 1
+                                 else tr("✔  {n} recurso seleccionado").format(n=n))
             self.lbl_sel.setStyleSheet(
                 "color:#0F5132; font-size:11px; font-weight:600;"
                 " background:#D1E7DD; border-radius:4px; padding:2px 10px;"
@@ -598,8 +600,8 @@ class RecursoSelectorDialog(QDialog):
 
     def _agregar_existentes(self):
         if not self._checked_ids:
-            QMessageBox.warning(self, "Selección",
-                                "Marque al menos un recurso con el checkbox.")
+            QMessageBox.warning(self, tr("Selección"),
+                                tr("Marque al menos un recurso con el checkbox."))
             return
 
         try:
@@ -659,12 +661,12 @@ class RecursoSelectorDialog(QDialog):
     def _agregar_nuevo(self):
         desc = self.inp_n_desc.text().strip()
         if not desc:
-            self.lbl_n_error.setText("La descripción es obligatoria.")
+            self.lbl_n_error.setText(tr("La descripción es obligatoria."))
             return
 
         inei = self._inei_actual()
         if not inei or len(inei) != 2:
-            self.lbl_n_error.setText("El Índice INEI es obligatorio (2 dígitos).")
+            self.lbl_n_error.setText(tr("El Índice INEI es obligatorio (2 dígitos)."))
             if hasattr(self, 'cmb_n_inei'):
                 self.cmb_n_inei.setFocus()
             return
@@ -743,11 +745,11 @@ class RecursoSelectorDialog(QDialog):
         rid = self._recurso_ids[idx.row()]
 
         m = QMenu(self)
-        a_edit = QAction("Editar insumo…", self)
+        a_edit = QAction(tr("Editar insumo…"), self)
         a_edit.triggered.connect(lambda: self._editar_recurso(rid))
         m.addAction(a_edit)
-        a_dup = QAction("Duplicar y editar…", self)
-        a_dup.setToolTip("Copia tipo, índice INEI, unidad y precio; solo cambias el nombre.")
+        a_dup = QAction(tr("Duplicar y editar…"), self)
+        a_dup.setToolTip(tr("Copia tipo, índice INEI, unidad y precio; solo cambias el nombre."))
         a_dup.triggered.connect(lambda: self._duplicar_recurso(rid))
         m.addAction(a_dup)
         m.exec(self.tbl.viewport().mapToGlobal(pos))
@@ -849,12 +851,12 @@ class RecursoSelectorDialog(QDialog):
             if self.inp_n_cant.text().strip():
                 self._cant_previa = self.inp_n_cant.text()
             self.inp_n_cant.clear()
-            self.inp_n_cant.setPlaceholderText("auto")
+            self.inp_n_cant.setPlaceholderText(tr("auto"))
         else:
             if self.inp_n_cuad.text().strip():
                 self._cuad_previa = self.inp_n_cuad.text()
             self.inp_n_cuad.clear()
-            self.inp_n_cuad.setPlaceholderText("no aplica")
+            self.inp_n_cuad.setPlaceholderText(tr("no aplica"))
             if not self.inp_n_cant.text().strip():
                 self.inp_n_cant.setText(getattr(self, '_cant_previa', '') or "0.0000")
             self.inp_n_cant.setPlaceholderText("")
