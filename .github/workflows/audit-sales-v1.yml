@@ -3,7 +3,7 @@ name: Independent Sales QA baseline
 on:
   push:
     branches:
-      - audit/ventas-v1-independent-qa-20261024
+      - audit/ventas-v1-ui-export-20261024
   workflow_dispatch:
 
 permissions:
@@ -36,3 +36,5 @@ jobs:
         run: pytest -q tests/ventas/test_sales_contracts.py --timeout=90 -ra
       - name: Existing construction critical rules
         run: pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra
+      - name: Sales Qt and PDF XLSX smoke in isolated process
+        run: pytest -q tests/ventas/test_sales_ui_exports.py --timeout=120 -ra
