@@ -717,6 +717,23 @@ class MainWindow(QMainWindow):
             if g_i < len(grupos_nav) - 1:
                 _add_sep(alpha=0.07, gap_before=4, gap_after=2, width=36)
 
+        # Append to preserve all existing construction navigation indexes.
+        self._nav_btns[0].setToolTip(tr('Construcción / Proyectos'))
+        self._ventas_nav_index = len(self._nav_btns)
+        ventas_btn = QPushButton(tr('Ventas'))
+        ventas_btn.setCheckable(True)
+        ventas_btn.setFixedSize(64, 40)
+        ventas_btn.setAccessibleName(tr('Cotizaciones de Ventas'))
+        ventas_btn.setToolTip(tr('Cotizaciones de Ventas'))
+        ventas_btn.setStyleSheet(
+            f'QPushButton {{color:{SLATE_100};background:transparent;border:none;border-radius:6px;}}'
+            f'QPushButton:checked {{background:{BLUE_500};color:white;}}'
+            'QPushButton:focus {border:2px solid white;}'
+        )
+        ventas_btn.clicked.connect(lambda: self._ir_a_vista_global('ventas', nav=self._ventas_nav_index))
+        cv.addWidget(ventas_btn, alignment=Qt.AlignHCenter)
+        self._nav_btns.append(ventas_btn)
+
         cv.addStretch()
 
         # Separador prominente antes del bloque de sistema (más visible)
@@ -786,6 +803,28 @@ class MainWindow(QMainWindow):
 
     def _crear_vista(self, nombre: str):
         match nombre:
+            case "ventas":
+                try:
+                    from views.ventas.shell import SalesView
+                    return SalesView(self.usuario, self)
+                except Exception:
+                    # Sales bootstrap is lazy and never prevents opening construction.
+                    import logging
+                    logging.getLogger(__name__).exception('Ventas no pudo inicializarse')
+                    failure = QWidget()
+                    layout = QVBoxLayout(failure)
+                    text = QLabel(tr('Ventas requiere reparación. Puede seguir usando Construcción. Revise el respaldo y el registro de errores antes de reintentar.'))
+                    text.setWordWrap(True)
+                    layout.addWidget(text)
+                    retry = QPushButton(tr('Reintentar abrir Ventas'))
+                    def retry_sales():
+                        self.stack.removeWidget(failure)
+                        failure.deleteLater()
+                        self._cargar_vista('ventas')
+                    retry.clicked.connect(retry_sales)
+                    layout.addWidget(retry)
+                    layout.addStretch()
+                    return failure
             case "dashboard":
                 from views.dashboard_view import DashboardView
                 v = DashboardView(self.usuario)
@@ -1041,6 +1080,9 @@ class MainWindow(QMainWindow):
         BD activa. Atómico (sqlite3 backup API) y rápido; si falla por
         cualquier motivo NO bloqueamos el cierre — la app debe poder
         cerrarse siempre."""
+        if not self._ventas_confirmar_cierre():
+            event.ignore()
+            return
         # Drenar QThreads activos (update checker, etc.). Si el usuario
         # cierra antes de que termine un worker, Qt destruye el padre con
         # el thread aún corriendo → SIGABRT en el shutdown del proceso.
@@ -1406,5 +1448,16 @@ class MainWindow(QMainWindow):
             vista.set_tab(nombre)
 
     def _logout(self):
+        if not self._ventas_confirmar_cierre():
+            return
         logout()
         self.close()
+
+    def _ventas_confirmar_cierre(self):
+        # No sales import here: construction must start without sales dependencies.
+        from PySide6.QtWidgets import QDialog
+        for dialog in self.findChildren(QDialog):
+            if dialog.isVisible() and hasattr(dialog, 'confirm_discard'):
+                if not dialog.confirm_discard():
+                    return False
+        return True
