@@ -3,6 +3,17 @@ name: Fork stabilization validation (read-only)
 on:
   push:
     branches: [fix/fork-stabilization-20261024]
+    paths:
+      - "core/update_manager.py"
+      - "tests/test_appimage.py"
+      - "tests/test_fork_update_policy.py"
+      - "views/_catalogo_base.py"
+      - "scripts/audit_test_files.py"
+      - ".github/workflows/fork-stabilization.yml"
+      - ".github/workflows/build-linux.yml"
+      - ".github/workflows/build-windows.yml"
+      - ".github/workflows/publish-flatpak.yml"
+      - ".github/workflows/indices-inei.yml"
   workflow_dispatch:
 
 permissions:
