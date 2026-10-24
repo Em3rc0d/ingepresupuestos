@@ -1,0 +1,56 @@
+name: Fork stabilization regression
+
+on:
+  push:
+    branches:
+      - fix/ci-isolation-and-fork-safety-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  focused-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      XDG_DATA_HOME: ${{ runner.temp }}/ingepresupuestos-audit
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Qt runtime
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Requirements
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Check dependency consistency and syntax
+        run: |
+          python -m pip check
+          python -m compileall -q core views tests models utils
+      - name: Validate inherited critical rules and Flatpak contract in separate processes
+        run: |
+          python -m pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90
+          python -m pytest -q tests/test_appimage.py::test_el_flatpak_instala_icono_png_cuadrado
+      - name: Verify fork updater defaults to no external network
+        run: |
+          python - <<'PY'
+          import os
+          os.environ.pop("INGEPRESUPUESTOS_VERSION_URL", None)
+          from core import update_manager as u
+          assert u.VERSION_URL == "", repr(u.VERSION_URL)
+          assert u.fetch_version_info() is None
+          print("Fork updater external call disabled by default: PASS")
+          PY
+      - name: Static test of production workflow guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ["indices-inei.yml", "build-linux.yml", "build-windows.yml"]:
+              s=(Path(".github/workflows")/name).read_text()
+              assert "github.repository == 'ingelibre/ingepresupuestos'" in s, name
+          print("Origin publication guards: PASS")
+          PY
