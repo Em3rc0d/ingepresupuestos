@@ -1,0 +1,159 @@
+name: Audit fork baseline (read-only)
+
+on:
+  push:
+    branches:
+      - feature/acu-parametrico-spike-mk1
+    paths:
+      - "core/**"
+      - "views/**"
+      - "models/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/audit-fork-baseline.yml"
+      - "docs/acu-parametrico/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "core/**"
+      - "views/**"
+      - "models/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/audit-fork-baseline.yml"
+      - "docs/acu-parametrico/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-fork-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-and-supply-chain:
+    name: Syntax, source and dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout audit target
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify syntax of all tracked Python files
+        run: |
+          python -m compileall -q core views tests models utils scripts
+      - name: Check risk markers in inherited workflows
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for p in sorted(Path(".github/workflows").glob("*.yml")):
+              text = p.read_text(encoding="utf-8")
+              signals = []
+              if "contents: write" in text: signals.append("write token")
+              if "schedule:" in text: signals.append("scheduler")
+              if "workflow_dispatch:" in text: signals.append("manual trigger")
+              if "R2_ACCESS_KEY_ID" in text: signals.append("R2 integrations")
+              print(f"{p}: {', '.join(signals) or 'read-only/no side-effects detected by marker scan'}")
+          print("Important: marker review is NOT a complete GitHub Actions security audit.")
+          PY
+      - name: Install lint and vulnerability audit tools
+        run: python -m pip install --disable-pip-version-check ruff pip-audit
+      - name: New module and test lint
+        run: ruff check core/acu_parametrico.py tests/test_acu_parametrico.py --output-format concise
+      - name: Legacy repository lint inventory (informational)
+        shell: bash
+        run: |
+          ruff check core views models utils tests scripts --statistics > legacy-ruff-summary.txt || true
+          cat legacy-ruff-summary.txt | head -70
+          echo "## Informational legacy lint inventory" >> "$GITHUB_STEP_SUMMARY"
+          echo '\`\`\`text' >> "$GITHUB_STEP_SUMMARY"
+          head -50 legacy-ruff-summary.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '\`\`\`' >> "$GITHUB_STEP_SUMMARY"
+      - name: Dependency advisory scan
+        shell: bash
+        run: |
+          set +e
+          pip-audit -r requirements.txt -f json -o pip-audit.json --progress-spinner off
+          status=$?
+          echo "pip-audit exit code: $status" | tee dependency-audit-status.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("pip-audit.json")
+          if not p.exists():
+              print("pip-audit did not produce machine-readable results")
+          else:
+              obj = json.loads(p.read_text())
+              deps = obj.get("dependencies",[])
+              vulns = [(d.get("name"),d.get("version"),v.get("id")) for d in deps for v in d.get("vulns",[])]
+              print("Dependency records:", len(deps), "advisories:", len(vulns))
+              for name, version, advisory in vulns[:35]:
+                  print(f"ADVISORY {name} {version} {advisory}")
+          PY
+          exit 0
+      - name: Upload small audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-and-dependency-audit
+          path: |
+            legacy-ruff-summary.txt
+            pip-audit.json
+            dependency-audit-status.txt
+          if-no-files-found: ignore
+          retention-days: 2
+
+  regression-linux:
+    name: Linux Python 3.12 regression suite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+      XDG_DATA_HOME: ${{ runner.temp }}/ingepresupuestos-audit-userdata
+    steps:
+      - name: Checkout fork only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Qt Linux runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+      - name: Install project requirements and test runner
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt pytest pytest-timeout
+          python -m pip check
+      - name: Run new parametric ACU unit tests
+        run: |
+          python -m unittest discover -s tests -p "test_acu_parametrico.py" -v
+      - name: Run inherited domain critical tests
+        run: |
+          pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra --junitxml=report-critical.xml
+      - name: Run entire inherited suite (bounded)
+        shell: bash
+        run: |
+          timeout --signal=TERM 1080s pytest -q tests --timeout=90 -ra --junitxml=report-full.xml 2>&1 | tee full-pytest.txt
+      - name: Upload regression receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-linux-py312
+          path: |
+            report-critical.xml
+            report-full.xml
+            full-pytest.txt
+          if-no-files-found: ignore
+          retention-days: 2
