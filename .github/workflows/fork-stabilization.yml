@@ -35,11 +35,14 @@ jobs:
           python-version: "3.12"
       - name: System Qt requirements
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
-      - name: Install application and test requirements
+      - name: Install application and test requirements (current resolution)
+        if: matrix.qt == 'current'
         run: python -m pip install -r requirements.txt pytest pytest-timeout
-      - name: Pin Qt to documented release (experimental matrix)
+      - name: Install application and Qt 6.11.1 in a single resolver transaction
         if: matrix.qt == 'pinned'
-        run: python -m pip install 'PySide6==6.11.1'
+        run: |
+          sed -e 's/^PySide6>=6.7.0$/PySide6==6.11.1/' requirements.txt > qt-pinned-requirements.txt
+          python -m pip install -r qt-pinned-requirements.txt pytest pytest-timeout
       - name: Python environment and dependency consistency
         run: |
           python -m pip check
