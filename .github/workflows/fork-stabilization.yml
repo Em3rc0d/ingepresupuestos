@@ -1,0 +1,95 @@
+name: Fork stabilization validation (read-only)
+
+on:
+  push:
+    branches: [fix/fork-stabilization-20261024]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-stabilization-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    strategy:
+      fail-fast: false
+      matrix:
+        qt:
+          - current
+          - pinned
+    name: Legacy isolation and Qt (${{ matrix.qt }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: System Qt requirements
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install application and test requirements
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Pin Qt to documented release (experimental matrix)
+        if: matrix.qt == 'pinned'
+        run: python -m pip install 'PySide6==6.11.1'
+      - name: Python environment and dependency consistency
+        run: |
+          python -m pip check
+          python -c "import PySide6; print('PySide:',PySide6.__version__)"
+      - name: Compile fork code
+        run: python -m compileall -q core views utils models tests scripts
+      - name: Fork updater fails closed
+        run: python -m unittest discover -s tests -p "test_fork_update_policy.py" -v
+      - name: Pure ACU rules (new feature separate PR)
+        if: hashFiles('tests/test_acu_parametrico.py') != ''
+        run: python -m unittest discover -s tests -p "test_acu_parametrico.py" -v
+      - name: Run critical existing financial tests
+        run: python -m pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90
+      - name: Isolate known failing modules without hiding segfaults
+        run: |
+          python scripts/audit_test_files.py --timeout 110 --output isolated-results.json --only tests/test_decimales_cantidad_por_tipo.py tests/test_ronda7_david.py tests/test_resumen_sub_y_gantt_columnas.py tests/test_dias_no_laborables.py tests/test_orden_insumos_acu.py tests/test_indices_inei.py tests/test_franjas_imagen.py tests/test_appimage.py
+      - name: Upload compact isolation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fork-stabilization-${{ matrix.qt }}
+          path: isolated-results.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  policy:
+    name: Distribution isolation policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify inherited publication jobs cannot run on this fork
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files = ["build-linux.yml", "build-windows.yml",
+                   "indices-inei.yml", "publish-flatpak.yml",
+                   "update-version-json.yml"]
+          for name in files:
+              p = Path(".github/workflows") / name
+              t = p.read_text(encoding="utf-8")
+              guard = "github.repository == 'ingelibre/ingepresupuestos'"
+              assert guard in t, f"Missing fork guard: {name}"
+              print(f"fork release guard PASS: {name}")
+          import core.update_manager as u
+          assert not u.actualizaciones_habilitadas(), "Fork feed unexpectedly enabled"
+          print("fork updater disabled by default: PASS")
+          PY
