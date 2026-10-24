@@ -37,7 +37,7 @@ CURRENT_VERSION = "3.0.18"
 
 #: URL del ``version.json`` remoto.
 #: Servido desde Cloudflare R2 (bucket público vía custom domain).
-VERSION_URL = "https://downloads.ingepresupuestos.com/version.json"
+VERSION_URL = (os.environ.get("INGEPRESUPUESTOS_VERSION_URL", "").strip() if os.environ.get("GITHUB_REPOSITORY", "") == "Em3rc0d/ingepresupuestos" else "https://downloads.ingepresupuestos.com/version.json")
 
 #: Archivos locales de estado.
 UPDATE_STATE_FILE = USER_DATA_DIR / "update_state.json"
