@@ -2,6 +2,10 @@
 
 **Ruta de lectura oficial para humanos y agentes (24/10/2026).** Todo este directorio es documentación de diseño: el módulo Ventas NO está implementado ni aprobado para release.
 
+## Entrega para ChatGPT Work / Astra
+
+**[PROMPT MAESTRO DE PROGRAMACIÓN SIN PRUEBAS](PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md)** — mandato ejecutable para Astra: lecturas obligatorias, alcance de Ventas, arquitectura, código, persistencia, UI, exportaciones y handoff. **No ejecutar QA, builds ni GitHub Actions; los deja a un agente posterior**. Leer este prompt completo en Work y trabajar solo en el fork.
+
 ## Empieza aquí
 
 1. **[CONTEXTO MAESTRO Y 12 DIAGRAMAS](CONTEXTO-MAESTRO-Y-DIAGRAMAS.md)** — visión completa, esquema de BUs, experiencia, arquitectura, modelo de datos, cantidades/stock, cotizaciones, interoperabilidad, requisitos y hoja de ruta.
