@@ -4,6 +4,8 @@
 
 ## Entrega para ChatGPT Work / Astra
 
+**[FASE 2 — CORRECCIONES DE QA + CSV + ACU + FICHAS, SIN PRUEBAS](PROMPT-ASTRA-WORK-FASE2-CIERRE-VENTAS-SIN-QA.md)** — **instrucción ACTUAL para retomar la implementación de Astra** desde `ea195c7`, con PR #5 y handoff previo. No ejecutar tests ni Actions; entregar código y preparar QA posterior.
+
 **[PROMPT MAESTRO DE PROGRAMACIÓN SIN PRUEBAS](PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md)** — mandato ejecutable para Astra: lecturas obligatorias, alcance de Ventas, arquitectura, código, persistencia, UI, exportaciones y handoff. **No ejecutar QA, builds ni GitHub Actions; los deja a un agente posterior**. Leer este prompt completo en Work y trabajar solo en el fork.
 
 ## Empieza aquí
