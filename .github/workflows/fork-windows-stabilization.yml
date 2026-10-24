@@ -3,7 +3,11 @@ name: Fork Windows stabilization smoke
 on:
   push:
     branches: [fix/fork-stabilization-20261024]
-    paths: [".github/workflows/fork-windows-stabilization.yml"]
+    paths:
+      - ".github/workflows/fork-windows-stabilization.yml"
+      - "tests/conftest.py"
+      - "tests/test_appimage.py"
+      - "views/_catalogo_base.py"
   workflow_dispatch:
 
 permissions:
@@ -15,6 +19,9 @@ jobs:
     timeout-minutes: 22
     env:
       QT_QPA_PLATFORM: offscreen
+      QT_SCALE_FACTOR: "1"
+      QT_FONT_DPI: "96"
+      QT_AUTO_SCREEN_SCALE_FACTOR: "0"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v5
