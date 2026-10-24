@@ -161,7 +161,10 @@ class EditorPlenoDelegate(QStyledItemDelegate):
     """
 
     def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect)
+        # Qt 6.12 deja un píxel menos de área útil en ciertos temas y DPI;
+        # ampliar 1 px a ambos lados del editor (solo en modo edición) evita
+        # recortar el último dígito de números de 8 caracteres.
+        editor.setGeometry(option.rect.adjusted(-1, 0, 1, 0))
 
 
 class CatalogoTablaMixin:
