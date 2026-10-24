@@ -1456,8 +1456,13 @@ class MainWindow(QMainWindow):
     def _ventas_confirmar_cierre(self):
         # No sales import here: construction must start without sales dependencies.
         from PySide6.QtWidgets import QDialog
-        for dialog in self.findChildren(QDialog):
-            if dialog.isVisible() and hasattr(dialog, 'confirm_discard'):
-                if not dialog.confirm_discard():
-                    return False
+        dialogs = [d for d in self.findChildren(QDialog)
+                   if d.isVisible() and hasattr(d, 'confirm_discard')]
+        states = [(d, d.dirty) for d in dialogs]
+        for dialog in reversed(dialogs):
+            if not dialog.confirm_discard():
+                # Cancelling one child must not clear another form's dirty flag.
+                for previous, dirty in states:
+                    previous.dirty = dirty
+                return False
         return True

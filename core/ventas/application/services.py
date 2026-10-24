@@ -191,6 +191,8 @@ class SalesService:
                     raise ConflictError('Documento protegido. Cree una nueva revisión para editar.')
                 if current['token'] != doc['token']:
                     raise ConflictError('Borrador modificado por otra ventana. Reabra el documento.')
+                if current['header']['currency'] != doc['header']['currency'] and (current['lines'] or doc['lines']):
+                    raise ValidationError('Moneda con líneas existentes: no hay conversión automática. Cree otra cotización con tarifas explícitas.')
             if issue and current is None:
                 raise ValidationError('Guarde y previsualice la revisión antes de emitir.')
             self._normalize(doc, repo, issue, refresh_customer=not issue)
