@@ -34,7 +34,7 @@ class UnitRegistry:
         with localcontext() as ctx:
             ctx.prec = 48
             result = precise(value, 'Cantidad') * sf / tf
-            return result.quantize(Decimal('.000001'), rounding=ROUND_HALF_UP)
+            return precise(result.quantize(Decimal('.000001'), rounding=ROUND_HALF_UP), 'Cantidad convertida')
 
 
 @dataclass(frozen=True)

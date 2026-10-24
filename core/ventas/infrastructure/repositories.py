@@ -48,15 +48,23 @@ class Repository:
         return items
 
     def item(self, item_id, code=None):
-        items = self.items(True, code)
-        for item in items:
-            if item['id'] == item_id:
-                return item
-        raise ValidationError('Artículo no encontrado.')
+        row = self.connection.execute('SELECT data_json FROM ventas_items WHERE id=?', (item_id,)).fetchone()
+        if row is None:
+            raise ValidationError('Artículo no encontrado.')
+        item = json.loads(row['data_json'])
+        if code:
+            price = self.connection.execute('SELECT precio_decimal,costo_decimal FROM ventas_precios WHERE item_id=? AND moneda=? ORDER BY id DESC LIMIT 1', (item_id, code)).fetchone()
+            item.update(price=price['precio_decimal'] if price else None, cost=price['costo_decimal'] if price else None, currency=code)
+        return item
 
     def save_item(self, item, actor, now):
         # Changing the unit/tracking with movement history would reinterpret the ledger.
-        previous = self.connection.execute('SELECT unidad, controla_stock FROM ventas_items WHERE id=?', (item.id,)).fetchone()
+        previous = self.connection.execute('SELECT sku, tipo, unidad, controla_stock FROM ventas_items WHERE id=?', (item.id,)).fetchone()
+        if previous and previous['sku'] != item.sku.strip():
+            raise ValidationError('El SKU es estable. Archive este artículo y cree otro para cambiar código.')
+        has_children = self.connection.execute('SELECT 1 FROM ventas_items WHERE parent_id=? LIMIT 1', (item.id,)).fetchone()
+        if has_children and (item.parent_id or previous and previous['tipo'] != item.kind):
+            raise ValidationError('Un artículo con variantes no puede convertirse en variante ni cambiar de tipo.')
         if previous and (previous['unidad'] != item.unit or bool(previous['controla_stock']) != item.tracks_stock):
             if self.connection.execute('SELECT 1 FROM ventas_movimientos WHERE item_id=? LIMIT 1', (item.id,)).fetchone():
                 raise ValidationError('Unidad/seguimiento con movimientos no se cambia; cree otro SKU.')

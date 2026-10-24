@@ -62,7 +62,10 @@ def atomic_destination(path):
         raise SalesError('No se pudo escribir el documento. Revise permisos/espacio y cierre el archivo si está abierto.') from exc
     finally:
         if temporary is not None:
-            temporary.unlink(missing_ok=True)
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def export_pdf(document, path, font_dir):
@@ -152,5 +155,9 @@ def export_xlsx(document, path):
     try:
         with atomic_destination(path) as temp:
             workbook.save(temp)
+    except SalesError:
+        raise
+    except Exception as exc:
+        raise SalesError('No se pudo generar Excel; revise caracteres y longitud de los textos. El archivo destino se conserva.') from exc
     finally:
         workbook.close()

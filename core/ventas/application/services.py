@@ -283,7 +283,13 @@ class SalesService:
                     qty = decimal(line['quantity']) * decimal(source['quantity'])
                     entry = inventory.get(item_id)
                     if entry and source['unit'] != entry['item']['unit']:
-                        qty = UnitRegistry.convert(str(qty), source['unit'], entry['item']['unit'])
+                        try:
+                            qty = UnitRegistry.convert(str(qty), source['unit'], entry['item']['unit'])
+                        except ValidationError:
+                            needs[item_id] = None
+                            continue
+                    if item_id in needs and needs[item_id] is None:
+                        continue
                     needs[item_id] = needs.get(item_id, ZERO) + qty
         warnings = []
         for item_id, required in needs.items():
@@ -292,6 +298,9 @@ class SalesService:
                 warnings.append('SKU histórico sin disponibilidad verificable.')
                 continue
             item = entry['item']
+            if required is None:
+                warnings.append(f"{item['sku']}: unidad histórica incompatible con el catálogo actual; disponibilidad no verificable. La línea conserva su snapshot.")
+                continue
             text = f"{item['sku']}: requerido {required} {item['unit']} · {entry['status']}"
             if entry['verified']:
                 available = Decimal(entry['available'])

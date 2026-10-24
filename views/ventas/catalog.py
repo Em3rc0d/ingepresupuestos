@@ -43,6 +43,7 @@ class ItemDialog(DirtyDialog):
         super().__init__('Artículo / servicio comercial', parent)
         self.service, self.original = service, deepcopy(item or {})
         self.sku = field(self.form, 'SKU único', self.original.get('sku', ''))
+        self.sku.setReadOnly(bool(self.original.get('id')))
         self.name = field(self.form, 'Nombre', self.original.get('name', ''))
         self.description = field(self.form, 'Descripción al cliente', self.original.get('description', ''))
         self.kind = combo(self.form, 'Tipo', [x.value for x in ItemType if x != ItemType.ITEM_LIBRE], self.original.get('kind'))
@@ -85,6 +86,15 @@ class ItemDialog(DirtyDialog):
         self.result_data = None
         self.save_buttons(self.save)
         self.watch()
+        self.code.currentIndexChanged.connect(self.change_currency)
+
+    @action
+    def change_currency(self, *args):
+        code = self.code.currentData()
+        previous = next((i for i in self.service.items(True, code) if i['id'] == self.original.get('id')), None)
+        self.price.setText(previous['price'] if previous and previous['price'] is not None else '')
+        self.cost.setText(previous['cost'] if previous and previous['cost'] is not None else '')
+        self.price.setPlaceholderText(tr('Ingrese tarifa explícita; no hay conversión de moneda'))
 
     def _show_components(self):
         fill_table(self.components_table, [[c.get('sku', c['item_id']), c['quantity']] for c in self.components])
@@ -178,6 +188,7 @@ class RecordsView(QWidget):
             rows = [[r['sku'], r['name'], r['kind'], r['unit'], r['price'], r['currency'], tr('Controlado') if r['tracks_stock'] else tr('Sin seguimiento'), tr('Sí') if r['active'] else tr('No')] for r in self.visible]
         fill_table(self.tbl, rows)
 
+    @action
     def create(self):
         dialog = ClientDialog(self.service, parent=self) if self.is_clients else ItemDialog(self.service, parent=self)
         if dialog.exec() == QDialog.Accepted:
