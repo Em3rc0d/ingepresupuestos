@@ -30,6 +30,7 @@ Esto permite afirmar que los tests aislados se ejecutaron sobre el **mismo conte
 ## Ejemplos sintéticos
 
 ```python
+from decimal import Decimal
 from core.acu_parametrico import evaluar_acu_parametrico
 
 zapata = evaluar_acu_parametrico(
@@ -41,7 +42,7 @@ pintura = evaluar_acu_parametrico(
     "pintura_superficie_v1",
     {"manos": "2", "cobertura_m2_l_mano": "8",
      "consumo_adicional_fraccion": "0.10"}, "m2")
-assert pintura.cantidades[0].cantidad_por_unidad == 0.275
+assert pintura.cantidades[0].cantidad_por_unidad == Decimal('0.275')
 ```
 
 El cálculo de pintura usa **10% de consumo adicional relativo al teórico**, no 10% del volumen comprado perdido (que llevaría a una fórmula distinta). El valor de cobertura **8 m²/L/mano es inventado para la prueba**, NO corresponde a una ficha técnica real. La cantidad por unidad ACU no debe confundirse con `metrado × cantidad por unidad` (consumo total de obra).
