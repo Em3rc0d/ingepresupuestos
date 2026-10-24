@@ -4,7 +4,7 @@
 **Producto de origen:** `ingelibre/ingepresupuestos`, commit heredado `69445b5885aba3cf69bbaa72b9e459569b901785`, GPL-3.0-or-later.  
 **Rama de mejora:** `feature/acu-parametrico-spike-mk1`.  
 **Rama exclusiva de informe:** `audit/report-20261024`.  
-**Resultado general:** **HOLD — suite integral roja, sin habilitar uso profesional ni merge del spike a main**.
+**Resultado general:** **HOLD — suite integral roja heredada; no hay regresiones nuevas en la batería observada. Sin habilitar uso profesional ni merge del spike a main**.
 
 **Política de evidencia:** distinguir `PASS real`, `FAIL real`, `observación de código` y `no ejecutado`. Un resultado verde de una sección no certifica la seguridad, despliegue o funcionalidad del producto completo.
 
@@ -25,7 +25,7 @@
 | CI-02 | https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40104342431 | **FAIL** | Dependencias instaladas, `pip check` PASS, 17 tests nuevos PASS; **40 tests críticos PASS**; **suite completa: 17 fail, 409 pass, 6 skip, 8 subtests pass**, además de segfault de Qt/Pytest al salir |
 | CI-03 | https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40104530628 | **PASS** | Ruff de archivos nuevos PASS; `pip-audit` sin vulnerabilidades conocidas encontradas para la resolución actual; lint heredado informativo: **1.859 observaciones** |
 | CI-04 | https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40105089258 | **FAIL con evidencia de aislamiento** | Casos críticos heredados ejecutados en procesos separados: cinco grupos completos PASS, dos grupos con pruebas fallidas independientes (Qt píxel, Flatpak icono), dos con errores de destrucción Qt |
-| CI-05 | https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40104951309 | **PENDIENTE DE LEER RESULTADO** | Ejecución completa sobre commit original `main` sin los dos archivos nuevos, para distinguir regresiones heredadas |
+| CI-05 | https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40104951309 | **FAIL, BASELINE CONFIRMADO** | Sin archivos nuevos: **392 PASS, 17 FAIL, 6 SKIP**; mismos **17 nombres** fallidos que el fork experimental (**409 PASS, 17 FAIL, 6 SKIP**). Diferencia exacta: **17 pruebas nuevas aprobadas, 0 regresiones nuevas detectadas** |
 
 **No interpretar los intentos previos con `0 jobs` como fallos del software:** eran errores de definición del primer workflow, corregidos mediante una corrida mínima real.
 
@@ -48,6 +48,9 @@
 - **Ruff heredado:** 1.859 observaciones, incluyendo importaciones, excepciones genéricas y otras reglas. NO equivalen a 1.859 vulnerabilidades ni se puede exigir corregirlas todas automáticamente.
 - **pip-audit:** `No known vulnerabilities found` en el conjunto de versiones resueltas en ese momento. NO es análisis del binario, SBOM validada, revisión de dependencias empaquetadas o seguridad funcional.
 - Versiones `>=` y licencias de terceros sin reconciliar con el entorno hacen que el resultado sea **temporal**; recomendable lock por plataforma/perfil o constraints mantenidos.
+
+### Comparación causal con main (CI-05)
+La rama de control partió de `main` y contenía **solo el workflow de auditoría adicional**, sin `core/acu_parametrico.py` ni `tests/test_acu_parametrico.py`. Las pruebas críticas originales fueron **40 PASS** y la suite original obtuvo **392 PASS, 17 FAIL, 6 SKIP**; los mismos 17 tests fallan en la rama del spike, que alcanza **409 PASS, 17 FAIL, 6 SKIP**. No son regresiones introducidas por el módulo de cantidades **dentro del conjunto probado**. No implica que se haya validado UI/SQLite del spike, que aún no existe. Los errores heredados no pueden simplemente ignorarse para un release.
 
 ## 3. Hallazgos clasificados
 
