@@ -1,0 +1,40 @@
+name: Audit untouched main baseline (read-only)
+
+on:
+  push:
+    branches:
+      - audit/base-main-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  original-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record clean main code revision
+        run: |
+          git rev-parse HEAD
+          git diff --exit-code origin/main
+          test ! -f core/acu_parametrico.py
+      - name: System libraries for Qt
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Original application dependencies
+        run: |
+          python -m pip install -r requirements.txt pytest pytest-timeout
+          python -m pip check
+      - name: Original critical test baseline
+        run: pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra
+      - name: Complete untouched original tests
+        run: pytest -q tests --timeout=90 --maxfail=40 -ra
