@@ -1,0 +1,40 @@
+name: Audit fork baseline (read-only)
+
+on:
+  push:
+    branches:
+      - feature/acu-parametrico-spike-mk1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax audit
+        run: python -m compileall -q core views models utils tests scripts
+      - name: Install Qt requirements
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install application and tests
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Dependency consistency
+        run: python -m pip check
+      - name: Parametric test suite
+        run: python -m unittest discover -s tests -p "test_acu_parametrico.py" -v
+      - name: Existing critical tests
+        run: pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra
+      - name: Full test suite
+        run: pytest -q tests --timeout=90 --maxfail=40 -ra
