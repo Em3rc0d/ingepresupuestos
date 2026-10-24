@@ -37,7 +37,7 @@ CURRENT_VERSION = "3.0.18"
 
 #: URL del ``version.json`` remoto.
 #: Servido desde Cloudflare R2 (bucket público vía custom domain).
-VERSION_URL = (os.environ.get("INGEPRESUPUESTOS_VERSION_URL", "").strip() if os.environ.get("GITHUB_REPOSITORY", "") == "Em3rc0d/ingepresupuestos" else "https://downloads.ingepresupuestos.com/version.json")
+VERSION_URL = os.environ.get("INGEPRESUPUESTOS_VERSION_URL", "").strip()
 
 #: Archivos locales de estado.
 UPDATE_STATE_FILE = USER_DATA_DIR / "update_state.json"
@@ -261,6 +261,8 @@ def fetch_version_info(timeout: float = 5.0) -> Optional[VersionInfo]:
     """GET al ``version.json`` remoto. Devuelve ``None`` en cualquier error.
 
     Usa ``requests`` si está instalado; fallback a ``urllib`` (stdlib)."""
+    if not VERSION_URL:
+        return None  # Fork independiente: no consultar servidor del autor por defecto.
     try:
         import requests  # type: ignore
         resp = requests.get(
