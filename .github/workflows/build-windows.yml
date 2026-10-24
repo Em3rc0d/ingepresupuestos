@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   build-windows:
+    # La publicación heredada y R2 no pertenecen al fork: bloquear también tags.
+    if: ${{ github.repository == 'ingelibre/ingepresupuestos' }}
     runs-on: windows-latest
     env:
       # Se rellena solo si agregaste los secretos R2_* en el repo. Si no están,

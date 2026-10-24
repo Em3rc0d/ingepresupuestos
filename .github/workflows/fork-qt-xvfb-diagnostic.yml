@@ -1,0 +1,43 @@
+name: Diagnose Qt under Xvfb/X11
+
+on:
+  push:
+    branches: [fix/fork-stabilization-20261024]
+    paths: [".github/workflows/fork-qt-xvfb-diagnostic.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  xcb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: xcb
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Qt and Xvfb system runtime
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb xauth libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Python dependencies
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: X11 stress round 1 (no suppressed nonzero exits)
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" python scripts/audit_test_files.py --timeout 150 --output qt-xcb-round1.json --only tests/test_appimage.py tests/test_arbol_niveles_y_duplicar.py tests/test_franjas_imagen.py
+      - name: X11 stress round 2
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" python scripts/audit_test_files.py --timeout 150 --output qt-xcb-round2.json --only tests/test_appimage.py tests/test_arbol_niveles_y_duplicar.py tests/test_franjas_imagen.py
+      - name: Small test receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-xcb-diagnostic
+          path: qt-xcb-round*.json
+          if-no-files-found: ignore
+          retention-days: 1

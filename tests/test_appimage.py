@@ -79,7 +79,9 @@ def test_acerca_de_ofrece_el_menu_solo_como_appimage(tmp_path, monkeypatch):
     from views.acerca_view import AcercaView
     _bd()
     monkeypatch.delenv('APPIMAGE', raising=False)
-    assert AcercaView().btn_menu_apps is None
+    sin_appimage = AcercaView()
+    assert sin_appimage.btn_menu_apps is None
+    sin_appimage.close()
 
     img = tmp_path / 'IngePresupuestos.AppImage'
     img.write_bytes(b'AI')
@@ -94,12 +96,15 @@ def test_acerca_de_ofrece_el_menu_solo_como_appimage(tmp_path, monkeypatch):
     v.btn_menu_apps.click()
     assert not appimage.esta_integrada(img)
     assert v.btn_menu_apps.text() == 'Agregar al menú de aplicaciones'
+    # No dejar widgets parentless vivos durante el teardown de QApplication.
+    v.close()
+    _app.processEvents()
 
 
 def test_la_ficha_del_flatpak_trae_capturas_por_https():
     """GNOME Software decía «Sin capturas»: el metainfo no traía ninguna."""
     for canal in ('flatpak', 'flathub'):
-        texto = (RAIZ / f'installer/{canal}/com.ingepresupuestos.IngePresupuestos.metainfo.xml').read_text()
+        texto = (RAIZ / f'installer/{canal}/com.ingepresupuestos.IngePresupuestos.metainfo.xml').read_text(encoding='utf-8')
         imagenes = re.findall(r'<image>([^<]+)</image>', texto)
         assert len(imagenes) >= 5, canal
         assert all(u.startswith('https://ingepresupuestos.com/images/screenshots/') for u in imagenes)
@@ -109,17 +114,19 @@ def test_la_ficha_del_flatpak_trae_capturas_por_https():
         assert texto.count('<caption xml:lang="en">') == len(imagenes)
 
 
-def test_el_flatpak_instala_el_icono_escalable():
+def test_flatpak_instala_icono_png_cuadrado():
+    """Los dos manifiestos distribuyen PNG: el SVG antiguo no era cuadrado."""
     for canal in ('flatpak', 'flathub'):
-        texto = (RAIZ / f'installer/{canal}/com.ingepresupuestos.IngePresupuestos.yml').read_text()
-        assert 'hicolor/scalable/apps/${FLATPAK_ID}.svg' in texto, canal
+        texto = (RAIZ / f'installer/{canal}/com.ingepresupuestos.IngePresupuestos.yml').read_text(encoding='utf-8')
+        assert 'hicolor/256x256/apps/${FLATPAK_ID}.png' in texto, canal
+        assert 'hicolor/scalable/apps/${FLATPAK_ID}.svg' not in texto, canal
 
 
 def test_la_ventana_se_asocia_al_lanzador_del_flatpak():
     """Dentro del Flatpak la entrada .desktop se llama como el id de la app;
     sin decirlo, el dock mostraba un icono genérico y el botón «Abrir» de
     GNOME Software no veía abrirse la app."""
-    texto = (RAIZ / 'main.py').read_text()
+    texto = (RAIZ / 'main.py').read_text(encoding='utf-8')
     assert 'app.setDesktopFileName(os.environ.get("FLATPAK_ID") or "ingepresupuestos")' in texto
 
 

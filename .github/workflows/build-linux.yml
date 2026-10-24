@@ -13,6 +13,8 @@ permissions:
 
 jobs:
   build-linux:
+    # Releases y destino R2 pertenecen al repositorio de origen; no reutilizarlos en el fork.
+    if: ${{ github.repository == 'ingelibre/ingepresupuestos' }}
     runs-on: ubuntu-latest
     env:
       # Se rellena solo si agregaste los secretos R2_* en el repo. Si no están,
@@ -166,6 +168,7 @@ jobs:
     secrets: inherit
 
   snap:
+    if: ${{ github.repository == 'ingelibre/ingepresupuestos' }}
     name: Snap (x86_64)
     runs-on: ubuntu-22.04
     steps:

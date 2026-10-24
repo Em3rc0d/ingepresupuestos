@@ -25,6 +25,8 @@ concurrency:
 
 jobs:
   actualizar:
+    # Sin autorización expresa, el fork no escribe datos automáticamente en main.
+    if: ${{ github.repository == 'ingelibre/ingepresupuestos' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

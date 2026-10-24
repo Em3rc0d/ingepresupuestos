@@ -46,6 +46,8 @@ concurrency:
 
 jobs:
   flatpak:
+    # No usar destinos R2, GPG o branding del proyecto original desde nuestro fork.
+    if: ${{ github.repository == 'ingelibre/ingepresupuestos' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

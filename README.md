@@ -5,6 +5,9 @@ Copyright (C) 2026 Marco Sumari
 
 # IngePresupuestos
 
+> **Fork independiente de Em3rc0d (trabajo en curso).** Basado en [ingelibre/ingepresupuestos](https://github.com/ingelibre/ingepresupuestos) bajo GPL-3.0-or-later, conservando historial, copyright y avisos de terceros. Esta versión **no está avalada ni mantenida por el autor original**, no tiene release propia aprobado y actualmente no debe utilizarse para presupuestos profesionales sin validación. El actualizador heredado está **desactivado por defecto**; los canales de compilación/publicación del origen no se ejecutan en este fork. Ver [auditoría y correcciones](docs/auditorias/ESTABILIZACION_2026-10-24.md). 
+
+
 **Software de presupuestos de obra civil** — nativo, multiplataforma (Linux · Windows · macOS), pensado para ingenieros, arquitectos y contratistas peruanos.
 
 **Autor:** Ing. Marco Sumari · **Sumari · Arquitectura + Ingeniería**
