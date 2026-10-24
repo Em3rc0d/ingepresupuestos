@@ -13,6 +13,7 @@ def calculate(method: str, params: dict, sale_unit: str) -> dict:
     UnitRegistry.get(sale_unit)
     with localcontext() as ctx:
         ctx.prec = 48
+        presentation = None
         if method == 'MANUAL':
             qty = Quantity(precise(params['quantity']), sale_unit)
             required = qty
@@ -41,6 +42,8 @@ def calculate(method: str, params: dict, sale_unit: str) -> dict:
             required = Quantity(required_value.quantize(Decimal('.000001'), rounding=ROUND_HALF_UP), 'L')
             size = params.get('presentation_size')
             if size not in (None, ''):
+                if UnitRegistry.get(sale_unit)[0] not in ('count', 'envase', 'caja', 'paquete'):
+                    raise ValidationError('Con contenido por presentación, use pieza/envase/caja/paquete. Para vender volumen, deje el contenido vacío.')
                 presentation = UnitRegistry.convert(size, params['presentation_unit'], 'L')
                 if presentation <= 0:
                     raise ValidationError('Presentación debe ser mayor que cero.')
@@ -52,9 +55,15 @@ def calculate(method: str, params: dict, sale_unit: str) -> dict:
                 qty = required.to(sale_unit)
         else:
             raise ValidationError('Método de cantidad no soportado.')
-        return {
+        result = {
             'version': FORMULA_VERSION, 'method': method, 'params': params,
             'required': str(required.amount), 'required_unit': required.unit,
             'quantity': str(qty.amount), 'unit': qty.unit,
             'source': str(params.get('source') or 'Supuesto no validado'),
         }
+        if method == 'COBERTURA' and presentation is not None:
+            sold = qty.amount * presentation
+            result.update(sold_physical=str(sold), sold_unit='L', remainder=str(sold - required.amount))
+        else:
+            result.update(sold_physical=str(required.amount), sold_unit=required.unit, remainder='0')
+        return result

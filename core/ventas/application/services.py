@@ -14,6 +14,7 @@ from ..domain.pricing import calculate
 from ..domain.quantity import UnitRegistry
 from ..domain.quote_states import transition
 from ..infrastructure.sqlite import SalesStore, now
+from ..infrastructure.repositories import fingerprint
 
 
 def valid_date(value, label):
@@ -142,14 +143,14 @@ class SalesService:
         lines = [QuoteLine(**line) for line in document['lines']]
         return calculate(lines, document['header']['currency'], document['header']['global_discount'])
 
-    def _normalize(self, document, repo, issue):
+    def _normalize(self, document, repo, issue, refresh_customer=True):
         h = document['header']
         currency(h['currency'])
         start = valid_date(h['date'], 'Fecha')
         until = valid_date(h['valid_until'], 'Vigencia')
         if until < start:
             raise ValidationError('Vigencia anterior a la fecha de cotización.')
-        if h.get('client_id'):
+        if h.get('client_id') and refresh_customer:
             client = repo.client(h['client_id'])
             if not client['active']:
                 raise ValidationError('Cliente archivado: seleccione otro o use receptor ocasional.')
@@ -183,20 +184,26 @@ class SalesService:
         doc = deepcopy(source)
         stamp = now()
         with self.store.transaction(True) as repo:
+            current = None
             if doc['id']:
                 current = repo.document(doc['id'])
                 if current['revision_id'] != doc['revision_id'] or current['revision_state'] != 'BORRADOR' or current['state'] != 'BORRADOR':
                     raise ConflictError('Documento protegido. Cree una nueva revisión para editar.')
                 if current['token'] != doc['token']:
                     raise ConflictError('Borrador modificado por otra ventana. Reabra el documento.')
-            self._normalize(doc, repo, issue)
+            if issue and current is None:
+                raise ValidationError('Guarde y previsualice la revisión antes de emitir.')
+            self._normalize(doc, repo, issue, refresh_customer=not issue)
             if not doc['id']:
                 doc.update(id=str(uuid4()), revision_id=str(uuid4()), number=repo.next_number(valid_date(doc['header']['date'], 'Fecha').year))
                 repo.create_quote(doc, stamp)
             doc['header'].update(number=doc['number'], version=doc['version'])
-            repo.write_revision(doc)
             if issue:
+                if fingerprint(doc['header'], doc['lines'], doc['totals']) != fingerprint(current['header'], current['lines'], current['totals']):
+                    raise ConflictError('La revisión cambió desde la vista previa. Guarde y previsualice de nuevo.')
                 repo.freeze(doc, stamp)
+            else:
+                repo.write_revision(doc)
             repo.update_quote(doc, 'EMITIDA' if issue else 'BORRADOR', stamp)
             repo.event(doc, 'EMITIDA' if issue else 'GUARDADA', self.actor, stamp, {})
             return repo.document(doc['id'])
@@ -229,7 +236,7 @@ class SalesService:
             doc['header']['version'] = doc['version']
             repo.write_revision(doc)
             repo.update_quote(doc, 'BORRADOR', now())
-            repo.event(doc, 'NUEVA_REVISION', self.actor, now(), {'source_revision': previous})
+            repo.event(doc, 'NUEVA_REVISION', self.actor, now(), {'source_revision': previous, 'previous_state': doc['state']})
             return repo.document(quote_id)
 
     def duplicate(self, quote_id, revision_id=None):

@@ -98,7 +98,7 @@ class Repository:
 
     def quotes(self):
         return [dict(r) for r in self.connection.execute(
-            'SELECT q.*, r.version, r.id revision_id, r.totales_json FROM ventas_cotizaciones q JOIN ventas_revisiones r ON r.cotizacion_id=q.id WHERE r.version=(SELECT MAX(version) FROM ventas_revisiones WHERE cotizacion_id=q.id) ORDER BY q.actualizado_en DESC')]
+            'SELECT q.*, r.version, r.id revision_id, r.totales_json, r.cabecera_json FROM ventas_cotizaciones q JOIN ventas_revisiones r ON r.cotizacion_id=q.id WHERE r.version=(SELECT MAX(version) FROM ventas_revisiones WHERE cotizacion_id=q.id) ORDER BY q.actualizado_en DESC')]
 
     def quote_row(self, quote_id):
         row = self.connection.execute('SELECT * FROM ventas_cotizaciones WHERE id=?', (quote_id,)).fetchone()
@@ -127,7 +127,7 @@ class Repository:
 
     def create_quote(self, document, now):
         h = document['header']
-        self.connection.execute('INSERT INTO ventas_cotizaciones VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        self.connection.execute('INSERT INTO ventas_cotizaciones VALUES (?,?,?,?,?,?,?,?,?,?)',
                                 (document['id'], document['number'], h.get('client_id'), h['currency'], 'BORRADOR', h['date'], h['valid_until'], h['title'], now, 0))
 
     def update_quote(self, document, state, now):
