@@ -247,7 +247,7 @@ El modelo de Ventas se diseña separado del heredado. Los nombres `ventas_*` son
 erDiagram
     CLIENTE ||--o{ COTIZACION : recibe
     COTIZACION ||--|{ REVISION : conserva
-    REVISION ||--|{ LINEA : contiene
+    REVISION ||--o{ LINEA : contiene
     ITEM_COMERCIAL o|--o{ LINEA : referencia
     ITEM_COMERCIAL ||--o{ VARIANTE : define
     VARIANTE ||--o{ MOVIMIENTO_INVENTARIO : registra
