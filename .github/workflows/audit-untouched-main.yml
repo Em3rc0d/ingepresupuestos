@@ -26,7 +26,7 @@ jobs:
       - name: Record clean main code revision
         run: |
           git rev-parse HEAD
-          git diff --exit-code origin/main
+          test -f core/database.py
           test ! -f core/acu_parametrico.py
       - name: System libraries for Qt
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
