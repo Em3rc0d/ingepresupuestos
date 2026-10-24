@@ -23,28 +23,38 @@ def pytest_configure(config):
         setattr(QMessageBox, kind, _no_modal(kind))
 
 
-# Los tests usan QApplication y QWidget en import-time; algunos mantienen
-# timers/eventFilters vivos. No dejar que el destructor de Python los libere
-# con el runtime de Qt ya en desmontaje.
-def pytest_sessionfinish(session, exitstatus):
-    import pytest
-    try:
-        from PySide6.QtCore import QCoreApplication, QEvent
-        from PySide6.QtWidgets import QApplication, QToolTip
-        from shiboken6 import isValid
-    except ImportError:
-        return
+
+def pytest_collection_finish(session):
+    """Reproduce la inicialización de Inter que main.py hace antes de dibujar.
+
+    Sin ella, el runner Windows usa una fuente fallback y falla en anchuras y
+    sangrías que no corresponden a la UI real.
+    """
+    from pathlib import Path
+
+    from PySide6.QtGui import QFont, QFontDatabase
+    from PySide6.QtWidgets import QApplication
+
     app = QApplication.instance()
     if app is None:
         return
-    try:
+    fonts = Path(__file__).resolve().parents[1] / "resources" / "fonts"
+    for name in ("Inter.ttf", "Inter-Italic.ttf", "Inter-Bold.ttf", "Inter-BoldItalic.ttf"):
+        f = fonts / name
+        if f.exists():
+            QFontDatabase.addApplicationFont(str(f))
+    app.setFont(QFont("Inter", 10))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """No destruir explícitamente widgets compartidos al finalizar los tests.
+
+    La eliminación directa de QObjects bajo Qt genera 'pure virtual method
+    called'. Solo detener tooltips y procesar eventos ya publicados.
+    """
+    from PySide6.QtWidgets import QApplication, QToolTip
+
+    app = QApplication.instance()
+    if app is not None:
         QToolTip.hideText()
-        for widget in list(app.topLevelWidgets()):
-            if isValid(widget):
-                widget.close()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         app.processEvents()
-    except RuntimeError as exc:
-        # La limpieza no debe ocultar un problema del framework.
-        session.exitstatus = pytest.ExitCode.TESTS_FAILED
-        print(f"ERROR: teardown Qt inválido: {exc}", flush=True)
