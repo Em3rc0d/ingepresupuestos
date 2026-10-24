@@ -3,8 +3,8 @@
 """Pruebas del spike de cantidades; no requiere PySide6 ni BD."""
 from __future__ import annotations
 
-import sys
 import os
+import sys
 import unittest
 from decimal import Decimal
 
