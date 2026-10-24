@@ -62,6 +62,9 @@ class LineDialog(DirtyDialog):
         self.watch()
         self.unit.currentIndexChanged.connect(self.clear_formula)
         self.quantity.textEdited.connect(self.clear_formula)
+        self.kind.setEnabled(not self.line.get('item_id'))
+        self.unit.setEnabled(not self.line.get('item_id'))
+        self.update_margin()
 
     def reload_catalog(self):
         self.catalog.clear()
@@ -88,6 +91,8 @@ class LineDialog(DirtyDialog):
         self.tax.mode.setCurrentIndex(max(0, self.tax.mode.findData(rule.get('mode'))))
         self.tax.name.setText(rule.get('name', ''))
         self.tax.rate.setText(rule.get('rate', ''))
+        self.kind.setEnabled(False)
+        self.unit.setEnabled(False)
         self.show_formula()
 
     @action
