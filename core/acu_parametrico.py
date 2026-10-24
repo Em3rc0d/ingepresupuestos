@@ -8,9 +8,9 @@ sintéticos hasta que un profesional valide sus supuestos.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from typing import Mapping
 
 
 class ErrorParametros(ValueError):
@@ -87,8 +87,8 @@ def evaluar_acu_parametrico(
             plantilla, "und",
             (CantidadRecurso("concreto", "m3", "und", volumen,
                              "largo_m × ancho_m × alto_m [m3/und]"),),
-            ("Volumen geométrico bruto; no es diseño estructural ni dosificación "
-             "de mezcla. No incluye acero, pérdidas ni otros insumos.",),
+            (("Volumen geométrico bruto; no es diseño estructural ni dosificación "
+              "de mezcla. No incluye acero, pérdidas ni otros insumos."),),
         )
 
     if plantilla == "pintura_superficie_v1":
@@ -112,8 +112,8 @@ def evaluar_acu_parametrico(
             (CantidadRecurso("pintura", "L", "m2", cantidad,
                              "(manos / cobertura_m2_l_mano) × "
                              "(1 + consumo_adicional_fraccion) [L/m2]"),),
-            ("La cobertura es por mano, no por sistema completo. El extra es "
-             "consumo adicional sobre el teórico, NO fracción comprada perdida. "
-             "Exige ficha técnica y revisión del sustrato.",),
+            (("La cobertura es por mano, no por sistema completo. El extra es "
+              "consumo adicional sobre el teórico, NO fracción comprada perdida. "
+              "Exige ficha técnica y revisión del sustrato."),),
         )
     raise ErrorParametros(f"Plantilla no registrada: {plantilla!r}")
