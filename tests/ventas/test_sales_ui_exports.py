@@ -57,11 +57,15 @@ def test_sales_workspace_constructs_and_shows_offscreen(tmp_path, monkeypatch):
     from PySide6.QtWidgets import QApplication
     from PySide6.QtCore import QCoreApplication
     import core.config as config
+    import core.database as construction_database
     from views.ventas.shell import SalesView
 
     path = tmp_path / "sales-ui.db"
     sqlite3.connect(path).close()
+    # Real app runs core.database.init_db() before opening the sales workspace.
     monkeypatch.setattr(config, "DB_PATH", path)
+    monkeypatch.setattr(construction_database, "DB_PATH", path)
+    construction_database.init_db()
     app = QApplication.instance() or QApplication([])
     user = SimpleNamespace(id=101, username="qa", nombre="QA", es_invitado=False)
     view = SalesView(user)
