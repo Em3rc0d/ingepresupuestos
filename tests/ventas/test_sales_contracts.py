@@ -161,3 +161,16 @@ def test_legacy_construction_schema_not_modified_by_sales(tmp_path):
     con = sqlite3.connect(path)
     assert con.execute("SELECT id,nombre FROM proyectos").fetchall() == [(17, "Obra de control")]
     con.close()
+
+
+def test_accepted_quote_is_terminal_and_cannot_reopen_revision(service):
+    doc = quote_document(service, [taxable_line()])
+    draft = service.save_draft(doc)
+    issued = service.save_draft(draft, issue=True)
+    accepted = service.change_state(issued["id"], issued["token"], "ACEPTADA", "Aceptación sintética QA")
+    assert accepted["state"] == "ACEPTADA"
+    with pytest.raises(ConflictError):
+        service.new_revision(accepted["id"], accepted["token"])
+    unchanged = service.open_document(accepted["id"])
+    assert unchanged["state"] == "ACEPTADA"
+    assert unchanged["revision_state"] == "EMITIDA"
