@@ -12,7 +12,7 @@ import sqlite3
 import pytest
 
 from core.ventas.application.services import SalesService
-from core.ventas.domain.errors import ValidationError
+from core.ventas.domain.errors import ConflictError, ValidationError
 from core.ventas.domain.formulas import calculate as quantity
 from core.ventas.domain.models import Item, QuoteLine
 from core.ventas.domain.money import Money, rounded
@@ -104,7 +104,7 @@ def test_draft_save_open_issue_and_revision_immutability(service):
     old = service.open_document(issued["id"], issued["revision_id"])
     assert old["lines"] == issued["lines"]
 
-    with pytest.raises((ValidationError, sqlite3.Error, Exception)) as exc:
+    with pytest.raises(ConflictError) as exc:
         # A stale emitted revision may not be saved in place.
         service.save_draft(issued)
     assert exc.value is not None
