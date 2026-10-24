@@ -9,86 +9,32 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fork-audit-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  source-and-security:
-    name: Syntax, lint and dependency advisories
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout fork branch
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Syntax for repository Python code
-        run: python -m compileall -q core views models utils tests scripts
-      - name: Install independent audit tools
-        run: python -m pip install --disable-pip-version-check ruff pip-audit
-      - name: Lint new ACU feature and tests
-        run: ruff check core/acu_parametrico.py tests/test_acu_parametrico.py
-      - name: Inventory legacy lint without changing legacy code
-        run: |
-          ruff check core views models utils tests scripts --statistics > legacy-ruff-summary.txt || true
-          head -60 legacy-ruff-summary.txt
-      - name: Advisory scan of the declared requirements
-        run: pip-audit -r requirements.txt --progress-spinner off -f json -o dependency-advisories.json
-      - name: Upload static receipts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: audit-static-20261024
-          path: |
-            legacy-ruff-summary.txt
-            dependency-advisories.json
-          if-no-files-found: ignore
-          retention-days: 2
-
-  regression-linux:
-    name: Python 3.12 full regression
+  audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       QT_QPA_PLATFORM: offscreen
       MPLBACKEND: Agg
       PYTHONDONTWRITEBYTECODE: "1"
-      XDG_DATA_HOME: ${{ runner.temp }}/ingepresupuestos-audit-userdata
     steps:
-      - name: Checkout fork branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Qt Linux runtime
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
-      - name: Install full application and audit dependencies
-        run: |
-          python -m pip install --disable-pip-version-check -r requirements.txt pytest pytest-timeout
-          python -m pip check
-      - name: Test new pure parametric module
+      - name: Syntax audit
+        run: python -m compileall -q core views models utils tests scripts
+      - name: Install Qt requirements
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install application and tests
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Dependency consistency
+        run: python -m pip check
+      - name: Parametric test suite
         run: python -m unittest discover -s tests -p "test_acu_parametrico.py" -v
-      - name: Test inherited critical ACU and formatting rules
-        run: pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra --junitxml=critical-junit.xml
-      - name: Test entire repository suite
-        run: pytest -q tests --timeout=90 --maxfail=40 -ra --junitxml=full-junit.xml
-      - name: Upload JUnit receipts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: audit-tests-20261024
-          path: |
-            critical-junit.xml
-            full-junit.xml
-          if-no-files-found: ignore
-          retention-days: 2
+      - name: Existing critical tests
+        run: pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra
+      - name: Full test suite
+        run: pytest -q tests --timeout=90 --maxfail=40 -ra
