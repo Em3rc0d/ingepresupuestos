@@ -18,6 +18,7 @@ en cada release del binario.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -34,9 +35,19 @@ from core.config import USER_DATA_DIR
 #: Versión actual del binario. Bumpear en cada release.
 CURRENT_VERSION = "3.0.18"
 
-#: URL del ``version.json`` remoto.
-#: Servido desde Cloudflare R2 (bucket público vía custom domain).
-VERSION_URL = "https://downloads.ingepresupuestos.com/version.json"
+#: El fork NO consulta ni anuncia versiones del autor original.
+#: Solo habilitar después de configurar canal HTTPS propio y política de releases.
+VERSION_URL = os.environ.get("INGEPRESUPUESTOS_VERSION_URL", "").strip()
+
+
+def actualizaciones_habilitadas() -> bool:
+    """Devuelve True solo con una URL HTTPS explícita para este fork."""
+    from urllib.parse import urlsplit
+    try:
+        u = urlsplit(VERSION_URL)
+        return u.scheme == "https" and bool(u.hostname) and not u.username and not u.password
+    except ValueError:
+        return False
 
 #: Archivos locales de estado.
 UPDATE_STATE_FILE = USER_DATA_DIR / "update_state.json"
@@ -222,7 +233,9 @@ def marcar_check(info: "VersionInfo | str") -> None:
 
 
 def cached_version_info() -> Optional[VersionInfo]:
-    """Devuelve la última info de versión cacheada, o ``None`` si no hay."""
+    """No mostrar avisos heredados sin configurar primero un canal propio."""
+    if not actualizaciones_habilitadas():
+        return None
     state = _cargar_state()
     if not state.cached_version:
         return None
@@ -257,9 +270,9 @@ def _horas_desde_ultimo_check() -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_version_info(timeout: float = 5.0) -> Optional[VersionInfo]:
-    """GET al ``version.json`` remoto. Devuelve ``None`` en cualquier error.
-
-    Usa ``requests`` si está instalado; fallback a ``urllib`` (stdlib)."""
+    """GET opt-in HTTPS: por defecto no se llama a servidores externos."""
+    if not actualizaciones_habilitadas():
+        return None
     try:
         import requests  # type: ignore
         resp = requests.get(
@@ -294,7 +307,9 @@ def fetch_version_info(timeout: float = 5.0) -> Optional[VersionInfo]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def chequear_actualizacion() -> CheckResult:
-    """Chequea actualización contra el servidor. Nunca tira excepción."""
+    """Chequea solo un feed HTTPS configurado; deshabilitado es un no-op."""
+    if not actualizaciones_habilitadas():
+        return CheckResult()
     info = fetch_version_info()
     if info is None:
         return CheckResult(
@@ -308,6 +323,5 @@ def chequear_actualizacion() -> CheckResult:
 
 
 def debe_chequear_silencioso(min_horas: float = 24.0) -> bool:
-    """True si tocó otro check silencioso (han pasado más de ``min_horas``
-    desde el último). Evita spamear al servidor en cada arranque."""
-    return _horas_desde_ultimo_check() >= min_horas
+    """Nunca iniciar consultas automáticas salvo opt-in de canal propio."""
+    return actualizaciones_habilitadas() and _horas_desde_ultimo_check() >= min_horas
