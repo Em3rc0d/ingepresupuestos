@@ -109,10 +109,12 @@ def test_la_ficha_del_flatpak_trae_capturas_por_https():
         assert texto.count('<caption xml:lang="en">') == len(imagenes)
 
 
-def test_el_flatpak_instala_el_icono_escalable():
+def test_el_flatpak_instala_icono_png_cuadrado():
+    """El SVG no cuadrado se retiró: Flatpak valida el PNG de 256 px."""
     for canal in ('flatpak', 'flathub'):
         texto = (RAIZ / f'installer/{canal}/com.ingepresupuestos.IngePresupuestos.yml').read_text()
-        assert 'hicolor/scalable/apps/${FLATPAK_ID}.svg' in texto, canal
+        assert 'hicolor/256x256/apps/${FLATPAK_ID}.png' in texto, canal
+        assert 'hicolor/scalable/apps/${FLATPAK_ID}.svg' not in texto
 
 
 def test_la_ventana_se_asocia_al_lanzador_del_flatpak():
