@@ -1,16 +1,15 @@
-# MK0 — Tesis de producto: cotizaciones multisectoriales
+# MK0 — Dos unidades de negocio: Construcción + Cotizaciones de Ventas
 
-**Fecha:** 2026-10-24 · **Estado:** DRAFT de producto (dirección de alcance solicitada por propietario, no viabilidad comercial aprobada).  
+**Fecha:** 2026-10-24 · **Estado:** arquitectura de producto **DECIDIDA** en [ADR-002](ADR-002-DOS-UNIDADES-DE-NEGOCIO.md); diferenciación y viabilidad comercial **DRAFT/no validadas**.  
 **Repositorio único de trabajo:** [Em3rc0d/ingepresupuestos](https://github.com/Em3rc0d/ingepresupuestos). No contactar repositorios ni autores externos. Respetar GPL-3.0-or-later y atribuciones existentes.
 
 ## 1. Corrección explícita del alcance
 
-El objetivo ya no es **solo** presupuesto de construcción ni una copia de S10. Se busca un **sistema de cotizaciones multisectorial** capaz de combinar:
-- productos físicos vendibles (SKU, variante, precio y unidad comercial);
-- materiales medibles (largo, ancho, alto, área, volumen, longitud, peso, rendimiento, manos, desperdicio definido);
-- servicios y mano de obra (hora, jornada, tarifa fija, cantidad);
-- paquetes/ensambles y conceptos personalizados (desglose interno y presentación comercial);
-- presupuestos de obra y ACU cuando correspondan como **especialización**, preservando su modelo existente.
+**DECISIÓN DE PRODUCTO: la aplicación tiene DOS unidades de negocio al mismo nivel, sin sustituirse entre sí.**
+
+1. **Construcción (BU-01):** mantener íntegro el sistema actual de presupuestos de obra: proyectos, partidas, ACU, metrados, acero, cronogramas, informes, requerimientos y control de obra. Conservar comportamiento y datos originales.
+2. **Cotizaciones de Ventas (BU-02):** nuevo módulo que cotiza productos físicos (SKU, variante, unidad), materiales medibles (largo, área, volumen, cobertura), servicios y mano de obra comercial, paquetes/ensambles y conceptos personalizados. Tendrá clientes, precios de venta y disponibilidad comercial propios.
+3. **Interoperabilidad opcional:** reutilizar **lógica técnica pura** tras validación y, cuando aporte valor, incorporar una partida/ACU de Construcción como línea de venta mediante **adaptador de lectura + snapshot**; no acoplar directamente tablas ni mutar partidas. Más detalles y evidencias en [ADR-002](ADR-002-DOS-UNIDADES-DE-NEGOCIO.md).
 
 **No confundir:** un presupuesto técnico de obra estima recursos/costos; una cotización comercial ofrece un precio bajo condiciones (cliente, vigencia, impuestos, plazos, disponibilidad, condiciones de pago). Son documentos relacionados pero NO el mismo agregado ni estados del negocio.
 
@@ -36,7 +35,7 @@ Inspección de main (2026-10-24):
 - PR #3 aborda estabilización y seguridad del fork, **NO** amplía el producto a cotizaciones.
 - No hay evidencia en la base inspeccionada de un documento universal de cotización con cliente, versiones, líneas mixtas, márgenes, vigencia y aceptación convertido en orden.
 
-**Evaluación de reutilización:** reutilizar utilidades/validación de unidades y el ACU de obra donde corresponda; crear un **bounded context `cotizaciones` independiente** para venta y documentos. No renombrar `partidas` como líneas comerciales, ni extender `almacen_ingreso` como inventario global sin SRS.
+**Evaluación de reutilización:** dos contextos delimitados **de primer nivel** (Construcción y Ventas) más utilidades compartidas mínimas. Crear tablas/clases comerciales nuevas cuando el contrato lo exija; NO renombrar `partidas`, NO reinterpretar `recursos` como SKU y NO extender `almacen_ingreso` como inventario global sin SRS. **Construcción permanece operativa por sí sola**. Ver [matriz de reutilización](ADR-002-DOS-UNIDADES-DE-NEGOCIO.md).
 
 ## 4. Dominios posibles (no equivale a implementar todo)
 
@@ -96,10 +95,10 @@ Este ejemplo NO certifica rendimiento de pintura alguna ni representa un contrat
 | G5/distribución | ¿El fork puede circular sin confusión con el productor? | licencias/avisos/activos/branding, sin llamadas/publicaciones al origen |
 | G6/comercial | ¿Alguien paga más que los costes de atenderlo? | pilotos y pagos verificables; si no, PIVOT/KILL |
 
-**Decisión a presentar:** APPROVE ampliar hipótesis de alcance multisectorial, pero **HOLD codificación de módulos nuevos** hasta que contratos núcleo y viabilidad estén definidos. No cambiar el PR #1 ni el #3 como reacción inmediata a un nuevo enunciado estratégico.
+**Decisión tomada por propietario:** GO a la **arquitectura de producto de dos BUs** y a la especificación de Venta; HOLD para codificar nuevas tablas/UI hasta cerrar contratos y regresión. PR #1 (spike ACU) y PR #3 (estabilización) siguen separados. No exigir demostrar rentabilidad antes de diseñar, pero **sí** antes de aprobar comercialización/escala.
 
 ## 9. Secuencia de implementación si se aprueba
 
 `MK0 mercado+brecha` → `MK1 modelo funcional SRS` → `MK1 modelo de datos + UX cotización` → `MK2 motor cantidades/importe puro` → `MK2 catálogo + stock transaccional` → `MK3 documento PDF y flujo` → `MK3 pruebas E2E` → `GO/PIVOT/KILL`.
 
-**Observación estratégica:** si el generador de cotizaciones se vuelve el producto principal y el presupuesto de obra es solo un plugin, mantener todo dentro de `proyecto_view.py` y del esquema `partidas` sería deuda seria; se deberá justificar conservar el fork como shell o extraer un núcleo separado dentro del mismo repositorio. La compatibilidad de licencias no debe ignorarse.
+**Decisión final de alcance:** Construcción **no será un plugin subordinado** ni se reescribirá como Cotizaciones. Ventas tendrá navegación, lógica y persistencia independientes y compartirá utilidades solo cuando las pruebas demuestren equivalencia de contratos. Se preservan las licencias y atribuciones originales. El paso de diseño siguiente es [ADR-002](ADR-002-DOS-UNIDADES-DE-NEGOCIO.md), no una reconstrucción del shell.
