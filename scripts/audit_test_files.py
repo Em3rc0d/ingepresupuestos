@@ -38,7 +38,7 @@ def main() -> int:
         print(f"--- TEST MODULE {file} ---", flush=True)
         with tempfile.TemporaryDirectory(prefix="ip_audit_") as temp:
             env = os.environ.copy()
-            env["QT_QPA_PLATFORM"] = "offscreen"
+            env["QT_QPA_PLATFORM"] = os.environ.get("QT_QPA_PLATFORM", "offscreen")
             env["MPLBACKEND"] = "Agg"
             env["PYTHONDONTWRITEBYTECODE"] = "1"
             env["XDG_DATA_HOME"] = temp
