@@ -21,3 +21,30 @@ def pytest_configure(config):
     from PySide6.QtWidgets import QMessageBox
     for kind in ('information', 'warning', 'critical', 'question'):
         setattr(QMessageBox, kind, _no_modal(kind))
+
+
+# Los tests usan QApplication y QWidget en import-time; algunos mantienen
+# timers/eventFilters vivos. No dejar que el destructor de Python los libere
+# con el runtime de Qt ya en desmontaje.
+def pytest_sessionfinish(session, exitstatus):
+    import pytest
+    try:
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from PySide6.QtWidgets import QApplication, QToolTip
+        from shiboken6 import isValid
+    except ImportError:
+        return
+    app = QApplication.instance()
+    if app is None:
+        return
+    try:
+        QToolTip.hideText()
+        for widget in list(app.topLevelWidgets()):
+            if isValid(widget):
+                widget.close()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        app.processEvents()
+    except RuntimeError as exc:
+        # La limpieza no debe ocultar un problema del framework.
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+        print(f"ERROR: teardown Qt inválido: {exc}", flush=True)
