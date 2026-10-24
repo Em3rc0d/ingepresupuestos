@@ -3,7 +3,7 @@ name: Independent Sales V1 Windows QA
 on:
   push:
     branches:
-      - audit/ventas-v1-windows-qa-20261024
+      - audit/ventas-v1-state-closure-20261024
 
 permissions:
   contents: read
