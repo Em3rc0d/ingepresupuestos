@@ -1,5 +1,7 @@
 # MK1 — SRS candidato · BU Cotizaciones de Ventas en una aplicación con BU Construcción
 
+> **Actualización de ejecución:** el mandato explícito `PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md` autorizó implementar P0–P4 sin ejecutar QA. La matriz de código real y pendientes está en [ASTRA-IMPLEMENTACION-ESTADO.md](ASTRA-IMPLEMENTACION-ESTADO.md). El SRS completo sigue candidato; sus avisos históricos de no implementación no describen el estado actual de esta rama. Ninguna aceptación funcional está probada.
+
 **Fecha:** 2026-10-24 · **Estado:** DRAFT, NO FROZEN, NO IMPLEMENTED · Dentro de una aplicación de **DOS unidades de negocio** ([ADR-002](ADR-002-DOS-UNIDADES-DE-NEGOCIO.md)). La decisión de mantener Construcción y añadir Ventas está aprobada; los detalles comerciales y técnicos de Ventas aún no.  
 **Restricción:** no modificar schema, stock ni precios productivos hasta validar reglas, transacciones y compatibilidad con los proyectos de construcción. Todo trabajo en `Em3rc0d/ingepresupuestos`.
 

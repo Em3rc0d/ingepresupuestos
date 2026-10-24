@@ -1,5 +1,7 @@
 # ADR-002 — Dos unidades de negocio, una aplicación y reutilización controlada
 
+> **Actualización:** el propietario autorizó después el incremento de código v1 mediante `PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md`. Su detalle operativo está en `ASTRA-DECISIONES-OPERATIVAS.md`; resultado UNVERIFIED en rama separada, sin autorizar merge ni release. La decisión de dos BUs y los límites de escritura de este ADR se conservan.
+
 **Fecha:** 2026-10-24
 **Estado:** ACCEPTED — dirección de alcance y límites del producto confirmados por el propietario. La arquitectura detallada, contratos y SRS continúan en evaluación; **no autoriza BUILD**.
 **Repositorio exclusivo:** [Em3rc0d/ingepresupuestos](https://github.com/Em3rc0d/ingepresupuestos). No contacto ni PR al proyecto de origen. Mantener GPL-3.0-or-later y atribuciones.

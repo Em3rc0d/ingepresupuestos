@@ -1,0 +1,18 @@
+# Guía del incremento Ventas v1 — sin verificar
+
+El código está implementado pero aún no se ha ejecutado ni auditado. Esta guía describe los controles programados; no certifica su funcionamiento. Probar primero en un entorno con datos desechables según el contrato QA.
+
+- Acceso: login local existente → **Ventas** en el menú lateral. **Inicio** conserva Construcción/Proyectos. Si Ventas no puede iniciarse, se muestra reparación/reintento; la navegación de Construcción sigue disponible por diseño.
+- **Inicio Ventas:** resumen de cotizaciones, últimas propuestas, alertas de vigencia y configuración textual del emisor. No se inventa marca ni identidad del negocio.
+- **Clientes:** nuevo/editar, contacto y dirección, desactivar sin borrar históricos. El editor también admite receptor ocasional sin ficha obligatoria.
+- **Productos y servicios:** SKU estable, tipo, unidad, precio comercial y costo opcional separados, impuesto explícito o sin configurar, activo y control de stock. Cada variante tiene SKU propio y un artículo principal. Al elegir otra moneda se carga su tarifa guardada o queda vacía; no hay FX.
+- Para pintura: usar unidad de venta `envase`, referencia física `L`, contenido por envase y cobertura respaldada por ficha o marcada como supuesto. Paquetes: añadir componentes de un nivel y fijar precio comercial propio; sus componentes no se duplican en el total externo.
+- **Inventario:** seleccionar SKU → registrar ENTRADA, SALIDA o AJUSTE. AJUSTE es una diferencia firmada, no un saldo a sobrescribir. Motivo obligatorio. Un ajuste inicial 0 registra saldo cero conocido. Sin movimientos se muestra no verificado; sin seguimiento se distingue del cero. Reservado siempre 0 porque no hay reservas. Cotizaciones no generan movimientos.
+- **Cotizaciones:** filtrar por cliente, número/referencia, estado y fecha; crear/abrir/duplicar; elegir revisión guardada para ver/exportar. Los borradores se editan; las emitidas requieren una revisión nueva.
+- **Editor:** completar receptor, moneda, fechas, emisor y referencia; añadir líneas libres o del catálogo, servicios o paquetes; editar cantidad/precio/descuento/impuesto. El botón de medidas abre longitud/área/volumen por filas o cobertura. Se muestran requerido, vendible y equivalente físico. Descuentos globales se distribuyen proporcionalmente, con política de mayor resto.
+- **Guardar y vista previa:** persiste el borrador y muestra exactamente esa revisión. Impuestos sin configurar permiten borrador con total provisional y bloquean emisión. Tasa cero requiere nombre, porcentaje 0 y modalidad explícitos. La confirmación congela el snapshot y registra evento; no emite comprobante tributario.
+- **Versiones:** V1 conserva descripción, unidades, variables, precios, tasas, cliente y condiciones aunque cambie catálogo. Nueva revisión crea otro borrador. “Ver diferencias” compara contra versión anterior o último guardado. Aceptación/rechazo/vencimiento/anulación se registran con motivo y actor local.
+- **PDF/Excel:** se exporta la revisión elegida, con importes exactos del snapshot. Excel conserva números decimales como texto para no cambiar su precisión; no lleva fórmulas. Se excluyen costos internos y componentes de paquete. Si falla la escritura se procura preservar el destino mediante temporal y reemplazo atómico.
+- Cierre/Escape de formularios con cambios pregunta por descarte. Los datos guardados permanecen en la SQLite activa y entran en el respaldo existente. Invitados solo consultan, sin segundo login.
+
+Pendiente: conector ACU (solo interfaz), importación CSV, fichas adjuntas, reservas, listas avanzadas y validación de rendimiento/accesibilidad/exportaciones. Fuera del incremento: SUNAT, POS, órdenes, cloud e IA.

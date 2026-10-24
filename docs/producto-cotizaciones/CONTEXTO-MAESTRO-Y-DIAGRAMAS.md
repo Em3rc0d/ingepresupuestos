@@ -2,7 +2,7 @@
 
 > **IngePresupuestos · Fork Em3rc0d · Contexto humano + IA · Versión documental 0.1**
 >
-> **Fecha de corte:** 2026-10-24 · **Estado:** definición de producto aprobada; arquitectura técnica detallada y SRS de Ventas **en diseño**; Ventas **no implementada**.
+> **Fecha de corte documental:** 2026-10-24 · **Actualización:** código v1 escrito en rama de implementación bajo mandato coding-only, **UNVERIFIED**. Este documento conserva la visión y gates candidatos originales; los estados de ejecución actuales se consultan en [ASTRA-IMPLEMENTACION-ESTADO.md](ASTRA-IMPLEMENTACION-ESTADO.md). No hay QA ni release aprobado.
 >
 > **Fuente canónica de producto:** [ADR-002](ADR-002-DOS-UNIDADES-DE-NEGOCIO.md) · [MK0](MK0-VISION-Y-ALCANCE.md) · [MK1/SRS candidato](MK1-SRS-CANDIDATO.md) · [Contexto para agentes](CONTRATO-PARA-AGENTES.md).
 >

@@ -1,7 +1,7 @@
 # CONTRATO PARA AGENTES — IngePresupuestos / Construcción + Ventas
 
 > Archivo de handoff para LLM, agentes de arquitectura, implementación, QA y documentación.  
-> **Versión contextual:** 2026-10-24 · **Estado:** instrucciones de continuidad; **NO** autoriza crear funcionalidades sin gate de implementación.  
+> **Versión contextual:** 2026-10-24 · **Actualización de implementación:** el mandato `PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md` autorizó código v1 en rama aislada, sin QA/merge/release. Consultar `ASTRA-IMPLEMENTACION-ESTADO.md`; los gates de prueba y mercado siguen abiertos.  
 > **Documento maestro con diagramas:** [CONTEXTO-MAESTRO-Y-DIAGRAMAS.md](CONTEXTO-MAESTRO-Y-DIAGRAMAS.md).  
 > **Repositorio permitido:** `Em3rc0d/ingepresupuestos`; ningún otro repositorio.
 
@@ -28,7 +28,7 @@ product_architecture:
       owns: [proyectos, partidas, ACU, metrados, recursos, cronogramas, control_de_obra, almacen_por_proyecto, reportes]
     - key: "sales"
       label: "Cotizaciones de Ventas"
-      status: "DESIGN ONLY - NOT IMPLEMENTED"
+      status: "IMPLEMENTED SOURCE - UNVERIFIED; isolated implementation branch"
       owns: [clientes, cotizaciones, revisiones, lineas_mixtas, catalogo_SKU, precios_comerciales, stock_comercial, documentos]
   reuse: "shared kernel mínimo, funciones puras caracterizadas y adaptadores explícitos"
   cross_unit_rules:
@@ -54,6 +54,7 @@ repository_state:
       scope: "ADR-002, MK0/MK1, contexto visual y contrato de agentes"
       status_at_cutoff: "DRAFT / OPEN; docs ONLY"
   production_sales_module_exists: false
+  unverified_sales_source_exists: true
 
 gates:
   decided:
@@ -72,10 +73,13 @@ gates:
     - "contratos shared kernel y adaptador"
     - "estrategia migraciones/backup"
     - "QA de PR #3 y empaquetado"
-  authorization_to_implement_sales: false
+  authorization_to_implement_sales: true
+  implementation_authority: "Explicit owner mandate PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md; P0-P4 only, P5 optional"
+  qa_execution_authorized_this_delivery: false
+  merge_release_authorized: false
 ```
 
-**La definición `authorization_to_implement_sales: false` significa que el siguiente paso legítimo es cerrar SRS/arquitectura y gates, no crear silenciosamente modelos SQL o pantallas. Cambiar ese flag requiere decisión explícita y evidencia actualizada.**
+**La autorización de implementación está limitada al mandato coding-only. No convierte el SRS candidato en aprobado comercialmente ni cierra pruebas/mercado. Las reglas históricas que impedían crear modelos/pantallas quedan supersedidas para este incremento por la instrucción explícita del propietario; las restricciones de separación de BUs y no publicación siguen vigentes.**
 
 ## 2. Fuentes a leer en orden
 

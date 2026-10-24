@@ -1,6 +1,8 @@
 # IngePresupuestos — Diseño del producto con dos unidades de negocio
 
-**Ruta de lectura oficial para humanos y agentes (24/10/2026).** Todo este directorio es documentación de diseño: el módulo Ventas NO está implementado ni aprobado para release.
+**Ruta de lectura oficial para humanos y agentes (24/10/2026).** En la rama de implementación existe código de Ventas **SIN VERIFICAR**. No está aprobado para release. Los documentos candidatos conservan su contexto histórico; el mandato coding-only autorizó este incremento sin cerrar QA ni viabilidad comercial.
+
+**Entrega de código:** [Estado y matriz RF](ASTRA-IMPLEMENTACION-ESTADO.md) · [Decisiones operativas](ASTRA-DECISIONES-OPERATIVAS.md) · [Guía Ventas v1](VENTAS-GUIA-V1.md) · [QA posterior NO ejecutado](QA-POST-ASTRA-PENDIENTE.md).
 
 ## Entrega para ChatGPT Work / Astra
 
@@ -31,11 +33,12 @@ flowchart LR
 | Dos unidades de negocio de primer nivel en una app | **APROBADO** |
 | Mantener flujos/BD de Construcción y compatibilidad | **APROBADO** |
 | Reutilizar matemática/formatos si hay equivalencia demostrada | **CANDIDATO** |
-| Inventario comercial, cotizaciones, revisiones, catálogo SKU | **POR IMPLEMENTAR** |
+| Inventario comercial, cotizaciones, revisiones, catálogo SKU | **CÓDIGO IMPLEMENTADO — UNVERIFIED** |
 | ACU paramétrico | **PROTOTIPO PR #1** |
 | Estabilización global del fork | **PR #3 EN REVISIÓN** |
 | Documento marco dual-BU | **PR #4 EN REVISIÓN** |
-| Implementación Ventas / emisión fiscal / SaaS | **NO APROBADA / FUERA DEL MVP SEGÚN TEMA** |
+| Implementación Ventas v1 | **AUTORIZADA CODING ONLY; QA y release pendientes** |
+| Emisión fiscal / SaaS | **FUERA DE ESTE INCREMENTO** |
 
 ### Cómo usar la documentación con una IA
 
