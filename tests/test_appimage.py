@@ -79,7 +79,9 @@ def test_acerca_de_ofrece_el_menu_solo_como_appimage(tmp_path, monkeypatch):
     from views.acerca_view import AcercaView
     _bd()
     monkeypatch.delenv('APPIMAGE', raising=False)
-    assert AcercaView().btn_menu_apps is None
+    sin_appimage = AcercaView()
+    assert sin_appimage.btn_menu_apps is None
+    sin_appimage.close()
 
     img = tmp_path / 'IngePresupuestos.AppImage'
     img.write_bytes(b'AI')
@@ -94,6 +96,9 @@ def test_acerca_de_ofrece_el_menu_solo_como_appimage(tmp_path, monkeypatch):
     v.btn_menu_apps.click()
     assert not appimage.esta_integrada(img)
     assert v.btn_menu_apps.text() == 'Agregar al menú de aplicaciones'
+    # No dejar widgets parentless vivos durante el teardown de QApplication.
+    v.close()
+    _app.processEvents()
 
 
 def test_la_ficha_del_flatpak_trae_capturas_por_https():
