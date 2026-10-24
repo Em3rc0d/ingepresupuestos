@@ -16,7 +16,7 @@ No se creará un tercer producto independiente ni un nuevo repositorio. El prime
 
 ## Topología conceptual
 
-\`\`\`text
+```text
 IngePresupuestos (fork Em3rc0d)
 ├── Navegación/identidad local/ajustes generales (shell)
 ├── BU CONSTRUCCIÓN [EXISTENTE — preservar]
@@ -33,27 +33,27 @@ IngePresupuestos (fork Em3rc0d)
     ├── Unidades / Decimal / Money / reglas explícitas de redondeo
     ├── Interfaces de exportación y presentación
     └── Adaptadores opcionales de Construcción → Ventas (snapshot)
-\`\`\`
+```
 
 ## Reutilización: análisis por capacidad, con evidencia de código
 
 | Fuente del fork actual | Qué hace realmente | Reutilización candidata | Riesgo / límite |
 |---|---|---|---|
-| \`core/database.py\` — \`partidas\`, \`acu_items\`, \`_recalcular_pu\`, \`precio_recurso_en_proyecto\` | Mantiene precio unitario, recurso, rendimiento MO/EQ y precio específico **por proyecto** | Exponer un adaptador **de solo lectura** para cotizar servicios de construcción con snapshot de costos y cantidades | Nunca pasar \`CotizacionLinea\` como \`partida\` ni mutar ACU/PU de obra desde Ventas |
-| \`core/database.py\` — \`_r2\`, \`_rn\`, \`cantidad_acu\`, \`parcial_wysiwyg\` | Redondeo HALF_UP pero funciones actuales convierten números a \`float\`; reglas de cantidad ACU específicas de obra | Caracterizar mediante golden tests. Extraer **nuevos primitives Decimal** con política explícita sin cambiar los resultados de Construcción | No reutilizar directamente \`float\` para importes comerciales ni aplicar reglas WYSIWYG de metrado al subtotal de venta |
-| \`views/metrados_view.py\` y \`metrados_detalle\` | Metrados de partidas y acero en obras | Extraer funciones **puras** de geometría/validación, si se prueban, para cantidad comercial | No reutilizar su vista Qt completa, ni conversión estructural acero→peso sin validación técnica |
-| \`core/almacen.py\` + \`core/requerimientos.py\` | Ingresos, salidas/consumos, kardex y requerimientos **por proyecto de obra** | Inspiración de ledger, pruebas y reutilización futura de helpers puros tras abstraer unidades | **NO** sustituye inventario de venta por SKU, variante, depósito, reservado, disponible y devoluciones |
-| \`recursos\` + \`views/recursos_view.py\` | Catálogo de recursos MO/MAT/EQ/SC, precio del catálogo y del proyecto | Importador/mapeador explícito de insumos de construcción a ítems comercializables; componentes UI genéricos tras extraerlos | **NO** es un catálogo comercial de SKU/variantes/impuestos. \`tipo\` MO/MAT/EQ/SC no equivale a PRODUCTO/SERVICIO |
-| \`utils/formatting.py\`, exportadores de documentos, \`utils\` y componentes UI | Formateo numérico/multimoneda, PDF/Excel y helpers de interfaz | Reusar APIs generales solo tras pruebas de normalización, formatos, moneda y exportación | Formato visual ≠ corrección fiscal; no mezclar moneda del proyecto con cotización |
-| PR #1 \`core/acu_parametrico.py\` | Evalúa cantidades sintéticas por unidad de partida; no precios, inventario ni persistencia | Extraer/mantener un evaluador físico puro y adaptadores separados a ACU de obra o líneas comercializables | PR #1 sigue DRAFT; no moverlo al shared kernel sin contratos, fórmula y unidad correctos |
-| PR #3 \`fix/fork-stabilization-20261024\` | Estabilización Qt/SQLite y controles de independencia del fork | Continuar de forma separada y verificar antes de merge | No mezclar trabajo de estabilización con migraciones de nuevos agregados |
+| `core/database.py` — `partidas`, `acu_items`, `_recalcular_pu`, `precio_recurso_en_proyecto` | Mantiene precio unitario, recurso, rendimiento MO/EQ y precio específico **por proyecto** | Exponer un adaptador **de solo lectura** para cotizar servicios de construcción con snapshot de costos y cantidades | Nunca pasar `CotizacionLinea` como `partida` ni mutar ACU/PU de obra desde Ventas |
+| `core/database.py` — `_r2`, `_rn`, `cantidad_acu`, `parcial_wysiwyg` | Redondeo HALF_UP pero funciones actuales convierten números a `float`; reglas de cantidad ACU específicas de obra | Caracterizar mediante golden tests. Extraer **nuevos primitives Decimal** con política explícita sin cambiar los resultados de Construcción | No reutilizar directamente `float` para importes comerciales ni aplicar reglas WYSIWYG de metrado al subtotal de venta |
+| `views/metrados_view.py` y `metrados_detalle` | Metrados de partidas y acero en obras | Extraer funciones **puras** de geometría/validación, si se prueban, para cantidad comercial | No reutilizar su vista Qt completa, ni conversión estructural acero→peso sin validación técnica |
+| `core/almacen.py` + `core/requerimientos.py` | Ingresos, salidas/consumos, kardex y requerimientos **por proyecto de obra** | Inspiración de ledger, pruebas y reutilización futura de helpers puros tras abstraer unidades | **NO** sustituye inventario de venta por SKU, variante, depósito, reservado, disponible y devoluciones |
+| `recursos` + `views/recursos_view.py` | Catálogo de recursos MO/MAT/EQ/SC, precio del catálogo y del proyecto | Importador/mapeador explícito de insumos de construcción a ítems comercializables; componentes UI genéricos tras extraerlos | **NO** es un catálogo comercial de SKU/variantes/impuestos. `tipo` MO/MAT/EQ/SC no equivale a PRODUCTO/SERVICIO |
+| `utils/formatting.py`, exportadores de documentos, `utils` y componentes UI | Formateo numérico/multimoneda, PDF/Excel y helpers de interfaz | Reusar APIs generales solo tras pruebas de normalización, formatos, moneda y exportación | Formato visual ≠ corrección fiscal; no mezclar moneda del proyecto con cotización |
+| PR #1 `core/acu_parametrico.py` | Evalúa cantidades sintéticas por unidad de partida; no precios, inventario ni persistencia | Extraer/mantener un evaluador físico puro y adaptadores separados a ACU de obra o líneas comercializables | PR #1 sigue DRAFT; no moverlo al shared kernel sin contratos, fórmula y unidad correctos |
+| PR #3 `fix/fork-stabilization-20261024` | Estabilización Qt/SQLite y controles de independencia del fork | Continuar de forma separada y verificar antes de merge | No mezclar trabajo de estabilización con migraciones de nuevos agregados |
 
 La tabla establece **candidatos**, no certifica APIs compartidas ni compatibilidad futura.
 
 ## Contratos de dominio / anticorrupción
 
-- Construcción publica opcionalmente una vista **de lectura** \`ConstructionEstimateSnapshot\` con \`source_project_id\`, \`source_revision_or_hash\`, \`source_partida_ids\`, \`quantity\`, \`unit\`, \`cost_basis\`, \`cost_version_or_timestamp\` y procedencia.
-- Ventas crea \`QuoteLine\` **nueva** y guarda descripción, unidad, cantidad, costo estimado **opcional**, precio de venta, política de tributos y snapshot del origen; no retiene referencias activas que recalculen documentos emitidos.
+- Construcción publica opcionalmente una vista **de lectura** `ConstructionEstimateSnapshot` con `source_project_id`, `source_revision_or_hash`, `source_partida_ids`, `quantity`, `unit`, `cost_basis`, `cost_version_or_timestamp` y procedencia.
+- Ventas crea `QuoteLine` **nueva** y guarda descripción, unidad, cantidad, costo estimado **opcional**, precio de venta, política de tributos y snapshot del origen; no retiene referencias activas que recalculen documentos emitidos.
 - Convertir un ACU a línea de venta **no significa vender automáticamente al costo**. Precio comercial se define explícitamente (tarifa, margen o override aprobado). Si el costo es desconocido: mostrarlo, no inventar margen.
 - Un cambio en ACU, lista de precios o stock después de emitir una cotización **no modifica la versión emitida**. Un recálculo requiere revisión propuesta y confirmación.
 - Las cantidades comerciales pueden combinar **consumo** físico con **presentación vendible**: 33 L estimados vs 9 envases de 4 L (36 L comercializables). Unidad, remanente y regla de redondeo deben quedar visibles.
@@ -63,19 +63,19 @@ La tabla establece **candidatos**, no certifica APIs compartidas ni compatibilid
 
 ## Delimitación del almacenamiento
 
-Recomendación inicial: **mismo archivo SQLite local**, con tablas separadas y nombres por contexto (\`ventas_cotizaciones\`, \`ventas_cotizacion_lineas\`, \`ventas_catalogo\`, \`ventas_inventario_movimientos\`, \`ventas_cotizacion_revisiones\`, etc.), sujeto a análisis de migraciones. **No crear tablas en este ADR.**
+Recomendación inicial: **mismo archivo SQLite local**, con tablas separadas y nombres por contexto (`ventas_cotizaciones`, `ventas_cotizacion_lineas`, `ventas_catalogo`, `ventas_inventario_movimientos`, `ventas_cotizacion_revisiones`, etc.), sujeto a análisis de migraciones. **No crear tablas en este ADR.**
 
-- Clientes comerciales y roles no se mezclarán con \`proyectos\` ni \`usuarios\` sin contrato explícito.
-- La tabla \`recursos\` de Construcción no será reinterpretada como productos comerciales.
+- Clientes comerciales y roles no se mezclarán con `proyectos` ni `usuarios` sin contrato explícito.
+- La tabla `recursos` de Construcción no será reinterpretada como productos comerciales.
 - Idempotencia, FK, snapshots, transacciones y actualizaciones sin pérdida de datos son obligatorias.
-- Se necesitará decidir si un catálogo base físico reutiliza identificador abstracto \`Item\` o una relación mapeada; **no hay decisión de unificar tablas**.
-- Evitar forzar un \`proyecto_id\` artificial a cotizaciones de servicios TI, artículos, pintura o cualquier otro rubro.
+- Se necesitará decidir si un catálogo base físico reutiliza identificador abstracto `Item` o una relación mapeada; **no hay decisión de unificar tablas**.
+- Evitar forzar un `proyecto_id` artificial a cotizaciones de servicios TI, artículos, pintura o cualquier otro rubro.
 
 ## Criterios de preservación de Construcción (non-regression)
 
 1. El usuario sigue pudiendo abrir proyectos y usar árbol de partidas/ACU/metrado, cálculo, cronograma y control de obra sin pasar por Ventas.
-2. \`_recalcular_pu\`, \`precio_recurso_en_proyecto\`, rendimientos de cuadrilla, \`cantidad_acu\`, redondeos y totales WYSIWYG se mantienen conforme a golden fixtures de Construcción.
-3. No se modifican ni migran destructivamente \`proyectos\`, \`partidas\`, \`recursos\`, \`acu_items\`, \`metrado_detalle\` ni históricos del usuario.
+2. `_recalcular_pu`, `precio_recurso_en_proyecto`, rendimientos de cuadrilla, `cantidad_acu`, redondeos y totales WYSIWYG se mantienen conforme a golden fixtures de Construcción.
+3. No se modifican ni migran destructivamente `proyectos`, `partidas`, `recursos`, `acu_items`, `metrados_detalle` ni históricos del usuario.
 4. Si Ventas falla al abrir, no debe impedir entrar a Construcción ni modificar sus datos.
 5. Copias/restauraciones y exportaciones de Construcción mantienen compatibilidad. El instalador no crea servidor obligatorio.
 
