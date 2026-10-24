@@ -25,6 +25,8 @@ concurrency:
 
 jobs:
   actualizar:
+    # El cron heredado no debe escribir ni publicar en un fork sin opt-in.
+    if: ${{ github.repository == 'ingelibre/ingepresupuestos' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
