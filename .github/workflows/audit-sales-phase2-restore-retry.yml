@@ -1,0 +1,27 @@
+name: Sales Phase 2 restore Windows retest
+on:
+  push:
+    branches:
+      - audit/ventas-phase2-restore-windows-retry-20261025
+permissions:
+  contents: read
+jobs:
+  restore:
+    runs-on: windows-2025
+    timeout-minutes: 17
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Verify ZIP restoration, corruption, inventory and transaction rollback
+        run: python -m pytest -q tests/ventas/test_phase2_recovery.py --timeout=100 -ra
+      - name: Confirm Sales Qt exports contracts remain green
+        run: python -m pytest -q tests/ventas/test_sales_contracts.py tests/ventas/test_sales_ui_exports.py --timeout=100 -ra
