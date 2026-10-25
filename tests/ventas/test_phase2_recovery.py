@@ -5,6 +5,7 @@ A manual, verified ZIP extraction is simulated in a TEMPORARY directory;
 the product does not yet contain a restore implementation.
 """
 from dataclasses import asdict
+from contextlib import closing
 from datetime import date
 from hashlib import sha256
 from pathlib import Path
@@ -77,7 +78,7 @@ def manual_verified_restore(zip_path, target):
 
 def test_zip_restore_roundtrip_preserves_construction_sales_and_historical_files(tmp_path):
     original = make_service(tmp_path / "original")
-    with sqlite3.connect(original.store.path) as db:
+    with closing(sqlite3.connect(original.store.path)) as db:
         db.execute("CREATE TABLE proyectos (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL)")
         db.execute("INSERT INTO proyectos VALUES (14, 'Obra sintética: mantener')")
         db.commit()
@@ -107,7 +108,7 @@ def test_zip_restore_roundtrip_preserves_construction_sales_and_historical_files
     assert len(check.datasheets(item["id"], include_retired=True)) == 1
     old = check.datasheets(item["id"], include_retired=True)[0]
     assert check.datasheet_status(old).startswith("DISPONIBLE")
-    with sqlite3.connect(db_path) as con:
+    with closing(sqlite3.connect(db_path)) as con:
         assert con.execute("SELECT nombre FROM proyectos WHERE id=14").fetchone() == (
             "Obra sintética: mantener",
         )
