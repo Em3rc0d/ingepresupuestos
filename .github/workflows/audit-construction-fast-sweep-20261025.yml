@@ -1,0 +1,28 @@
+name: Construction isolated regression sweep - bounded retry
+on:
+  push:
+    branches:
+      - audit/ventas-construction-sweep-fast-20261025
+permissions:
+  contents: read
+jobs:
+  construction:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Qt native dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install Python requirements
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Run every construction test file with strict per-file cap
+        run: python scripts/audit_regression_isolated.py
