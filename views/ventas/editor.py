@@ -46,6 +46,9 @@ class LineDialog(DirtyDialog):
         self.evidence_label = QLabel()
         self.evidence_label.setWordWrap(True)
         self.body_layout.addWidget(self.evidence_label)
+        self.origin_label = QLabel()
+        self.origin_label.setWordWrap(True)
+        self.body_layout.addWidget(self.origin_label)
         self.datasheets_button = button('Gestionar fichas del artículo', self.manage_datasheets, self.body_layout)
         self.capture_button = button('Capturar fichas actuales para esta línea', self.capture_datasheets, self.body_layout)
         self.price = field(self.form, 'Precio unitario de venta (' + code + ')', self.line.get('price', ''))
@@ -106,6 +109,11 @@ class LineDialog(DirtyDialog):
     def show_datasheets(self):
         self.datasheets_button.setEnabled(bool(self.line.get('item_id')))
         self.capture_button.setEnabled(bool(self.line.get('item_id')))
+        origin = (self.line.get('provenance') or {}).get('snapshot')
+        self.origin_label.setText(
+            f"Referencia interna de Construcción · Proyecto {origin['source_project_id']} / partida {origin['source_partida_id']}\n"
+            f"Capturada {origin['captured_at']} · SHA256 {origin['source_hash']}\nCosto técnico guardado; precio de venta independiente."
+            if origin else '')
         self.evidence_label.setText(tr('Referencias documentales congeladas en esta línea: ') +
             ('\n'.join(r['filename'] + ' · SHA256 ' + r['sha256'] for r in self.line.get('datasheets', [])) or tr('Ninguna.')))
 
