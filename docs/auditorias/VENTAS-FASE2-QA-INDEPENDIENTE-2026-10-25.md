@@ -102,6 +102,32 @@ El resultado respalda que existe una implementación funcional en los escenarios
 ### Regresión integral heredada: intento inicial interrumpido
 
 - [Acción 40232413882](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232413882): sweep por fichero, **37 módulos previstos**. Se completaron los tres primeros en PASS (`test_acerca.py`, `test_acu_aire.py`, `test_almacen.py`); `test_appimage.py` reportó **1 FAIL / 5 PASS**, aserción heredada de ruta de icono Flatpak ya citada en la auditoría original. Al empezar `test_arbol_niveles_y_duplicar.py`, el runner recibió **shutdown signal (143)**. Por tanto, **NO** hubo barrido integral ni se puede llamar regresión total completada.
-- Reintento acotado en [audit/ventas-construction-sweep-fast-20261025](https://github.com/Em3rc0d/ingepresupuestos/tree/audit/ventas-construction-sweep-fast-20261025), con 15 segundos máximos por módulo y cuatro minutos de presupuesto, [Actions 40232885323](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232885323). **Resultado final: pendiente de anexar al obtener salida del runner**.
+- Reintento acotado en [audit/ventas-construction-sweep-fast-20261025](https://github.com/Em3rc0d/ingepresupuestos/tree/audit/ventas-construction-sweep-fast-20261025), con 15 segundos máximos por módulo y cuatro minutos de presupuesto, [Actions 40232885323](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232885323). **Resultado final:** 37 de 37 módulos ejecutados/intentados; **32 PASS, 3 FAIL, 2 TIMEOUT, 0 NOT_EXECUTED**. Los FAIL: `test_appimage.py` (Flatpak icono, heredado), `test_indices_inei.py` (píxel visual 56/57, heredado), `test_i18n.py` (122 cadenas nuevas de Ventas faltantes en `pt_BR`, REGRESIÓN confirmada). TIMEOUT a 15 s por módulo: `test_arbol_niveles_y_duplicar.py` y `test_diccionario_iu.py`, resultados INCONCLUSOS por límite deliberado, no FAIL demostrado. La suite integral no es PASS.
 
 **Gate al escribir este complemento:** recuperación sintética Windows PASS; regresión integral y validación gráfica manual Windows HOLD; merge `main` y release HOLD. Escribir tests/scripts de QA en ramas de auditoría no concede autorización de modificar tablas, cálculos o política comercial de Construcción.
+
+### Corrección de regresión nueva, sin editar Construcción
+
+- Rama aislada: [fix/ventas-pt-br-localization-20261025](https://github.com/Em3rc0d/ingepresupuestos/tree/fix/ventas-pt-br-localization-20261025).
+- [PR #6 DRAFT a la rama de Astra](https://github.com/Em3rc0d/ingepresupuestos/pull/6): traducción portugués brasileño de **122 cadenas** de Ventas en `resources/i18n/pt_BR.json`. Solo cambia el catálogo de traducciones; no los módulos de Construcción ni sus políticas económicas. Se eliminó el workflow temporal de QA del branch antes de proponer merge.
+- [Test CI 40233563926](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40233563926) **PASS: 7/7 internacionalización, 10/10 contratos anteriores de Ventas**. Valida que no faltan claves literales `tr()`/`N_()` en pt_BR, JSON sin traducciones vacías, preservación de marcadores `.format` y ausencia de traducciones a import-time. No equivale a una revisión lingüística profesional.
+- **Importante:** PR #6 no está fusionado a la feature, por lo que el commit entregado `2a33651` sigue mostrando el FAIL i18n. No afirmar que ese SHA está corregido. La corrección propuesta requiere revisión/merge dirigido solo a feature cuando se autorice; `main` continúa intacta.
+
+### Gate final consolidado — ejecución de este expediente
+
+| Gate | Evidencia | Decisión |
+|---|---|---|
+| F2 contratos mínimos Linux/Windows | 59/59 cada OS, Actions 40229995527 y 40230170649 | PASS de casos seleccionados |
+| Recuperación ZIP **sintética** Windows | 5/5 recuperación + 12/12 regresión, Actions 40232631879 | PASS del procedimiento probado, no restaurador de producto |
+| CSV rollback/concurrencia y fichas históricas | pruebas independientes 40232631879 | PASS de fixtures; adversarial/performance restante |
+| Cobertura heredada por módulos | 37 intentados: 32 PASS, 3 FAIL, 2 TIMEOUT, Actions 40232885323 | HOLD / no suite verde |
+| Traducciones portugués, rama fix | 7/7 i18n + 10/10 Ventas, Actions 40233563926 | PASS en fix, sin merge |
+| GUI humana Windows: cierres Qt durante trabajo, teclado, lector pantalla, visual | no se dispone de sesión interactiva Windows en esta auditoría | NOT RUN |
+| Backup integral activos externos de Construcción y restore automático | no implementado; ZIP excluye uploads/imágenes Construcción | FUERA DE ALCANCE / NO CERTIFICADO |
+| Merge a `main`, instalador, release, negocio | sin evidencia suficiente | HOLD |
+
+**No corregir aserciones de Flatpak ni INEI por silenciar la suite**; ambos son fallos existentes con auditoría anterior. Revisar por separado las dos suites temporizadas, con capacidad de observar Qt real, antes de declarar regresión total sin pendientes.
+
+### Validación gráfica manual Windows (pendiente por no disponer de escritorio interactivo)
+
+Con **copia aislada** de la base y un `APPDATA` temporal: abrir sesión y las dos BUs; en Ventas importar CSV válido e inválido (comprobar preview y cancelación); adjuntar, retirar y exportar ficha; elegir ACU de un proyecto autorizado, verificar PU técnico y precio comercial distintos; guardar borrador, emitir y versionar; exportar PDF/XLSX y comparar importes; revisar stock antes/después; crear ZIP, cerrar app y restaurar solo en copia con manifest validado; abrir Construcción, editar/mtrar/ACU/informes, comprobar ventanas y teclado. **No realizar estas pruebas sobre datos del usuario ni afirmar PASS sin evidencia de sesión.**
