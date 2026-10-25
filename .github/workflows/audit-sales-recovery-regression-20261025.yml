@@ -1,0 +1,50 @@
+name: Independent Sales Phase2 recovery and inherited regression
+on:
+  push:
+    branches:
+      - audit/ventas-phase2-recovery-regression-20261025
+permissions:
+  contents: read
+jobs:
+  recovery-windows:
+    name: Windows backup recovery and transaction checks
+    runs-on: windows-2025
+    timeout-minutes: 18
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_FONT_DPI: "96"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Recover a private synthetic snapshot and test database rollback
+        run: python -m pytest -q tests/ventas/test_phase2_recovery.py --timeout=100 -ra
+      - name: Existing Phase 2 integration and Sales/Qt regression
+        run: python -m pytest -q tests/ventas/test_sales_contracts.py tests/ventas/test_sales_ui_exports.py --timeout=100 -ra
+  construction-linux:
+    name: Linux inherited construction full isolated sweep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install minimal Qt libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install app and test requirements
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Run complete inherited tests by file with process isolation
+        run: python scripts/audit_regression_isolated.py
