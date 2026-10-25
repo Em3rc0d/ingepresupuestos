@@ -42,6 +42,7 @@ def make_quote(service, item):
     doc["header"].update(customer={"name": "Cliente temporal"}, title="QA de restauración",
                          issuer="Emisor temporal", date=date.today().isoformat())
     line = service.line_from_item(item["id"], "PEN")
+    line["tax"] = {"name": "QA tasa cero", "rate": "0", "mode": "EXCLUSIVE"}
     doc["lines"] = [line]
     saved = service.save_draft(doc)
     return service.save_draft(saved, issue=True)
