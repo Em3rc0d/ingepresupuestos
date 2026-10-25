@@ -1,0 +1,40 @@
+name: Independent Sales QA baseline
+
+on:
+  push:
+    branches:
+      - audit/ventas-v1-ui-export-20261024
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax audit
+        run: python -m compileall -q core/ventas views/ventas views/main_window.py
+      - name: Install Qt requirements
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgl1 libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install application and tests
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Dependency consistency
+        run: python -m pip check
+      - name: Sales independent contracts
+        run: pytest -q tests/ventas/test_sales_contracts.py --timeout=90 -ra
+      - name: Existing construction critical rules
+        run: pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=90 -ra
+      - name: Sales Qt and PDF XLSX smoke in isolated process
+        run: pytest -q tests/ventas/test_sales_ui_exports.py --timeout=120 -ra

@@ -230,8 +230,8 @@ class SalesService:
         self.writable()
         with self.store.transaction(True) as repo:
             doc = repo.document(quote_id)
-            if doc['token'] != token or doc['revision_state'] != 'EMITIDA':
-                raise ConflictError('Reabra el documento; existe borrador o cambió el estado.')
+            if doc['token'] != token or doc['revision_state'] != 'EMITIDA' or doc['state'] != 'EMITIDA':
+                raise ConflictError('Solo se permite revisar una cotización emitida y vigente en estado EMITIDA. Los estados finales no se reabren.')
             previous = doc['revision_id']
             doc.update(revision_id=str(uuid4()), version=doc['version'] + 1, revision_state='BORRADOR')
             # IDs identify lines across revisions for the diff; SQL rows have separate IDs.

@@ -1,0 +1,38 @@
+name: Independent Sales V1 Windows QA
+
+on:
+  push:
+    branches:
+      - audit/ventas-v1-state-closure-20261024
+
+permissions:
+  contents: read
+
+jobs:
+  windows-sales:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_SCALE_FACTOR: "1"
+      QT_FONT_DPI: "96"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pytest pytest-timeout
+      - name: Dependency consistency
+        run: python -m pip check
+      - name: Compile sales and Qt integration
+        run: python -m compileall -q core/ventas views/ventas views/main_window.py
+      - name: Sales domain and isolated SQLite QA
+        run: python -m pytest -q tests/ventas/test_sales_contracts.py --timeout=120 -ra
+      - name: Construction core regression
+        run: python -m pytest -q tests/test_reglas_negocio.py tests/test_core.py --timeout=120 -ra
+      - name: Sales UI and PDF XLSX smoke
+        run: python -m pytest -q tests/ventas/test_sales_ui_exports.py --timeout=120 -ra

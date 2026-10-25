@@ -69,7 +69,7 @@ class Repository:
             if self.connection.execute('SELECT 1 FROM ventas_movimientos WHERE item_id=? LIMIT 1', (item.id,)).fetchone():
                 raise ValidationError('Unidad/seguimiento con movimientos no se cambia; cree otro SKU.')
         self.connection.execute(
-            'INSERT INTO ventas_items VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET sku=excluded.sku, nombre=excluded.nombre, tipo=excluded.tipo, unidad=excluded.unidad, controla_stock=excluded.controla_stock, activo=excluded.activo, parent_id=excluded.parent_id, data_json=excluded.data_json',
+            'INSERT INTO ventas_items VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET sku=excluded.sku, nombre=excluded.nombre, tipo=excluded.tipo, unidad=excluded.unidad, controla_stock=excluded.controla_stock, activo=excluded.activo, parent_id=excluded.parent_id, data_json=excluded.data_json',
             (item.id, item.sku.strip(), item.name, item.kind, item.unit, int(item.tracks_stock), int(item.active), item.parent_id, dumps(asdict(item))))
         self.connection.execute('INSERT INTO ventas_precios (item_id,moneda,precio_decimal,costo_decimal,vigente_desde,actor) VALUES (?,?,?,?,?,?)',
                                 (item.id, item.currency, item.price, item.cost, now, actor))
