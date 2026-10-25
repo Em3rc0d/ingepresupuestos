@@ -54,25 +54,29 @@ class SalesService:
     def save_item(self, data):
         self.writable()
         item = Item(**data)
-        # Validate tax even when item has not yet been quoted.
-        calculate([QuoteLine(item.name, '1', item.unit, item.price, tax=item.tax)], item.currency, {'kind': 'PERCENT', 'value': '0'})
         with self.store.transaction(True) as repo:
-            if item.parent_id:
-                parent = repo.item(item.parent_id)
-                if parent['parent_id'] or parent['id'] == item.id or parent['kind'] != item.kind:
-                    raise ValidationError('Variante: padre simple del mismo tipo requerido.')
-            if item.components:
-                Package(item.components)
-                for component in item.components:
-                    source = repo.item(component['item_id'])
-                    if source['id'] == item.id or source['kind'] == 'PAQUETE':
-                        raise ValidationError('Paquete cíclico/anidado no permitido.')
-                    if not source['active']:
-                        raise ValidationError('Componente de paquete inactivo.')
-            elif item.kind == 'PAQUETE':
-                raise ValidationError('Paquete sin componentes.')
+            self._validate_item(repo, item)
             repo.save_item(item, self.actor, now())
         return asdict(item)
+
+    def _validate_item(self, repo, item):
+        # Shared by single-item edits and atomic CSV batches (no nested writes).
+        calculate([QuoteLine(item.name, '1', item.unit, item.price, tax=item.tax)], item.currency, {'kind': 'PERCENT', 'value': '0'})
+        if item.parent_id:
+            parent = repo.item(item.parent_id)
+            if parent['parent_id'] or parent['id'] == item.id or parent['kind'] != item.kind:
+                raise ValidationError('Variante: padre simple del mismo tipo requerido.')
+        if item.components:
+            Package(item.components)
+            for component in item.components:
+                source = repo.item(component['item_id'])
+                if source['id'] == item.id or source['kind'] == 'PAQUETE':
+                    raise ValidationError('Paquete cíclico/anidado no permitido.')
+                if not source['active']:
+                    raise ValidationError('Componente de paquete inactivo.')
+        elif item.kind == 'PAQUETE':
+            raise ValidationError('Paquete sin componentes.')
+        repo.validate_item_change(item)
 
     def config(self):
         with self.store.transaction() as repo:

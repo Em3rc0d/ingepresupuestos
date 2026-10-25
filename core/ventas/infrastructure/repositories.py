@@ -57,7 +57,7 @@ class Repository:
             item.update(price=price['precio_decimal'] if price else None, cost=price['costo_decimal'] if price else None, currency=code)
         return item
 
-    def save_item(self, item, actor, now):
+    def validate_item_change(self, item):
         # Changing the unit/tracking with movement history would reinterpret the ledger.
         previous = self.connection.execute('SELECT sku, tipo, unidad, controla_stock FROM ventas_items WHERE id=?', (item.id,)).fetchone()
         if previous and previous['sku'] != item.sku.strip():
@@ -68,8 +68,10 @@ class Repository:
         if previous and (previous['unidad'] != item.unit or bool(previous['controla_stock']) != item.tracks_stock):
             if self.connection.execute('SELECT 1 FROM ventas_movimientos WHERE item_id=? LIMIT 1', (item.id,)).fetchone():
                 raise ValidationError('Unidad/seguimiento con movimientos no se cambia; cree otro SKU.')
+    def save_item(self, item, actor, now):
+        self.validate_item_change(item)
         self.connection.execute(
-            'INSERT INTO ventas_items VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET sku=excluded.sku, nombre=excluded.nombre, tipo=excluded.tipo, unidad=excluded.unidad, controla_stock=excluded.controla_stock, activo=excluded.activo, parent_id=excluded.parent_id, data_json=excluded.data_json',
+            'INSERT INTO ventas_items (id,sku,nombre,tipo,unidad,controla_stock,activo,parent_id,data_json) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET sku=excluded.sku, nombre=excluded.nombre, tipo=excluded.tipo, unidad=excluded.unidad, controla_stock=excluded.controla_stock, activo=excluded.activo, parent_id=excluded.parent_id, data_json=excluded.data_json',
             (item.id, item.sku.strip(), item.name, item.kind, item.unit, int(item.tracks_stock), int(item.active), item.parent_id, dumps(asdict(item))))
         self.connection.execute('INSERT INTO ventas_precios (item_id,moneda,precio_decimal,costo_decimal,vigente_desde,actor) VALUES (?,?,?,?,?,?)',
                                 (item.id, item.currency, item.price, item.cost, now, actor))

@@ -52,7 +52,7 @@ class QuotesView(QWidget):
         new = button('Nueva cotización', self.create, controls, True)
         button('Abrir / editar borrador', self.open, controls)
         duplicate = button('Duplicar documento', self.duplicate, controls)
-        revision = button('Nueva revisión', self.revise, controls)
+        self.revision_button = revision = button('Nueva revisión', self.revise, controls)
         state = button('Cambiar estado', self.change_state, controls)
         for widget in (new, duplicate, revision, state):
             widget.setEnabled(not service.readonly)
@@ -111,6 +111,7 @@ class QuotesView(QWidget):
             self.visible.append(record)
             rows.append([record['numero'], customer, record['titulo'], record['fecha'], record['vencimiento'], record['estado'], record['version'], record['moneda'], json.loads(record['totales_json'])['total']])
         self.selected_document = None
+        self.revision_button.setEnabled(False)
         self.versions.clear()
         fill_table(self.history, [])
         fill_table(self.tbl, rows)
@@ -128,6 +129,9 @@ class QuotesView(QWidget):
             return
         record = self.visible[index]
         self.selected_document = self.service.open_document(record['id'])
+        allowed = self.selected_document['state'] == 'EMITIDA' and self.selected_document['revision_state'] == 'EMITIDA' and not self.service.readonly
+        self.revision_button.setEnabled(allowed)
+        self.revision_button.setToolTip(tr('Solo se permite revisar una cotización en estado EMITIDA; los estados terminales no se reabren.'))
         self.versions.clear()
         for version in self.service.versions(record['id']):
             self.versions.addItem(f"V{version['version']} · {version['estado']} · {version['fecha_emision'] or 'Borrador'}", version['id'])
@@ -156,8 +160,8 @@ class QuotesView(QWidget):
     @action
     def revise(self):
         current = self.service.open_document(self.selected()['id'])
-        if current['revision_state'] != 'EMITIDA':
-            raise ValidationError('Ya existe un borrador. Abra y edite ese documento.')
+        if current['revision_state'] != 'EMITIDA' or current['state'] != 'EMITIDA':
+            raise ValidationError('Solo puede crear una revisión de una cotización en estado EMITIDA. Los estados terminales no se reabren.')
         answer = QMessageBox.question(self, tr('Nueva revisión'), tr('Se creará un borrador nuevo. La revisión emitida se conservará íntegra.'))
         if answer != QMessageBox.Yes:
             return
@@ -170,7 +174,7 @@ class QuotesView(QWidget):
         current = self.service.open_document(self.selected()['id'])
         targets = sorted(TRANSITIONS[current['state']] - {'EMITIDA'})
         if not targets:
-            raise ValidationError('Este estado no admite transición. Puede crear una revisión nueva de contenido emitido.')
+            raise ValidationError('Estado terminal: no admite transiciones ni revisiones. Puede duplicar como otra cotización independiente.')
         target, ok = QInputDialog.getItem(self, tr('Cambiar estado'), tr('Estado nuevo'), targets, 0, False)
         if not ok:
             return
