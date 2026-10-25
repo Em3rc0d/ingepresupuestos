@@ -18,6 +18,8 @@ from ..infrastructure.repositories import fingerprint
 from .catalog_import import CatalogImportMixin
 from .construction import ConstructionMixin
 from .construction_adapter import validate_snapshot
+from .datasheets import DatasheetsMixin
+from ..infrastructure.datasheets import public_reference, validate_reference
 
 
 def valid_date(value, label):
@@ -27,7 +29,7 @@ def valid_date(value, label):
         raise ValidationError(f'{label}: fecha ISO requerida (AAAA-MM-DD).') from None
 
 
-class SalesService(CatalogImportMixin, ConstructionMixin):
+class SalesService(CatalogImportMixin, ConstructionMixin, DatasheetsMixin):
     """Single application boundary for views; all SQL stays in infrastructure."""
     def __init__(self, path, actor='Usuario local', readonly=False, user_id=None, is_admin=False):
         self.store = SalesStore(path)
@@ -54,6 +56,10 @@ class SalesService(CatalogImportMixin, ConstructionMixin):
     def items(self, include_inactive=False, code=None):
         with self.store.transaction() as repo:
             return repo.items(include_inactive, code)
+
+    def item(self, item_id, code=None):
+        with self.store.transaction() as repo:
+            return repo.item(item_id, code)
 
     def save_item(self, data):
         self.writable()
@@ -145,7 +151,7 @@ class SalesService(CatalogImportMixin, ConstructionMixin):
                                    'kind': source['kind'], 'unit': source['unit'], 'quantity': component['quantity']})
             return asdict(QuoteLine(description=item['description'] or item['name'], quantity='1', unit=item['unit'],
                                     price=item['price'], kind=item['kind'], item_id=item['id'], sku=item['sku'], cost=item['cost'],
-                                    tax=item['tax'], components=components))
+                                    tax=item['tax'], components=components, datasheets=[public_reference(row) for row in repo.datasheets(item['id'])]))
 
     def calculate(self, document):
         lines = [QuoteLine(**line) for line in document['lines']]
@@ -168,6 +174,10 @@ class SalesService(CatalogImportMixin, ConstructionMixin):
         if not h.get('title', '').strip():
             raise ValidationError('Título/referencia requerida.')
         for line in document['lines']:
+            if len(line.get('datasheets', [])) > 10:
+                raise ValidationError('Máximo 10 referencias documentales por línea.')
+            for reference in line.get('datasheets', []):
+                validate_reference(reference)
             provenance = line.get('provenance') or {}
             if provenance:
                 if provenance.get('kind') != 'CONSTRUCTION':

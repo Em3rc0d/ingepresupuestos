@@ -230,9 +230,12 @@ class SalesView(QWidget):
         button('Inventario', lambda: self.tabs.setCurrentIndex(4), actions)
         issuer = button('Configurar emisor', self.configure, actions)
         issuer.setEnabled(not self.service.readonly)
+        package = button('Respaldo completo con fichas', self.backup_package, dashboard_layout)
+        package.setEnabled(self.service.is_admin and not self.service.readonly)
+        package.setToolTip(tr('Requiere administrador; incluye SQLite completa y fichas. El backup habitual no incluye documentos externos.'))
         self.recent = table(['Número', 'Referencia', 'Estado', 'Vigencia', 'Moneda', 'Total'])
         dashboard_layout.addWidget(self.recent, 1)
-        dashboard_layout.addWidget(QLabel(tr('Conector de partidas/ACU: no disponible en v1. Importación CSV: pendiente.')))
+        dashboard_layout.addWidget(QLabel(tr('CSV y fichas: Productos y servicios. Partidas/ACU: editor de cotización → Añadir desde Construcción (solo lectura).')))
         self.quotes = QuotesView(self.service, self)
         self.catalog = RecordsView(self.service, parent=self)
         self.clients = RecordsView(self.service, clients=True, parent=self)
@@ -275,3 +278,8 @@ class SalesView(QWidget):
         issuer, ok = QInputDialog.getMultiLineText(self, tr('Emisor comercial'), tr('Nombre / identificación / dirección y contacto del emisor'), self.service.config().get('issuer', ''))
         if ok:
             self.service.configure(issuer)
+
+    @action
+    def backup_package(self):
+        from .datasheets import PackageDialog
+        PackageDialog(self.service, self).exec()

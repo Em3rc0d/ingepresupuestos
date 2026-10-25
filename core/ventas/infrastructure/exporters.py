@@ -29,12 +29,18 @@ def rows(document):
 COLUMNS = ['N.º', 'Descripción', 'Cantidad', 'Unidad', 'P. unitario', 'Dto. línea', 'Dto. global', 'Neto', 'Impuesto', 'Total']
 
 
+def evidence_rows(document):
+    return [(str(index + 1), reference['filename'], reference['sha256'])
+            for index, line in enumerate(document['lines']) for reference in line.get('datasheets', [])]
+
+
 def html_preview(document):
     h, t = document['header'], document['totals']
     esc = lambda value: escape(str(value)).replace('\n', '<br/>')
     table_rows = ''.join('<tr>' + ''.join(f'<td>{esc(v)}</td>' for v in row) + '</tr>' for row in rows(document))
     taxes = ''.join(f"<p>{esc(g['name'])} {esc(g['rate'])}% ({esc(g['mode'])}): base {esc(g['base'])} · impuesto {esc(g['tax'])}</p>" for g in t['tax_groups'])
     customer = h.get('customer', {})
+    evidence = ''.join('<p>Línea ' + esc(index) + ' · ' + esc(name) + ' · SHA256 ' + esc(digest) + '</p>' for index, name, digest in evidence_rows(document))
     customer_details = ' · '.join(str(customer.get(key, '')) for key in ('document', 'contact', 'email', 'phone') if customer.get(key))
     return f"""<html><body><h2>{esc(h.get('issuer', '') or 'EMISOR SIN CONFIGURAR')}</h2>
     <h3>Cotización {esc(document['number'])} · V{document['version']} · {esc(document.get('revision_state', 'BORRADOR'))}</h3>
@@ -46,6 +52,7 @@ def html_preview(document):
     {taxes}<h3>Total {esc(h['currency'])}: {esc(t['total'])}</h3>
     <p>Condiciones: {esc(h.get('conditions', ''))}</p><p>Observaciones: {esc(h.get('notes', ''))}</p>
     <p>Documento comercial informativo. No es factura ni orden. No reserva ni descuenta inventario.</p>
+    {('<h4>Documentación referenciada (contenido no validado)</h4>' + evidence) if evidence else ''}
     <p>Política: {esc(t['policy_version'])} · Sello: {esc(document.get('hash') or 'Borrador sin sello')}</p></body></html>"""
 
 
@@ -106,6 +113,10 @@ def export_pdf(document, path, font_dir):
                     p('Condiciones: ' + h.get('conditions', '')), p('Observaciones: ' + h.get('notes', '')),
                     p('Documento comercial informativo; no es factura ni orden. No reserva ni descuenta stock.'),
                     p('Política: ' + totals['policy_version']), p('Sello: ' + (document.get('hash') or 'Borrador sin sello'))])
+    if evidence_rows(document):
+        content.append(p('Documentación referenciada (contenido no validado técnicamente; archivos no adjuntados al PDF):'))
+        for index, name, digest in evidence_rows(document):
+            content.append(p('Línea ' + index + ' · ' + name + ' · SHA256 ' + digest))
     def footer(canvas, doc):
         canvas.setFont('VentasInter', 8)
         canvas.drawString(10 * mm, 6 * mm, f"{document['number']} · V{document['version']} · Página {doc.page}")
@@ -152,6 +163,15 @@ def export_xlsx(document, path):
     for index in range(1, len(COLUMNS) + 1):
         sheet.column_dimensions[get_column_letter(index)].width = 52 if index == 2 else 21
     sheet.freeze_panes = 'C11'
+    if evidence_rows(document):
+        evidence = workbook.create_sheet('Referencias documentales')
+        for row_index, values in enumerate([('Línea', 'Documento (contenido no validado)', 'SHA256')] + evidence_rows(document), 1):
+            for column_index, value in enumerate(values, 1):
+                cell = evidence.cell(row_index, column_index, str(value))
+                cell.data_type = 's'
+        evidence.column_dimensions['A'].width = 12
+        evidence.column_dimensions['B'].width = 55
+        evidence.column_dimensions['C'].width = 72
     try:
         with atomic_destination(path) as temp:
             workbook.save(temp)

@@ -87,6 +87,15 @@ class ItemDialog(DirtyDialog):
         self.save_buttons(self.save)
         self.watch()
         self.code.currentIndexChanged.connect(self.change_currency)
+        if self.original.get('id'):
+            button('Fichas técnicas del artículo guardado', self.manage_datasheets, self.body_layout)
+        else:
+            self.body_layout.addWidget(QLabel(tr('Guarde primero el artículo para asociar fichas técnicas.')))
+
+    @action
+    def manage_datasheets(self):
+        from .datasheets import DatasheetsDialog
+        DatasheetsDialog(self.service, self.original, self).exec()
 
     @action
     def change_currency(self, *args):
@@ -164,8 +173,11 @@ class RecordsView(QWidget):
         self.new_button = button('Nuevo cliente' if clients else 'Nuevo artículo', self.create, actions, True)
         self.edit_button = button('Editar / archivar', self.edit, actions)
         if not clients:
-            import_button = button('Importar CSV', self.import_csv, actions)
+            tools = QHBoxLayout()
+            layout.addLayout(tools)
+            import_button = button('Importar CSV', self.import_csv, tools)
             import_button.setEnabled(not service.readonly)
+            button('Fichas técnicas del artículo seleccionado', self.datasheets, tools)
         button('Actualizar', self.refresh, actions)
         self.new_button.setEnabled(not service.readonly)
         self.edit_button.setEnabled(not service.readonly)
@@ -212,3 +224,11 @@ class RecordsView(QWidget):
         from .csv_import import CatalogImportDialog
         if CatalogImportDialog(self.service, self).exec() == QDialog.Accepted:
             self.refresh()
+
+    @action
+    def datasheets(self):
+        index = self.tbl.currentRow()
+        if not 0 <= index < len(self.visible):
+            raise ValidationError('Seleccione un artículo para consultar sus fichas.')
+        from .datasheets import DatasheetsDialog
+        DatasheetsDialog(self.service, self.visible[index], self).exec()

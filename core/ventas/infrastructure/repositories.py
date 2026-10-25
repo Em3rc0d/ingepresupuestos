@@ -177,3 +177,18 @@ class Repository:
     def record_import(self, identifier, filename, digest, mode, summary, actor, stamp):
         self.connection.execute('INSERT INTO ventas_importaciones (id,archivo,sha256,estrategia,resumen_json,actor,fecha) VALUES (?,?,?,?,?,?,?)',
                                 (identifier, filename, digest, mode, dumps(summary), actor, stamp))
+
+    def datasheets(self, item_id, include_retired=False):
+        return [dict(row) for row in self.connection.execute(
+            "SELECT f.* FROM ventas_fichas f WHERE f.item_id=? AND (? OR NOT EXISTS (SELECT 1 FROM ventas_fichas_eventos e WHERE e.ficha_id=f.id AND e.tipo='RETIRADA')) ORDER BY f.registrada_en,f.id", (item_id, include_retired))]
+
+    def add_datasheet(self, reference, internal_path):
+        r = reference
+        self.connection.execute('INSERT INTO ventas_fichas (id,item_id,nombre,mime,tamano,sha256,ruta_interna,fecha_documento,fuente_tipo,referencia,actor,registrada_en) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+                                (r['id'], r['item_id'], r['filename'], r['mime'], r['size'], r['sha256'], internal_path, r['document_date'], r['source_kind'], r['reference'], r['actor'], r['registered_at']))
+        self.connection.execute('INSERT INTO ventas_fichas_eventos (id,ficha_id,tipo,actor,fecha) VALUES (?,?,?,?,?)',
+                                (str(uuid4()), r['id'], 'ASOCIADA', r['actor'], r['registered_at']))
+
+    def retire_datasheet(self, identifier, actor, stamp):
+        self.connection.execute('INSERT INTO ventas_fichas_eventos (id,ficha_id,tipo,actor,fecha) VALUES (?,?,?,?,?)',
+                                (str(uuid4()), identifier, 'RETIRADA', actor, stamp))

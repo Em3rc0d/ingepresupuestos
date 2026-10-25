@@ -43,6 +43,11 @@ class LineDialog(DirtyDialog):
         self.formula_label = QLabel()
         self.formula_label.setWordWrap(True)
         self.body_layout.addWidget(self.formula_label)
+        self.evidence_label = QLabel()
+        self.evidence_label.setWordWrap(True)
+        self.body_layout.addWidget(self.evidence_label)
+        self.datasheets_button = button('Gestionar fichas del artículo', self.manage_datasheets, self.body_layout)
+        self.capture_button = button('Capturar fichas actuales para esta línea', self.capture_datasheets, self.body_layout)
         self.price = field(self.form, 'Precio unitario de venta (' + code + ')', self.line.get('price', ''))
         self.cost = field(self.form, 'Costo interno unitario (opcional)', self.line.get('cost', ''))
         self.reason = field(self.form, 'Motivo de precio manual (opcional)', self.line.get('override_reason', ''))
@@ -66,6 +71,7 @@ class LineDialog(DirtyDialog):
         self.kind.setEnabled(not fixed)
         self.unit.setEnabled(not fixed)
         self.update_margin()
+        self.show_datasheets()
 
     def reload_catalog(self):
         self.catalog.clear()
@@ -95,6 +101,28 @@ class LineDialog(DirtyDialog):
         self.kind.setEnabled(False)
         self.unit.setEnabled(False)
         self.show_formula()
+        self.show_datasheets()
+
+    def show_datasheets(self):
+        self.datasheets_button.setEnabled(bool(self.line.get('item_id')))
+        self.capture_button.setEnabled(bool(self.line.get('item_id')))
+        self.evidence_label.setText(tr('Referencias documentales congeladas en esta línea: ') +
+            ('\n'.join(r['filename'] + ' · SHA256 ' + r['sha256'] for r in self.line.get('datasheets', [])) or tr('Ninguna.')))
+
+    @action
+    def manage_datasheets(self):
+        if not self.line.get('item_id'):
+            raise ValidationError('Las fichas se administran en artículos guardados. Esta línea conserva sus referencias históricas si las tiene.')
+        from .datasheets import DatasheetsDialog
+        DatasheetsDialog(self.service, self.service.item(self.line['item_id']), self).exec()
+
+    @action
+    def capture_datasheets(self):
+        if not self.line.get('item_id'):
+            raise ValidationError('Seleccione un artículo de catálogo antes de capturar sus fichas.')
+        self.line['datasheets'] = self.service.datasheets(self.line['item_id'])
+        self.show_datasheets()
+        self.mark_dirty()
 
     @action
     def create_item(self):
