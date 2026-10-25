@@ -15,6 +15,7 @@ from ..domain.quantity import UnitRegistry
 from ..domain.quote_states import transition
 from ..infrastructure.sqlite import SalesStore, now
 from ..infrastructure.repositories import fingerprint
+from .catalog_import import CatalogImportMixin
 
 
 def valid_date(value, label):
@@ -24,7 +25,7 @@ def valid_date(value, label):
         raise ValidationError(f'{label}: fecha ISO requerida (AAAA-MM-DD).') from None
 
 
-class SalesService:
+class SalesService(CatalogImportMixin):
     """Single application boundary for views; all SQL stays in infrastructure."""
     def __init__(self, path, actor='Usuario local', readonly=False):
         self.store = SalesStore(path)

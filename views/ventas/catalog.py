@@ -163,6 +163,9 @@ class RecordsView(QWidget):
         actions.addWidget(self.show_inactive)
         self.new_button = button('Nuevo cliente' if clients else 'Nuevo artículo', self.create, actions, True)
         self.edit_button = button('Editar / archivar', self.edit, actions)
+        if not clients:
+            import_button = button('Importar CSV', self.import_csv, actions)
+            import_button.setEnabled(not service.readonly)
         button('Actualizar', self.refresh, actions)
         self.new_button.setEnabled(not service.readonly)
         self.edit_button.setEnabled(not service.readonly)
@@ -202,4 +205,10 @@ class RecordsView(QWidget):
         record = self.visible[index]
         dialog = ClientDialog(self.service, record, self) if self.is_clients else ItemDialog(self.service, record, self)
         if dialog.exec() == QDialog.Accepted:
+            self.refresh()
+
+    @action
+    def import_csv(self):
+        from .csv_import import CatalogImportDialog
+        if CatalogImportDialog(self.service, self).exec() == QDialog.Accepted:
             self.refresh()

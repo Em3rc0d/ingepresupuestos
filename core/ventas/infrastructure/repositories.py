@@ -167,3 +167,13 @@ class Repository:
 
     def events(self, quote_id):
         return [dict(r) for r in self.connection.execute('SELECT tipo,fecha,actor,detalle_json,revision_id FROM ventas_eventos WHERE cotizacion_id=? ORDER BY fecha,id', (quote_id,))]
+
+    def catalog_token(self):
+        items = [dict(row) for row in self.connection.execute('SELECT id,data_json FROM ventas_items ORDER BY id')]
+        prices = [dict(row) for row in self.connection.execute('SELECT item_id,moneda,MAX(id) id FROM ventas_precios GROUP BY item_id,moneda ORDER BY item_id,moneda')]
+        movements = self.connection.execute('SELECT COUNT(*) n, MAX(registrado_en) ultima FROM ventas_movimientos').fetchone()
+        return sha256(dumps({'items': items, 'prices': prices, 'movements': dict(movements)}).encode('utf-8')).hexdigest()
+
+    def record_import(self, identifier, filename, digest, mode, summary, actor, stamp):
+        self.connection.execute('INSERT INTO ventas_importaciones (id,archivo,sha256,estrategia,resumen_json,actor,fecha) VALUES (?,?,?,?,?,?,?)',
+                                (identifier, filename, digest, mode, dumps(summary), actor, stamp))

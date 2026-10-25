@@ -30,16 +30,29 @@ for _table in ('ventas_movimientos', 'ventas_eventos', 'ventas_precios'):
         DDL += (f"CREATE TRIGGER {_table}_no_{_operation.lower()} BEFORE {_operation} ON {_table} BEGIN SELECT RAISE(ABORT, 'Registro append-only'); END",)
 CHECKSUM = sha256('\n'.join(DDL).encode('utf-8')).hexdigest()
 
+DDL_V2 = (
+    "CREATE TABLE ventas_importaciones (id TEXT PRIMARY KEY, archivo TEXT NOT NULL, sha256 TEXT NOT NULL, estrategia TEXT NOT NULL, resumen_json TEXT NOT NULL, actor TEXT NOT NULL, fecha TEXT NOT NULL)",
+    "CREATE TABLE ventas_fichas (id TEXT PRIMARY KEY, item_id TEXT NOT NULL REFERENCES ventas_items(id), nombre TEXT NOT NULL, mime TEXT NOT NULL, tamano INTEGER NOT NULL, sha256 TEXT NOT NULL, ruta_interna TEXT NOT NULL, fecha_documento TEXT NOT NULL, fuente_tipo TEXT NOT NULL, referencia TEXT NOT NULL, actor TEXT NOT NULL, registrada_en TEXT NOT NULL)",
+    "CREATE INDEX ventas_fichas_item ON ventas_fichas(item_id, registrada_en)",
+    "CREATE TABLE ventas_fichas_eventos (id TEXT PRIMARY KEY, ficha_id TEXT NOT NULL REFERENCES ventas_fichas(id), tipo TEXT NOT NULL CHECK(tipo IN ('ASOCIADA','RETIRADA')), actor TEXT NOT NULL, fecha TEXT NOT NULL)",
+)
+for _table in ('ventas_importaciones', 'ventas_fichas', 'ventas_fichas_eventos'):
+    for _operation in ('UPDATE', 'DELETE'):
+        DDL_V2 += (f"CREATE TRIGGER {_table}_no_{_operation.lower()} BEFORE {_operation} ON {_table} BEGIN SELECT RAISE(ABORT, 'Registro append-only'); END",)
+CHECKSUM_V2 = sha256('\n'.join(DDL_V2).encode('utf-8')).hexdigest()
+
 
 def migrate(connection, now):
     # Caller owns transaction; executescript would implicitly commit and is forbidden here.
     connection.execute(DDL[0])
-    rows = connection.execute('SELECT version, hash FROM ventas_schema_migrations').fetchall()
-    if rows:
-        if len(rows) != 1 or rows[0]['version'] != 1 or rows[0]['hash'] != CHECKSUM:
-            from ..domain.errors import StorageError
-            raise StorageError('Esquema Ventas incompatible: requiere revisión de migraciones.')
-        return
-    for statement in DDL[1:]:
-        connection.execute(statement)
-    connection.execute('INSERT INTO ventas_schema_migrations VALUES (1, ?, ?)', (now, CHECKSUM))
+    rows = connection.execute('SELECT version, hash FROM ventas_schema_migrations ORDER BY version').fetchall()
+    versions = {row['version']: row['hash'] for row in rows}
+    expected = {1: CHECKSUM, 2: CHECKSUM_V2}
+    if sorted(versions) != list(range(1, len(versions) + 1)) or any(expected.get(v) != h for v, h in versions.items()):
+        from ..domain.errors import StorageError
+        raise StorageError('Esquema Ventas incompatible: requiere revisión de migraciones.')
+    for version, statements in ((1, DDL[1:]), (2, DDL_V2)):
+        if version not in versions:
+            for statement in statements:
+                connection.execute(statement)
+            connection.execute('INSERT INTO ventas_schema_migrations VALUES (?, ?, ?)', (version, now, expected[version]))
