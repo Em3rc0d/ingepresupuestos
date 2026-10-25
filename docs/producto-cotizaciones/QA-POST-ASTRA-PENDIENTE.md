@@ -1,61 +1,56 @@
-# Contrato de QA posterior — NO EJECUTADO
+# Contrato de auditoría posterior a Fase 2 — NO EJECUTADO
 
-Esta entrega fue CODING ONLY por orden explícita del propietario. **Ningún comando de este documento fue ejecutado. No existen pruebas nuevas de Ventas todavía.** Este plan corresponde a otra sesión con autorización de QA. No ejecutar contra la base real, no abrir/copiar encima de la semilla y no activar GitHub Actions/releases por defecto.
+**2026-10-25 · Gate HOLD / UNVERIFIED.** Durante Fase 2 no se ejecutó prueba alguna, importación de módulos, Qt, build, compilación, linter, instalación de dependencias ni GitHub Actions. No se crearon tests nuevos. Los contratos existentes `tests/ventas/test_sales_contracts.py` y `test_sales_ui_exports.py` fueron incorporados sin cambios desde PR #5, con su historial/workflows.
 
-## Preparación independiente
+El PR #5 reportó previamente **52 pruebas seleccionadas Windows aprobadas** (10 Ventas, 40 Construcción, 2 UI/exportación) con SQL/estados corregidos. Ese resultado no cubre esta implementación nueva ni es certificación global. No consultar/relanzar runners para suplir QA de esta fase.
 
-1. Fijar SHA remoto de la rama entregada. Leer mandato, decisiones y estado. No integrar PR #1/#3 para ocultar o confundir fallos.
-2. Usar directorio de datos desechable (`XDG_DATA_HOME` en Linux; `APPDATA` en Windows), base SQLite temporal explícita para `SalesService(path, actor, readonly)`. Preparar una base vacía con sqlite3 para el dominio: `SalesStore` usa `mode=rw` y deliberadamente no crea archivos inexistentes.
-3. Para integración con Construcción, crear fixture sintético del esquema real o una copia consentida con respaldo. El esquema comercial no necesita seed ni tablas de obra en pruebas de servicios. Nunca imprimir PII de fixtures reales.
-4. Registrar Python/Qt/SQLite/OS/dependencias. Instalar dependencias solo en esa sesión. Crear tests de Ventas en `tests/ventas/` con fixtures propias; no cambiar `core.database.DB_PATH` durante imports.
-5. La suite heredada tiene contaminación import-time documentada. Separar baseline idéntico de nuevos fallos; la herramienta de ejecución aislada vive en PR #3, no asumirla aquí.
+## Preparación del auditor
 
-## Matriz de verificación a escribir y ejecutar
+1. Fijar SHA exacto de la feature entregada. Leer estado, decisiones y guía. No mezclar PR #1/#3 para cambiar el baseline.
+2. Bases, directorios y archivos **sintéticos y temporales**. Para servicios, crear archivo SQLite temporal explícito; SalesStore usa `mode=rw`. Para GUI, reproducir `core.database.init_db()` en una copia aislada, como hace el fixture del PR #5. No usar DB_PATH personal ni tocar seed.
+3. Registrar OS/Python/Qt/SQLite/dependencias y SHA. Preparar fixtures de esquema v1 exacto y construcción realista: precios `acu_items.precio` por proyecto, unidades/monedas válidas/ambiguas, usuarios, proyectos compartidos/ajenos y archivos PDF/PNG/JPEG sintéticos.
+4. Autorizar QA en una sesión independiente antes de ejecutar herramientas. Conservar tests heredados; crear pruebas nuevas de Fase 2 solo en esa sesión. Separar fallos del baseline de las regresiones nuevas.
 
-| Grupo | RF / RNF / invariante | Fixture/oráculo y aceptación pendiente |
+## Matriz nueva obligatoria
+
+| ID | Contrato / RF | Prueba y oráculo pendientes |
 |---|---|---|
-| Q01 decimal | 010,013–015; RNF04 | HALF_UP, USD/PEN/EUR/JPY; rechazo float/bool/NaN/infinito, exponentes y límites; precios de seis decimales y cantidades visibles |
-| Q02 geometría | 005,010–012; INV04/08 | m/mm/cm, m²/cm²/mm², m³/L/mL, kg/g; masas incompatibles; filas y piezas; división por cero, valores extremos |
-| Q03 cobertura | 011–012; S03 | Datos sintéticos 120 m², 2 manos, 8 m²/L/mano y 10%: 33 L; contenido 4 L, presentación cerrada: 9 envases y 36 L; fuente explícita, restante 3 L; fracciones sin cierre |
-| Q04 dinero | 014–015; RNF08 | Descuento por línea/global porcentaje e importe; 100%, 0%, negativos, descuento mayor que base, líneas cero, varias tasas, inclusive/exclusive; mayor resto con empate por posición y conciliación exacta por unidad monetaria |
-| Q05 catálogo | 007–008,013,034 | SKU repetido case-insensitive, SKU estable, variantes sin ciclos, desactivados fuera de selector, tarifas PEN/USD separadas y costo desconocido; no confundir costo y precio |
-| Q06 paquetes | 020 | Un nivel, componentes duplicados, servicios, rechazo ciclo/paquete anidado; sumar precio comercial una vez; stock agregado por SKU de componentes |
-| Q07 migración | 025,030–032,035; RNF02/03 | Base temporal sin Ventas → migrar dos veces; hash/version ajena; fallo tras DDL parcial → rollback; obra idéntica; archivo inexistente/protegido/bloqueado/sin espacio → error manejado |
-| Q08 números | 001,025 | Dos conexiones compitiendo; secuencia anual única sin MAX+1 exterior; error de guardado no deja cabecera/líneas/eventos/contador parcial |
-| Q09 inventario | 016–019,035 | Sin seguimiento ≠ no verificado ≠ cero registrado; entrada 6, salida 2, ajuste ±; motivo obligatorio; invitado bloqueado; negativos rechazados; eventos append-only; cambio de unidad con ledger bloqueado |
-| Q10 no efectos | 017,029–030,032,035; INV02/05 | Hash/conteo de movimientos comerciales y todas tablas obra antes/después de crear/guardar/emitir/exportar/aceptar. Esperado: ninguna mutación del ledger ni obra |
-| Q11 emisión | 003,015,021–025; RNF06 | Borrador sin impuesto admitido; emisión sin regla/emisor/cantidad/cliente bloqueada. Guardar→preview→emitir mismo fingerprint. Cambio concurrente de borrador bloquea emisión; cambio catálogo/cliente no altera snapshot previsualizado |
-| Q12 inmutabilidad | 022,027; INV06 | Intentar SQL UPDATE/DELETE a revisión emitida y líneas; INSERT en revisión emitida; mover línea entre revisiones; todos bloqueados por trigger. Modificación externa detectada por sello al abrir/exportar |
-| Q13 revisiones | 022,024,026–027 | V1 emitida, modificar precio catálogo, V2 borrador/editada/emitida; V1 mantiene mismo SHA/importes/cliente; diff de cantidades/unidad/precio/orden/tasa/cabecera. Transiciones inválidas/aceptar vencida rechazadas |
-| Q14 exportación | 021,023; RNF08 | PDF/XLSX de V1/V2 elegidas; mismos textos, importes, moneda, condiciones, impuesto y versión que snapshot; costos internos/componentes excluidos. Texto `=HYPERLINK(...)` queda texto en XLSX |
-| Q15 formato | 023; RNF07/08 | Descripciones largas/200 líneas/acento/ñ/símbolos/no latinos; paginación, ancho/filas, sello; Excel decimales textuales exactos. Ruta cancelada, extensión, sobrescritura consentida, permisos y destino abierto; error deja original íntegro |
-| Q16 UI | 001–008,021,025–026,031; RNF07 | Login existente → Ventas → cliente → catálogo → línea libre/SKU/servicio/medidas → cálculo → guardar → reabrir → preview → emisión → PDF. Cerrar/Escape/logout con cambios conserva o pregunta; ningún botón inerte |
-| Q17 accesibilidad | RNF07 | Solo teclado, Tab/Shift+Tab/Escape, etiquetas, lector de pantalla, contraste, redimensionamiento/zoom, scrollbar de formularios y sidebar en ventana pequeña |
-| Q18 offline | RNF01; INV12 | Red bloqueada: todos los flujos de Ventas operan sin API/IA. Informar llamadas remotas heredadas si aparecen sin atribuirlas a Ventas |
-| Q19 fallo aislado | 030–031; INV01 | Forzar migración incompatible/exception de widget; aparece reparación y reintento; Construcción abre y conserva proyectos sin crear registros comerciales |
-| Q20 restauración | RNF03/12 | Backup existente incluye ventas; restaurar en copia y abrir Construcción/Ventas. Verificar semilla sin modificación, no exponer contenidos |
-| Q21 rendimiento | RNF09 | 5.000 SKU, 200 líneas, historial extenso de movimientos; tiempos y bloqueo de event loop medidos en PC objetivo, sin umbrales inventados |
-| Q22 legado | 030; INV01/03 | Abrir/crear/editar proyecto, ACU, metrado, cronograma, control obra, exportaciones y logout; golden valores idénticos al source_ref |
+| F2-01 | PR #5, estados | Repetir contratos existentes; ACEPTADA/RECHAZADA/VENCIDA/ANULADA rechazan revisión con token actual y no mutan evento/estado/snapshot. EMITIDA permite V2. UI deshabilita revisión terminal; duplicación crea otro documento |
+| F2-02 | RF-009, CSV | UTF-8/BOM, coma/punto y coma, comillas/acentos/saltos de línea; encabezados ausentes/duplicados/desconocidos, CSV vacío/malformado. Preview no crea artículos/precios/importaciones ni movimientos |
+| F2-03 | RF-009, números | Punto decimal, rechazo de coma decimal, vacíos, NaN/infinito/exponentes/float/negativos/seis decimales, unidad/moneda/tipo inválidos; stock inicial/columnas ocultas rechazadas |
+| F2-04 | RF-009, identidad | SKU vacío/repetido case-insensitive dentro del archivo. Crear solo omite existentes de manera visible. Actualizar respeta SKU estable, variantes/padre, movimientos anteriores y paquetes. Padre del mismo lote se rechaza; paquete sin componentes no se crea |
+| F2-05 | RF-009/013/034 | Actualizar PEN/USD sin heredar costo de otra moneda. Opcionales ausentes conservan lo permitido; impuesto parcial se rechaza, impuesto vacío queda sin configurar. Histórico V1 no cambia |
+| F2-06 | RF-009, atomicidad | Error a mitad de lote/colisión tardía/disco ocupado → rollback de artículos/tarifas/resumen. Cambio concurrente de catálogo/precios/ledger invalida token de preview. Registrar resumen/actor/hash al confirmar una sola transacción |
+| F2-07 | RNF-09, CSV | Límites 5 MiB/5000 filas/celda 8192 caracteres. Archivo mayor se rechaza. Parseo en worker, UI recibe resultado en hilo GUI; cancelar selección/preview no escribe; confirmar no admite doble ejecución |
+| F2-08 | RF-033, permisos | Proyecto/partida pertenecientes, títulos, proyectos ajenos/compartidos, admin, moneda y unidad desconocidas. Schemas heredados sin columnas opcionales producen fallback documentado o error aislado |
+| F2-09 | RF-033, solo lectura | Inspeccionar `mode=ro`/query_only. Capturar hash/conteos de TODAS tablas de Construcción y ledger comercial antes/después de listar/previsualizar/importar/guardar/emitir. Ninguna escritura. Prohibir llamada a `_recalcular_pu` y otros mutadores |
+| F2-10 | RF-033, costo | Distintas tarifas de recurso por proyecto, fallback a catálogo y PU guardado divergente del recalculado: el snapshot etiqueta GUARDADO, incluye datos relevantes y no simula equivalencia. Precio de venta nunca autocompletado desde costo; costo no representable no produce margen inventado |
+| F2-11 | RF-022/027/033 | Hash canónico estable sin timestamp de captura; cambia con metrado/unidad/costo/ACU/reglas relevantes. Cambio de obra tras V1 no altera V1 ni exportación. Modificación de provenance, unidad o moneda bloqueada al guardar |
+| F2-12 | RF-028, selección | PDF/PNG/JPEG sintéticos válidos y firmas incompatibles, SVG/HTML/executable rechazados, vacío, >20 MiB, nombre/traversal/symlink. Inspección no copia; cancelar no asocia. Máximo 10 fichas activas por artículo/línea |
+| F2-13 | RF-028, confirmación | Archivo cambiado/movido antes de confirmar bloquea. Confirmación conserva SHA/tamaño/MIME/fecha/fuente/actor, nombre interno por hash. Reuso de mismo contenido entre artículos no lo borra. Fallo DB tras copia deja a lo sumo blob huérfano, sin asociación parcial |
+| F2-14 | RF-028, histórico | Retirar asociación agrega evento, no borra metadatos/archivo/histórico. Capturar fichas en borrador es explícito. V1 congela referencias; borrar/alterar original no afecta copia. Borrar/alterar copia → ARCHIVO NO DISPONIBLE, revisión/totales todavía accesibles |
+| F2-15 | RF-021/023, export | Preview/PDF/XLSX de revisión elegida con cifras idénticas, referencias nombre/hash separadas, sin rutas privadas/costos/provenance interna ni adjuntos automáticos. Fórmulas Excel siguen texto. Descripciones/refs largas y paginación/acentos por comprobar |
+| F2-16 | Migración v2 | Fixture v1 con checksum original exacto y documentos emitidos → upgrade2, repetir sin efecto, preservar firmas/IDs/totales/ledger. Esquema vacío →1→2. Checksum ajeno, hueco de versiones o fallo entre DDL → rollback íntegro |
+| F2-17 | RNF-03, respaldo | Backup SQLite habitual no contiene archivos, advertencia visible. Paquete admin incluye SQLite consistente y TODAS fichas históricas, manifest/hash/tamaño; no incluye otros uploads de Construcción y lo declara. Invitado/no admin bloqueados |
+| F2-18 | Respaldo/recuperación | Restaurar paquete en directorio temporal con app cerrada; verificar hashes/paths y reabrir ambas BUs, documentos y refs. Ficha ausente/alterada, ruta cambiada, >512 MiB/>10000 refs, permisos y disco lleno bloquean paquete completo sin reemplazar destino anterior |
+| F2-19 | Qt/cierre | Recorridos CSV/ACU/fichas/paquete completos en Windows y Linux. Diálogos modales, Tab/Escape, errores, campos sin guardar, selección cancelada, slots y cierre/logout mientras worker activo. No destruir/terminar QThread activo; no acciones dobles ni callbacks a widgets destruidos |
+| F2-20 | RF-017/030/035 | Repetir 40 reglas críticas base y regresión real crear/abrir/editar ACU/metrar/programar/control obra/exportar. Importar CSV/ACU/fichas/cotizar/emitir/aceptar/exportar nunca crea salida ni reserva comercial o de obra |
+| F2-21 | RNF-01/07/09 | Flujos offline, lector de pantalla, teclado, contraste, zoom/redimensión, 5000 SKU/200 líneas y referencias extensas. Medir bloqueos/tiempos reales; no inferir cumplimiento por usar threads |
 
-## Comandos orientativos PARA OTRA SESIÓN
+## Ejecución sugerida SOLO PARA LA SIGUIENTE SESIÓN
 
-No se han creado `tests/ventas` ni ejecutado estos comandos. Son rutas de trabajo propuestas para el auditor, después de escribir fixtures y revisar el entorno:
+No se corrió ninguno de estos comandos. Los archivos de tests Fase 2 aún deben ser escritos por el auditor:
 
 ```bash
-# Solo en QA, con datos temporales y después de crear los tests:
-python -m pytest tests/ventas -q
-# Analizadores/compilación solo si la nueva sesión los autoriza:
-python -m compileall -q core/ventas views/ventas
-# Ejecutar cada módulo heredado en su propio proceso con aislamiento de datos;
-# no usar el resultado monolítico como prueba concluyente de regresión.
-python -m pytest tests/test_core.py -q
-python -m pytest tests/test_reglas_negocio.py -q
+# Datos temporales/aislados preparados antes de cualquier arranque:
+python -m pytest tests/ventas/test_sales_contracts.py -q
+python -m pytest tests/test_reglas_negocio.py tests/test_core.py -q
+python -m pytest tests/ventas/test_sales_ui_exports.py -q
+# Luego ejecutar la suite nueva de CSV/ACU/fichas/paquetes/migración2 que cree QA.
 ```
 
-El arranque `python main.py` también pertenece exclusivamente al QA posterior, configurando primero datos desechables. No abrir la app con la base personal para comprobar si migra.
+La suite heredada puede contaminar DB_PATH durante imports; aislar procesos/datos y contrastar baseline. `compileall`, linters, instalación de dependencias y arranque `python main.py` quedan a criterio/autorización de esa nueva sesión; no se realizaron aquí. No activar Actions ni empaquetados como sustituto de pruebas de datos.
 
-## Evidencia de salida requerida
+## Resultado exigible
 
-SHA exacto, OS/Python/Qt/SQLite, fixtures, comandos reales, logs, resultados y fallos separados de baseline; archivos de comparación PDF/XLSX e invariantes de obra/ledger. Marcar cada fila PASS/FAIL/BLOCKED con evidencia; no convertir lectura de código en PASS.
-
-Gate actual: **HOLD — UNVERIFIED**. No merge, release ni piloto con datos operativos hasta aprobación independiente. RF-009, RF-033 y adjuntos de RF-028 son backlog, no fallos que se puedan esconder bajo pruebas omitidas.
+SHA, OS/versiones, fixtures, comandos y resultados reales por fila PASS/FAIL/BLOCKED; comparación de datos/hashes antes/después, documentos exportados y evidencia de restauración/cierre Qt. Si un oráculo de costo de obra no coincide, preservar la referencia guardada y reportar el límite: no modificar Construcción para que el test pase. No hay GO a main/release/piloto operativo en esta entrega.

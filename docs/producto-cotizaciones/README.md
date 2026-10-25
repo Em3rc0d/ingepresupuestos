@@ -4,6 +4,8 @@
 
 **Entrega de código:** [Estado y matriz RF](ASTRA-IMPLEMENTACION-ESTADO.md) · [Decisiones operativas](ASTRA-DECISIONES-OPERATIVAS.md) · [Guía Ventas v1](VENTAS-GUIA-V1.md) · [QA posterior NO ejecutado](QA-POST-ASTRA-PENDIENTE.md).
 
+**Fase 2 — 25/10/2026:** PR #5 incorporado a la feature; CSV atómico con preview, conector ACU de solo lectura, fichas administradas y paquete de datos implementados **SIN VERIFICAR**. Las 52 pruebas Windows del PR #5 son anteriores a estas adiciones. [Handoff actual](ASTRA-HANDOFF.yaml). Sin nuevo PR ni merge a main/release; el mandato de Fase 2 se conserva en la rama documental.
+
 ## Entrega para ChatGPT Work / Astra
 
 **[PROMPT MAESTRO DE PROGRAMACIÓN SIN PRUEBAS](PROMPT-ASTRA-WORK-IMPLEMENTACION-SIN-QA.md)** — mandato ejecutable para Astra: lecturas obligatorias, alcance de Ventas, arquitectura, código, persistencia, UI, exportaciones y handoff. **No ejecutar QA, builds ni GitHub Actions; los deja a un agente posterior**. Leer este prompt completo en Work y trabajar solo en el fork.

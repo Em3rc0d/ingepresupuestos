@@ -1,95 +1,100 @@
-astrawork_handoff:
-  repository: "Em3rc0d/ingepresupuestos"
-  source_ref: "design/multi-sector-quotations-mk0-20261024@88ca463343430e091eb0835ce51316753480e2f3 (PR #4 open)"
-  working_branch: "feat/ventas-v1-astra-work-20261024"
+phase_2_handoff:
+  repository: Em3rc0d/ingepresupuestos
+  branch: feat/ventas-v1-astra-work-20261024
+  head_sha: f915b7dc4ed9aa28227e6c2b765aea0a987449fd
+  head_scope: "Implementation source tip before documentation-only handoff commit; final delivery SHA is the commit containing this file."
+  upstream_base: "feature@ea195c787db5fc176ba2745334c0fbab00ab1ccb + PR5@5bdceb4012408e4de3fd0f26c54b3b32ad292995; no main merge"
+  mandate_ref: "design/multi-sector-quotations-mk0-20261024@029a8e01648a015fca8401e296fa75db00528445/docs/producto-cotizaciones/PROMPT-ASTRA-WORK-FASE2-CIERRE-VENTAS-SIN-QA.md"
+  pr5:
+    status: integrated
+    merge_commit: 5ccc80b0898b5dea3620be003af3ea1d90146c53
+    source_sha: 5bdceb4012408e4de3fd0f26c54b3b32ad292995
+    code_fixes: ["ventas_items 9 columnas explícitas", "estados terminales en servicio y UI"]
+    preserved: "Original QA commits/authors, tests and workflows retained through merge ancestry; not executed or edited."
+  functionality:
+    csv: IMPLEMENTED_UNVERIFIED
+    acu_readonly: IMPLEMENTED_UNVERIFIED
+    datasheets: IMPLEMENTED_UNVERIFIED
+    ui_integration: IMPLEMENTED_UNVERIFIED
+    portable_data_package: IMPLEMENTED_UNVERIFIED
+  migrations:
+    versions_changed: [2]
+    version_1_ddl_checksum_preserved: true
+    tables_added: [ventas_importaciones, ventas_fichas, ventas_fichas_eventos]
+    backup_compatibility: "NOT VERIFIED"
+    execution: "NOT RUN; source code only"
+    downgrade: "Restore a compatible pre-upgrade copy; never delete v2 records/tables or rewrite checksums."
   commits:
-    - "4e4a48af29290f594d248edb13bb6d3db9d8a5a2"
-    - "33a5084c1aecb3fd1f87eddda59660f95db9f379"
-    - "7c028fdefbce9ec2b570c94bccf47b9c8da8f53e"
-    - "6b5ba49d4bb2eb58330c32be6f83f66138997284"
-    - "278e7461f2ca22070a6808d05c0e64b97226a5b6"
-    - "ef2d262c6ba33c768076ffee91f4277ee3713f2b"
-    - "de59cf3bc3081bff2884577c034c5b9aa30b32bf"
-  delivery_documentation_commit: "The commit containing this file; consult branch HEAD/history. Self SHA intentionally not embedded."
-  implementation:
-    complete_unverified:
-      - "P0: lectura dirigida y decisiones operativas"
-      - "P1: dominio Decimal, unidades, geometría/cobertura, precios/descuentos/impuestos, estados y ledger"
-      - "P2: tablas ventas_*, migración aislada, repositorios y servicios transaccionales"
-      - "P3: navegación y pantallas PySide6 conectadas a servicios"
-      - "P4: revisión inmutable, vista previa guardada, PDF/XLSX y consulta de versiones"
-      - "P6: matriz RF y contrato de QA posterior"
-    partial_unverified:
-      - "RF-028: fuente/supuesto textual, sin adjuntos de fichas"
-      - "P5/RF-033: dataclass y protocolo del adaptador, sin lector ni UI de importación"
-      - "RNF de accesibilidad, rendimiento, seguridad y restauración: mecanismos escritos, sin evidencia de cumplimiento"
-    not_started:
-      - "RF-009: importación CSV con previsualización"
-      - "Implementación del lector ACU y su auditoría de no mutación"
-      - "Pruebas de Ventas (por instrucción explícita)"
-  files_changed:
-    - "core/ventas/__init__.py"
-    - "core/ventas/domain/__init__.py"
-    - "core/ventas/domain/errors.py"
-    - "core/ventas/domain/money.py"
-    - "core/ventas/domain/quantity.py"
-    - "core/ventas/domain/formulas.py"
-    - "core/ventas/domain/models.py"
-    - "core/ventas/domain/pricing.py"
-    - "core/ventas/domain/inventory.py"
-    - "core/ventas/domain/quote_states.py"
-    - "core/ventas/application/__init__.py"
-    - "core/ventas/application/services.py"
+    - "5ccc80b0898b5dea3620be003af3ea1d90146c53 — merge PR5"
+    - "02128eee4daf9744d864ecafadefb17c46feb3e4 — explicit columns and state controls"
+    - "9e88f523e02151a441636173156488431290a93a — atomic CSV import"
+    - "35b2c24f3e1525c081694981d00adf592ca43995 — read-only construction adapter"
+    - "3b96dcd01d641c27f4be2f125a17a5d6e9bd2b9d — managed datasheets and package"
+    - "753986ef6248fd2873cb98e345965d4a1ce0cc4e — currency and file bounds"
+    - "4df6dd37c9c630ccebdb7597458762ef73f74f67 — visible frozen provenance"
+    - "f915b7dc4ed9aa28227e6c2b765aea0a987449fd — explicit package exclusions"
+  constraints:
+    construction_tables_written: false
+    quote_changes_stock: false
+    evidence_scope: "Defensible by source/diff only; no runtime comparison executed in this phase."
+    construction_runtime_changed: false
+    seed_modified: false
+    new_tests_created: false
+    old_pr5_tests_workflows_modified: false
+    new_pull_request_created: false
+    main_merged: false
+    release_tag_created: false
+  qa:
+    current_phase_tests: "NOT RUN - user instruction"
+    current_phase_build: "NOT RUN - user instruction"
+    current_phase_lint_compile_import_qt: "NOT RUN - user instruction"
+    current_phase_actions: "NOT TRIGGERED MANUALLY; imported QA workflows target audit branches only"
+    old_qa: "Windows 52 selected PASS before these feature additions, as reported in PR5/mandate; not rerun here"
+    status: UNVERIFIED
+  operational_limits:
+    csv: "UTF-8/BOM; comma/semicolon; dot decimal; <=5 MiB/5000 records; mandatory preview and confirmation; no stock field"
+    construction: "Stored technical PU and full relevant ACU snapshot; no recalculation, currency conversion, commercial price inference or cross-BU write"
+    datasheets: "PDF/PNG/JPEG signatures; <=20 MiB; <=10 active refs per item/line; copied after confirmation; no execution/OCR"
+    package: "Admin-only ZIP; full SQLite and all historical sales datasheets; manifest hashes; <=512 MiB/10000 refs; no encryption; excludes other construction uploads/images/external assets"
+  unresolved:
+    - "Independent QA of all new code, imports, Qt signals/thread lifetime, transactions, rollback and v1-to-v2 compatibility"
+    - "Real restore verification on a copy; no automatic destructive restore wizard implemented"
+    - "CSV package compositions and parent variants created in same batch unsupported; use prior parent/package UI"
+    - "Managed copy may remain orphaned if DB fails after copy; no unsafe automatic cleanup"
+    - "Missing/altered documents retain historical references; block complete package, not monetary snapshot viewing"
+    - "Stored construction PU may differ from recalculated ACU; explicitly a reference, not engineering certification"
+    - "Free lines do not accept direct binary attachments; item-level documents are captured as references"
+    - "Performance, accessibility, PDFs with long descriptions/references, Windows/Linux GUI closure not verified"
+    - "PR1/PR3, legacy full regression, updater/seed/privacy/dependencies/branding and commercial gates remain separate"
+  next_gate: "Independent post-Astra QA on temporary SQLite + Linux/Windows and full legacy regression; then review/merge decision"
+  changed_files:
+    - ".github/workflows/audit-sales-v1.yml"
+    - ".github/workflows/audit-sales-windows.yml"
+    - "core/ventas/application/catalog_import.py"
+    - "core/ventas/application/construction.py"
     - "core/ventas/application/construction_adapter.py"
-    - "core/ventas/infrastructure/__init__.py"
-    - "core/ventas/infrastructure/migrations.py"
-    - "core/ventas/infrastructure/sqlite.py"
-    - "core/ventas/infrastructure/repositories.py"
+    - "core/ventas/application/datasheets.py"
+    - "core/ventas/application/services.py"
+    - "core/ventas/domain/models.py"
+    - "core/ventas/infrastructure/catalog_csv.py"
+    - "core/ventas/infrastructure/construction_reader.py"
+    - "core/ventas/infrastructure/data_package.py"
+    - "core/ventas/infrastructure/datasheets.py"
     - "core/ventas/infrastructure/exporters.py"
-    - "views/main_window.py"
-    - "views/ventas/__init__.py"
-    - "views/ventas/common.py"
-    - "views/ventas/catalog.py"
-    - "views/ventas/quantity.py"
-    - "views/ventas/editor.py"
-    - "views/ventas/inventory.py"
-    - "views/ventas/shell.py"
-    - "docs/producto-cotizaciones/ADR-002-DOS-UNIDADES-DE-NEGOCIO.md"
-    - "docs/producto-cotizaciones/CONTEXTO-MAESTRO-Y-DIAGRAMAS.md"
-    - "docs/producto-cotizaciones/CONTRATO-PARA-AGENTES.md"
-    - "docs/producto-cotizaciones/MK1-SRS-CANDIDATO.md"
-    - "docs/producto-cotizaciones/README.md"
+    - "core/ventas/infrastructure/migrations.py"
+    - "core/ventas/infrastructure/repositories.py"
     - "docs/producto-cotizaciones/ASTRA-DECISIONES-OPERATIVAS.md"
+    - "docs/producto-cotizaciones/ASTRA-HANDOFF.yaml"
     - "docs/producto-cotizaciones/ASTRA-IMPLEMENTACION-ESTADO.md"
     - "docs/producto-cotizaciones/QA-POST-ASTRA-PENDIENTE.md"
+    - "docs/producto-cotizaciones/README.md"
     - "docs/producto-cotizaciones/VENTAS-GUIA-V1.md"
-    - "docs/producto-cotizaciones/ASTRA-HANDOFF.yaml"
-  domains:
-    construction: "preserved by design; regression NOT EXECUTED; only legacy runtime file edited is views/main_window.py"
-    sales: "implementation status detailed above; no runtime execution"
-  assumptions_and_policy_decisions:
-    - "Un almacén local; sin motor de reservas ni movimientos desde cotizaciones"
-    - "PEN/USD/EUR escala 2; JPY escala 0; sin FX"
-    - "Tarifas/costos separados; impuestos explícitos, sin asumir IGV ni SUNAT"
-    - "Decimal TEXT, HALF_UP y descuento global por mayor resto"
-    - "Variantes como SKU vendible y paquetes de un nivel"
-    - "Emisión solo del snapshot guardado/previsualizado; revisiones previas inmutables"
-    - "Autenticación existente; invitado sin escrituras de negocio"
-    - "XLSX con decimales exactos como texto, sin fórmulas Excel"
-  risks_and_blockers:
-    - "No se ha comprobado importación/sintaxis, ejecución Qt, migración, cálculo ni exportación"
-    - "No se han probado regresión de Construcción, integridad del ledger ni rollback"
-    - "No se ha medido 5000 SKU/200 líneas ni validado accesibilidad/multiOS"
-    - "PR #1 y PR #3 no integrados; deuda de updater/identidad/seed/dependencias sigue abierta"
-    - "Sin autorización para merge, release o uso comercial validado"
-  qa:
-    unit_tests: "NOT RUN - EXPLICIT USER INSTRUCTION"
-    integration_tests: "NOT RUN - EXPLICIT USER INSTRUCTION"
-    e2e_tests: "NOT RUN - EXPLICIT USER INSTRUCTION"
-    lint_typechecks: "NOT RUN - EXPLICIT USER INSTRUCTION"
-    build_packaging: "NOT RUN - EXPLICIT USER INSTRUCTION"
-    github_actions: "NOT TRIGGERED MANUALLY; no branch-push trigger observed in source workflows"
-    outcome: "UNVERIFIED"
-  github_pull_request: "NOT CREATED (deliberate)"
-  release: "NOT CREATED"
-  proposed_next_step: "QA independiente de la rama con fixtures aisladas de Construcción y Ventas; después review y decisión de merge"
+    - "tests/ventas/test_sales_contracts.py"
+    - "tests/ventas/test_sales_ui_exports.py"
+    - "views/ventas/background.py"
+    - "views/ventas/catalog.py"
+    - "views/ventas/construction.py"
+    - "views/ventas/csv_import.py"
+    - "views/ventas/datasheets.py"
+    - "views/ventas/editor.py"
+    - "views/ventas/shell.py"

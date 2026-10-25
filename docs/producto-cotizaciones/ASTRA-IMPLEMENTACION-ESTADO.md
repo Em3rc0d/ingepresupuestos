@@ -1,115 +1,61 @@
-# Entrega de implementación Ventas — UNVERIFIED
+# Estado de implementación — Fase 2 — UNVERIFIED
 
-Fecha: 2026-10-24. Repositorio exclusivo `Em3rc0d/ingepresupuestos`.
-Base: `design/multi-sector-quotations-mk0-20261024` en `88ca463343430e091eb0835ce51316753480e2f3`, PR #4 abierto.
-Rama: `feat/ventas-v1-astra-work-20261024`.
+**Fecha:** 2026-10-25. **Repositorio:** `Em3rc0d/ingepresupuestos`. **Rama:** `feat/ventas-v1-astra-work-20261024`.
 
-**Código implementado, NO VERIFICADO.** No se ejecutaron aplicación, pruebas, linters, typechecks, compilaciones, builds, exportaciones, instaladores, migraciones ni Actions. Tampoco se crearon archivos de pruebas, PR, tags o releases. La revisión de esta entrega consistió exclusivamente en lectura y edición de fuentes/diffs. La autorización coding-only del mandato vigente supera los avisos históricos HOLD de los documentos candidatos; no acredita cierre de gates de QA o mercado.
+Base de Fase 1: `ea195c787db5fc176ba2745334c0fbab00ab1ccb`. Correcciones incorporadas desde PR #5, cabeza `5bdceb4012408e4de3fd0f26c54b3b32ad292995`, mediante merge dirigido exclusivamente a la feature. Sus commits, autores, dos archivos de pruebas y dos workflows se conservan en la ascendencia. Los workflows solo escuchan sus ramas de auditoría; no se ejecutaron ni modificaron durante esta entrega.
 
-| Lote | Estado real |
-|---|---|
-| P0 | Lectura dirigida; decisiones operativas documentadas; rama separada |
-| P1 | Dominio decimal, unidades, fórmulas, precios, estados y ledger escritos; UNVERIFIED |
-| P2 | Migración, repositorios, servicios y snapshots escritos; UNVERIFIED |
-| P3 | Pantallas PySide6 y navegación conectadas por código; UNVERIFIED |
-| P4 | Vista previa, emisión sellada y PDF/XLSX escritos; UNVERIFIED |
-| P5 | Solo protocolo tipado. Implementación del adaptador ACU NO INICIADA |
-| P6 | Matriz y contrato QA redactados; publicación de rama mediante GitHub; sin PR |
+El PR #5 documenta **52 pruebas seleccionadas de Windows aprobadas antes de estas adiciones**. Es evidencia histórica del arreglo, no validación de CSV, conector o fichas. En Fase 2 **no se ejecutó** aplicación, importación de módulos, pruebas, Qt, linters, compilaciones, builds, instalación de dependencias, migraciones, PDF de comprobación ni Actions. No se crearon pruebas nuevas ni se escribió en bases reales/seed. Revisión exclusivamente por lectura/edición de fuentes y diffs.
 
-## Descubrimiento → decisión
+## Alcance entregado por código
 
-| Fuente leída | Hallazgo y decisión |
-|---|---|
-| `views/main_window.py` | Índices de navegación heredados fijos; Ventas se agrega al final con QPushButton accesible por teclado. Carga perezosa en `_crear_vista`; excepción aislada con reintento |
-| `main.py`, `core/config.py` | `init_db` y ruta SQLite activa existentes. Ventas no se inicializa en arranque global ni abre/copia seed |
-| `core/database.py` | Dinero heredado usa float y reglas ACU; dominio nuevo independiente, sin tocar `_recalcular_pu` ni extraer shared kernel no caracterizado |
-| `core/almacen.py`, `core/requerimientos.py` | Stock/consumo por obra y redondeos propios: no reutilizados para SKU |
-| `core/backup.py` | SQLite backup del archivo activo: incluye tablas nuevas sin modificar su API; restauración pendiente de QA |
-| `views/_catalogo_base.py`, `utils/theme.py`, `utils/i18n.py`, `utils/formatting.py` | Se usan tokens de tema y tr; no se heredan CRUD ligados al catálogo de obra ni formateadores que convierten dinero a float |
-| `requirements.txt`, `core/exporter.py`, fuentes Inter | ReportLab/openpyxl ya declarados; exportador comercial separado con misma fuente empaquetada. Ninguna dependencia instalada |
-| `.github/workflows/` | Cinco workflows; push de rama no coincide con triggers de tags/manual/cron. Ningún archivo CI modificado |
-| Auditoría y documento de estabilización PR #3 | Deuda y riesgos heredados siguen abiertos; no se fusiona estabilización ni se atribuyen aquí sus resultados anteriores |
-
-## RF → implementación
-
-Todos los estados “escrito” significan **IMPLEMENTED — UNVERIFIED**, sin prueba de funcionamiento.
-
-| RF | Archivos (relativos a raíz) | Estado / límite |
+| Prioridad / requisito | Estado | Archivos y contrato |
 |---|---|---|
-| 001 | `core/ventas/application/services.py`, `infrastructure/repositories.py` dentro de `core/ventas` | UUID, secuencia anual transaccional, moneda/fechas/cliente: escrito |
-| 002 | `domain/models.py`, `views/ventas/editor.py` | Línea libre sin SKU: escrito |
-| 003 | `application/services.py`, `infrastructure/repositories.py`, `views/ventas/editor.py` | Selección catálogo + snapshot: escrito |
-| 004 | `domain/quantity.py`, `views/ventas/editor.py` | h/jornada/evento/tarifa, sin cuadrillas: escrito |
-| 005 | `domain/formulas.py`, `views/ventas/quantity.py` | Longitud/área/volumen y sumatorias: escrito |
-| 006 | `domain/models.py`, `views/ventas/editor.py` | Líneas mixtas: escrito. Referencia ACU: pendiente |
-| 007 | `domain/models.py`, `application/services.py`, `views/ventas/catalog.py` | CRUD/archivo, precio/costo/tasa explícita: escrito |
-| 008 | `ventas_items.parent_id/attributes`, `views/ventas/catalog.py` | Variante como SKU vendible propio, sin jerarquía recursiva: escrito |
-| 009 | — | Importación CSV NO INICIADA; fuera de A–G obligatorios del mandato |
-| 010 | `domain/quantity.py` | Registro/conversión dimensional y límites: escrito |
-| 011 | `domain/formulas.py`, `views/ventas/catalog.py`, `quantity.py` | Cobertura por mano y fuente/supuesto: escrito |
-| 012 | `domain/formulas.py`, `views/ventas/editor.py` | Requerido vs vendible vs equivalente físico/restante, cierre explícito: escrito |
-| 013 | `domain/money.py`, `views/ventas/editor.py`, `infrastructure/repositories.py` | Tarifa/costo separados, margen de referencia solo con costo: escrito |
-| 014 | `domain/pricing.py` | Descuentos por línea/global; reparto por mayor resto: escrito |
-| 015 | `domain/pricing.py`, `views/ventas/common.py` | Impuesto explícito incluso cero; sin configurar bloquea emisión: escrito |
-| 016 | `application/services.py`, `views/ventas/inventory.py` | Consulta almacén local por SKU: escrito |
-| 017 | `application/services.py` | Guardar/emitir/aceptar/exportar sin llamadas a movimientos: escrito, invariante NO PROBADO |
-| 018 | `domain/inventory.py`, `infrastructure/repositories.py`, `views/ventas/inventory.py` | Movimientos firmados, motivo, actor, no negativos: escrito |
-| 019 | `application/services.py`, `views/ventas/editor.py` | Requerido agregado, faltante, físico/disponible; reservado=0 sin reservas: escrito |
-| 020 | `domain/models.py`, `application/services.py`, `views/ventas/catalog.py` | Paquete de un nivel; componentes internos y precio externo explícito: escrito |
-| 021 | `infrastructure/exporters.py`, `views/ventas/editor.py` | Preview de revisión guardada y comparación de contenido antes de emitir: escrito |
-| 022 | `infrastructure/migrations.py`, `repositories.py`, `application/services.py` | Revisiones, SHA256, triggers y diff: escrito |
-| 023 | `infrastructure/exporters.py`, `views/ventas/editor.py` | PDF y XLSX por revisión: escrito. No se generaron archivos para comprobarlo |
-| 024 | `domain/quote_states.py`, `application/services.py`, `views/ventas/shell.py` | Estados y eventos con actor/motivo/fecha: escrito |
-| 025 | `infrastructure/sqlite.py`, `application/services.py` | Persistencia local transaccional: escrito |
-| 026 | `views/ventas/shell.py` | Filtros número/título/receptor, cliente, fecha, estado y selector de revisión: escrito |
-| 027 | `application/services.py`, `views/ventas/editor.py` | Nueva revisión y diferencias, preservando emitida: escrito |
-| 028 | `domain/formulas.py`, `views/ventas/catalog.py`, `quantity.py` | Referencia textual/fuente y supuesto no validado: escrito. Adjuntos de fichas NO implementados |
-| 029 | `application/services.py` | No existe conversión a orden ni movimiento automático; límite por diseño, NO PROBADO |
-| 030 | `views/main_window.py` | Único archivo heredado de runtime editado; resto de Construcción sin cambios de fuente. Regresión NO EJECUTADA |
-| 031 | `views/main_window.py`, `views/ventas/shell.py` | Entrada Ventas independiente, error de bootstrap aislado: escrito |
-| 032 | `infrastructure/migrations.py` | Tablas ventas independientes y UUID propios: escrito |
-| 033 | `application/construction_adapter.py` | Solo dataclass + Protocol. Sin lector SQLite, sin botón de importación. PENDIENTE |
-| 034 | `infrastructure/repositories.py` | Historial append-only de tarifas por moneda + snapshots de condiciones: escrito. Listas avanzadas pendientes |
-| 035 | `infrastructure/migrations.py`, `repositories.py` | Ledger comercial propio, sin escrituras a almacén de obra: escrito, NO PROBADO |
+| P0 / PR #5 | INTEGRATED | Merge de `5bdceb4`; INSERT con 9 columnas explícitas; servicio y UI permiten revisar únicamente estado global y revisión EMITIDA, con token. Estados terminales no se reabren |
+| P1 / RF-009 | IMPLEMENTED_UNVERIFIED | `infrastructure/catalog_csv.py`, `application/catalog_import.py`, `views/ventas/csv_import.py`: lectura acotada, plantilla, errores por fila, preview sin escrituras, confirmación y lote atómico con control de concurrencia |
+| P2 / RF-033 | IMPLEMENTED_UNVERIFIED | `infrastructure/construction_reader.py`, `application/construction_adapter.py`, `construction.py`, `views/ventas/construction.py`: SQLite `mode=ro`, `query_only`, pertenencia/proyecto/usuario, metrado/unidad/moneda/costo guardado y ACU por proyecto, procedencia SHA256 congelada. Precio comercial explícito |
+| P3 / RF-028 | IMPLEMENTED_UNVERIFIED | `infrastructure/datasheets.py`, `data_package.py`, `application/datasheets.py`, `views/ventas/datasheets.py`: documentos administrados, metadatos/eventos append-only, retirada sin borrar histórico, copias/exportación y respaldo ZIP explícito |
+| P4 / RF-021/022/023/027/031 | IMPLEMENTED_UNVERIFIED | Catálogo, editor de línea/cotización e Inicio Ventas conectados; captura explícita de referencias; exportación de nombre/hash sin rutas privadas ni costos. Diálogos de archivos usan worker Qt para IO/parseo |
+| RF-017/019/029/035 | PRESERVED_BY_DESIGN | CSV y ACU/fichas no registran movimientos ni reservas. Requeridos/disponibles siguen separados de inventario de obra. Comparación de ledger pendiente de QA |
+| RF-030/032/034 | PRESERVED_BY_DESIGN | Sin cambios nuevos en `core/database.py`, `core/almacen.py`, seed o `views/main_window.py`. Tarifas siguen en tablas Ventas. La preservación por diff no acredita regresión funcional |
+| RF restantes de Fase 1 | CARRY_FORWARD_UNVERIFIED | Se conserva la primera implementación y sus contratos; no se reescribió el cotizador. QA completo sigue abierto |
 
-Los paths abreviados `domain/*`, `application/*`, `infrastructure/*` corresponden a `core/ventas/`.
+Los paths de `application/` e `infrastructure/` son relativos a `core/ventas/`.
 
-## Invariantes y límites de evidencia
+## Decisiones concretas y límites
 
-- INV-01/02/07/09/12: separación de tablas, bootstrap perezoso y núcleo sin Qt/red; requieren pruebas de regresión, rollback y offline.
-- INV-03/04/08: costos/precios explícitos y fórmulas cerradas/decimales; requieren oráculos numéricos independientes.
-- INV-05: cotizaciones no invocan escritura de movimientos; requiere comparar ledger y obra antes/después.
-- INV-06: triggers/SHA256 y exportación desde snapshot; requiere ataques de mutación, comparación de documentos y verificación visual.
-- INV-10: esta rama no modifica infraestructura, updater ni workflows. Los problemas heredados de PR #3 continúan pendientes; no se afirma que INV-10 esté cerrado globalmente.
-- INV-11: no hay pruebas ni evidencia de producción. Sin GO a merge/release/comercialización.
+- CSV: 5 MiB/5000 registros, UTF-8/BOM, coma o punto y coma con detección por encabezados; punto decimal. `CREAR_SOLO` omite SKU ya existentes; duplicados dentro del archivo son error. Actualización explícita conserva identidad/atributos/fórmulas no presentes en columnas opcionales, respeta historial y recupera costo de la misma moneda, nunca de otra tarifa. Variantes requieren padre ya existente; paquetes nuevos con componentes se crean por UI, no por CSV. Todos los errores bloquean el lote.
+- El preview conserva fingerprint del catálogo/tarifas/ledger. Confirmación exige que no cambien y revalida dentro de `BEGIN IMMEDIATE`; resumen/actor/hash CSV en `ventas_importaciones`. No hay stock inicial en CSV.
+- ACU: se usa el **PU técnico almacenado**, no se ejecuta `_recalcular_pu` ni se certifica equivalencia con un ACU recién recalculado. Se capturan `ai.precio` efectivo por proyecto, fallback de catálogo, cantidades/cuadrillas, recursos, ajustes de precisión y contexto de proyecto. Los REAL heredados cruzan como texto SQLite. Costo no representable a seis decimales se conserva íntegro en procedencia y no produce un margen ficticio.
+- Conector opcional y perezoso: no interviene en bootstrap. Unidad/moneda no reconocidas, agrupador o proyecto no autorizado bloquean solo esa selección. Sin FX. Sin PR #1 ni PR #3 integrados.
+- Fichas: PDF/PNG/JPEG, firma y extensión, 20 MiB por archivo, hasta 10 referencias activas por artículo/línea. Almacén `USER_DATA_DIR/ventas/fichas/<sha256>.<ext>`; inspección no copia, confirmación sí. No OCR, extracción de rendimiento ni ejecución de archivos. Metadatos y procedencia quedan congelados en la línea.
+- Ficha original eliminada: la copia administrada continúa independiente. Copia administrada ausente/alterada: estado `ARCHIVO NO DISPONIBLE`; el snapshot monetario y las exportaciones históricas no dependen de abrir ese archivo.
+- Retirada es evento append-only; archivos históricos se retienen. Un fallo DB después de copiar puede dejar un blob sin referencia, nunca una falsa asociación confirmada. No se eliminan huérfanos automáticamente por riesgo de afectar referencias concurrentes.
+- Backup habitual: incluye SQLite, **NO las fichas**. Paquete ZIP explícito para administrador incluye snapshot completo de ambas BUs/usuarios, todas las fichas históricas y manifest SHA256. Máximo 512 MiB y 10000 referencias; si falta una ficha, se rechaza el paquete incompleto. Sin cifrado. Restauración guiada en copia, sin importador destructivo automático.
+- Migración **2 añadida**, DDL y checksum de versión **1 intactos**. Añade `ventas_importaciones`, `ventas_fichas`, `ventas_fichas_eventos`, índices/triggers; no altera registros emitidos ni tablas de Construcción. Upgrade/rollback/backup todavía NO PROBADOS.
 
-## Riesgos y pendientes concretos
+## Commits remotos de programación de Fase 2
 
-1. No se ha comprobado ni siquiera importación/sintaxis del incremento, por prohibición expresa. Revisar en QA cada señal/slot Qt, migración, SQL y flujo antes de usarlo con datos reales.
-2. No se ejecutó la migración en base vacía/copias ni se verificó backup/restauración o coexistencia con proyectos de obra.
-3. No hay validación visual PDF/XLSX, paginación de descripciones extensas, caracteres no latinos ni diferencias Windows/Linux. XLSX guarda decimales exactos como texto para evitar la pérdida de precisión de Excel; no contiene fórmulas ni cálculo de hoja.
-4. Falta medir rendimiento de 5.000 SKU/200 líneas; el editor consulta disponibilidad local y vuelve a presentar tablas al recalcular. No se afirma RNF-09 satisfecho.
-5. Accesibilidad/contraste/zoom/cierre de diálogos y tamaño mínimo requieren interacción real. Invitados se bloquean en servicios para escrituras de negocio; no es seguridad online ni segregación avanzada de roles.
-6. La referencia del ledger indica cuándo se registró el último movimiento, no certifica un conteo físico ni sincronización con otros dispositivos.
-7. SKU estable; para cambiar unidad o seguimiento tras movimientos se exige nuevo SKU. El almacén de v1 es único; no hay reservas ni devoluciones con órdenes.
-8. Fichas solo referenciadas por texto. Sin adjuntos, sin importación CSV y sin conector ACU implementado. Sin SUNAT/POS/pedidos/API/IA/cloud.
-9. PR #1/#3 siguen separados. Persisten riesgos de updater/identidad/semilla/dependencias del baseline; no corregidos por este incremento.
-10. Los modelos nuevos son independientes, sin extracción de shared kernel de Construcción: no hubo caracterización de equivalencia que autorice reutilizar su cálculo.
-
-Contrato siguiente: [QA-POST-ASTRA-PENDIENTE.md](QA-POST-ASTRA-PENDIENTE.md). Guía de uso: [VENTAS-GUIA-V1.md](VENTAS-GUIA-V1.md).
-
-## Commits publicados de código
-
-Los SHA siguientes corresponden a GitHub; el envío directo por Git no disponía de credenciales y los commits se recrearon mediante el conector, conservando exactamente el árbol de fuentes local. La comparación de árboles es integridad de transferencia, no prueba del software.
-
-| SHA remoto | Cambio |
+| SHA | Cambio |
 |---|---|
-| `4e4a48af29290f594d248edb13bb6d3db9d8a5a2` | Dominio y decisiones operativas |
-| `33a5084c1aecb3fd1f87eddda59660f95db9f379` | Migración, repositorios y servicios |
-| `7c028fdefbce9ec2b570c94bccf47b9c8da8f53e` | Exportación y emisión ligada a preview |
-| `6b5ba49d4bb2eb58330c32be6f83f66138997284` | UI y navegación |
-| `278e7461f2ca22070a6808d05c0e64b97226a5b6` | SKU estable y cantidades históricas |
-| `ef2d262c6ba33c768076ffee91f4277ee3713f2b` | Unidad/tipo de línea del catálogo |
-| `de59cf3bc3081bff2884577c034c5b9aa30b32bf` | Moneda y cierre de formularios anidados |
+| `5ccc80b0898b5dea3620be003af3ea1d90146c53` | Merge PR #5 a feature conservando ascendencia |
+| `02128eee4daf9744d864ecafadefb17c46feb3e4` | Columnas explícitas y controles de estados |
+| `9e88f523e02151a441636173156488431290a93a` | CSV con preview y lote atómico |
+| `35b2c24f3e1525c081694981d00adf592ca43995` | Conector ACU de solo lectura |
+| `3b96dcd01d641c27f4be2f125a17a5d6e9bd2b9d` | Fichas administradas, snapshots y paquete de respaldo |
+| `753986ef6248fd2873cb98e345965d4a1ce0cc4e` | Límites de archivos y moneda de costos en CSV |
+| `4df6dd37c9c630ccebdb7597458762ef73f74f67` | Procedencia de Construcción visible en editor |
 
-El commit contenedor de este documento completa el handoff documental. Inventario completo de archivos: [ASTRA-HANDOFF.yaml](ASTRA-HANDOFF.yaml).
+Los commits fueron publicados mediante el conector GitHub; el árbol de fuentes remoto coincide con el local. Esto solo demuestra integridad de transferencia. El commit contenedor de este documento cierra el handoff documental.
+
+## Pendientes explícitos
+
+1. QA independiente: sintaxis/importación, contratos previos, flujos nuevos, concurrencia, rollback, upgrade v1→v2, Linux/Windows y cierre de workers. No hay resultado nuevo que permita declarar PASS.
+2. Restauración real del ZIP, firmas/hashes, recuperación de fichas ausentes, permisos y copia consistente de base activa; por ahora existe generación y guía, no asistente de restauración automática.
+3. Equivalencia profesional de costos de obra: el conector muestra referencias guardadas, no recalcula ni valida ingeniería. Unidades ambiguas quedan bloqueadas; no se incluye optimización de corte ni motor paramétrico del PR #1.
+4. Importación de paquetes con composición dentro del CSV y variantes cuyo padre se cree en el mismo lote no soportadas; usar alta previa/paquetes por UI. Aprobaciones/descuentos avanzados, reservas, multi-almacén, SUNAT/POS/cloud siguen fuera.
+5. Accesibilidad, rendimiento 5000 SKU/200 líneas, paginación PDF, cierre multiventana y protección del ciclo de vida de threads requieren QA real.
+6. Estabilización PR #3, licencias/privacidad de seed, dependencias/updater/identidad y gate comercial siguen separados. Ningún merge a `main`, tag, release o nuevo PR en esta entrega.
+
+[Guía de uso](VENTAS-GUIA-V1.md) · [QA posterior](QA-POST-ASTRA-PENDIENTE.md) · [Handoff YAML](ASTRA-HANDOFF.yaml).
+
+Actualización de alcance del paquete: `f915b7dc4ed9aa28227e6c2b765aea0a987449fd` explicita en UI/manifest que no incluye uploads/imágenes ni otros archivos externos de Construcción. Es respaldo de SQLite y fichas, no un empaquetado de todos los activos de la aplicación. El downgrade a runtime v1 requiere copia anterior compatible, sin borrar tablas ni forzar checksums.
