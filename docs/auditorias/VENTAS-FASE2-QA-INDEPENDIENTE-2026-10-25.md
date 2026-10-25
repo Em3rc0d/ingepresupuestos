@@ -76,3 +76,32 @@ Los tests heredados de Ventas incluyen cotización, snapshot, emisión, inmutabi
 El resultado respalda que existe una implementación funcional en los escenarios probados, **no** que todo el producto está libre de defectos.
 
 **Enlaces para continuación:** [rama feature](https://github.com/Em3rc0d/ingepresupuestos/tree/feat/ventas-v1-astra-work-20261024) · [QA Linux](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40229995527) · [QA Windows](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40230170649) · [Matriz Fase 2 original](../producto-cotizaciones/QA-POST-ASTRA-PENDIENTE.md).
+
+---
+
+## Complemento ejecutado el 25/10/2026: recuperación real en directorios sintéticos
+
+**Commit funcional de Astra bajo prueba: `2a33651125a4eb81d8245d26cba1af270be95073`, sin cambios.**
+
+### Recuperación en Windows (nuevo)
+
+- [QA inicial 40232413882](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232413882): 4 PASS / 1 FAIL. El fallo en el caso roundtrip provenía del **test** que no cerraba explícitamente una conexión temporal `sqlite3.connect()` antes de borrar un archivo en Windows: `PermissionError WinError 32`. No prueba corrupción del producto; corregir el harness no cambia código de Ventas.
+- [Reintento con conexiones cerradas 40232631879](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232631879): **5 PASS / 0 FAIL** en nuevos escenarios de recuperación, más **12 PASS** en regresión de Ventas/UI/exportaciones.
+- Rama exclusiva QA: [audit/ventas-phase2-restore-windows-retry-20261025](https://github.com/Em3rc0d/ingepresupuestos/tree/audit/ventas-phase2-restore-windows-retry-20261025).
+
+**Escenarios del reintento:**
+1. Crear cliente temporal implícito, artículo, cotización emitida con tasa cero explícita y ficha sintética; añadir fila a tabla `proyectos` temporal, crear ZIP.
+2. Eliminar **solo** la base y las fichas temporales de origen. Leer ZIP, verificar todas las rutas relativas permitidas, tamaños y SHA-256 del manifest; reconstruir copia en **otra carpeta temporal**; abrir `SalesService` y SQLite, verificar hash de cotización/importe, ficha retirada históricamente, saldo de datos `proyectos`, `PRAGMA integrity_check`, `PRAGMA foreign_key_check`.
+3. Alterar bytes del miembro SQLite en un ZIP de ensayo: verificación del manifest rechaza restauración.
+4. Eliminar copia de ficha administrada: paquete de respaldo se rechaza sin sobrescribir un archivo ZIP anterior; la asociación queda marcada no disponible.
+5. Inyectar fallo durante segundo `Repository.save_item` de CSV de dos artículos: rollback de ítems, tarifas y asiento de importación en una sola transacción.
+6. Inyectar FK inválida: SQLite bloquea escritura parcial.
+
+**Límite importantísimo:** `manual_verified_restore()` es **procedimiento programático del TEST**, no una función de restauración de la aplicación. No hay asistente de restauración automático, no se han probado backups de usuarios reales ni carpetas externas de Construcción. ZIP no está cifrado. El respaldo portable sigue excluyendo imágenes/uploads externos de Construcción. Debe restaurarse con la app cerrada y sobre copia verificada.
+
+### Regresión integral heredada: intento inicial interrumpido
+
+- [Acción 40232413882](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232413882): sweep por fichero, **37 módulos previstos**. Se completaron los tres primeros en PASS (`test_acerca.py`, `test_acu_aire.py`, `test_almacen.py`); `test_appimage.py` reportó **1 FAIL / 5 PASS**, aserción heredada de ruta de icono Flatpak ya citada en la auditoría original. Al empezar `test_arbol_niveles_y_duplicar.py`, el runner recibió **shutdown signal (143)**. Por tanto, **NO** hubo barrido integral ni se puede llamar regresión total completada.
+- Reintento acotado en [audit/ventas-construction-sweep-fast-20261025](https://github.com/Em3rc0d/ingepresupuestos/tree/audit/ventas-construction-sweep-fast-20261025), con 15 segundos máximos por módulo y cuatro minutos de presupuesto, [Actions 40232885323](https://github.com/Em3rc0d/ingepresupuestos/actions/runs/40232885323). **Resultado final: pendiente de anexar al obtener salida del runner**.
+
+**Gate al escribir este complemento:** recuperación sintética Windows PASS; regresión integral y validación gráfica manual Windows HOLD; merge `main` y release HOLD. Escribir tests/scripts de QA en ramas de auditoría no concede autorización de modificar tablas, cálculos o política comercial de Construcción.
