@@ -17,7 +17,7 @@ def main():
     cases = sorted((root / "tests").glob("test_*.py"))
     results = []
     start = time.monotonic()
-    budget = 15 * 60
+    budget = 4 * 60
     for index, case in enumerate(cases, 1):
         if time.monotonic() - start > budget:
             print("TIME BUDGET REACHED: remaining files not executed", flush=True)
@@ -30,14 +30,14 @@ def main():
             env["XDG_DATA_HOME"] = str(Path(temp) / "xdg")
             env["APPDATA"] = str(Path(temp) / "appdata")
             cmd = [sys.executable, "-m", "pytest", "-q", "-ra",
-                   "--timeout=40", str(case.relative_to(root))]
+                   "--timeout=15", str(case.relative_to(root))]
             print(f"CASE {index}/{len(cases)}: {case.name}", flush=True)
             t0 = time.monotonic()
             try:
                 process = subprocess.run(cmd, cwd=root, env=env,
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT,
-                                         text=True, timeout=80)
+                                         text=True, timeout=15)
                 combined = process.stdout
                 status = "PASS" if process.returncode == 0 else "FAIL"
                 last = combined.splitlines()[-14:]
