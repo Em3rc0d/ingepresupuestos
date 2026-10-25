@@ -88,6 +88,8 @@ class QuoteLine:
     components: list = field(default_factory=list)
     override_reason: str = ''
     id: str = field(default_factory=lambda: str(uuid4()))
+    provenance: dict = field(default_factory=dict)
+    datasheets: list = field(default_factory=list)
 
     def __post_init__(self):
         if not self.description.strip() or len(self.description) > 5000:

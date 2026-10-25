@@ -62,8 +62,9 @@ class LineDialog(DirtyDialog):
         self.watch()
         self.unit.currentIndexChanged.connect(self.clear_formula)
         self.quantity.textEdited.connect(self.clear_formula)
-        self.kind.setEnabled(not self.line.get('item_id'))
-        self.unit.setEnabled(not self.line.get('item_id'))
+        fixed = bool(self.line.get('item_id') or self.line.get('provenance'))
+        self.kind.setEnabled(not fixed)
+        self.unit.setEnabled(not fixed)
         self.update_margin()
 
     def reload_catalog(self):
@@ -150,7 +151,7 @@ class LineDialog(DirtyDialog):
         if data.get('item_id'):
             data['kind'] = self.line['kind']
         if not data.get('item_id'):
-            data['kind'] = 'ITEM_LIBRE'
+            data['kind'] = 'SERVICIO' if data.get('provenance') else 'ITEM_LIBRE'
             data['components'] = []
         line = QuoteLine(**data)
         from core.ventas.domain.pricing import calculate
@@ -245,6 +246,7 @@ class QuoteEditor(DirtyDialog):
         controls = QHBoxLayout()
         self.body_layout.addLayout(controls)
         button('Añadir línea', self.add_line, controls, True)
+        button('Añadir desde Construcción', self.add_construction, controls)
         button('Editar', self.edit_line, controls)
         button('Duplicar', self.duplicate_line, controls)
         button('Eliminar', self.remove_line, controls)
@@ -338,6 +340,17 @@ class QuoteEditor(DirtyDialog):
         dialog = LineDialog(self.service, self.code.currentData(), self.document['lines'][index], self)
         if dialog.exec() == QDialog.Accepted:
             self.document['lines'][index] = dialog.result_line
+            self.mark_dirty()
+            self.refresh_totals()
+
+    @action
+    def add_construction(self):
+        from .construction import ConstructionDialog
+        dialog = ConstructionDialog(self.service, self.code.currentData(), self)
+        if dialog.exec() == QDialog.Accepted:
+            if len(self.document['lines']) >= 200:
+                raise ValidationError('Máximo 200 líneas.')
+            self.document['lines'].append(dialog.result_line)
             self.mark_dirty()
             self.refresh_totals()
 

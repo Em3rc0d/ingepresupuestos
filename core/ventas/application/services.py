@@ -16,6 +16,8 @@ from ..domain.quote_states import transition
 from ..infrastructure.sqlite import SalesStore, now
 from ..infrastructure.repositories import fingerprint
 from .catalog_import import CatalogImportMixin
+from .construction import ConstructionMixin
+from .construction_adapter import validate_snapshot
 
 
 def valid_date(value, label):
@@ -25,12 +27,13 @@ def valid_date(value, label):
         raise ValidationError(f'{label}: fecha ISO requerida (AAAA-MM-DD).') from None
 
 
-class SalesService(CatalogImportMixin):
+class SalesService(CatalogImportMixin, ConstructionMixin):
     """Single application boundary for views; all SQL stays in infrastructure."""
-    def __init__(self, path, actor='Usuario local', readonly=False):
+    def __init__(self, path, actor='Usuario local', readonly=False, user_id=None, is_admin=False):
         self.store = SalesStore(path)
         self.actor = str(actor or 'Usuario local')
         self.readonly = readonly
+        self.user_id, self.is_admin = user_id, is_admin
         self.store.initialize()
 
     def writable(self):
@@ -165,6 +168,14 @@ class SalesService(CatalogImportMixin):
         if not h.get('title', '').strip():
             raise ValidationError('Título/referencia requerida.')
         for line in document['lines']:
+            provenance = line.get('provenance') or {}
+            if provenance:
+                if provenance.get('kind') != 'CONSTRUCTION':
+                    raise ValidationError('Procedencia de línea no soportada.')
+                snapshot = provenance['snapshot']
+                validate_snapshot(snapshot)
+                if line['unit'] != snapshot['unit'] or h['currency'] != snapshot['cost_currency']:
+                    raise ValidationError('Unidad/moneda de línea incompatible con su referencia de Construcción.')
             formula = line.get('formula')
             if formula:
                 evaluated = calculate_quantity(formula['method'], formula['params'], line['unit'])

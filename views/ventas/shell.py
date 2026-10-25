@@ -203,7 +203,8 @@ class SalesView(QWidget):
         super().__init__(parent)
         from core.config import DB_PATH
         actor = f'{user.id}:{user.username or user.nombre}' if user is not None else 'Usuario local'
-        self.service = SalesService(DB_PATH, actor, readonly=user is None or user.es_invitado)
+        self.service = SalesService(DB_PATH, actor, readonly=user is None or user.es_invitado,
+                                    user_id=getattr(user, 'id', None), is_admin=getattr(user, 'es_admin', False))
         self.setObjectName('salesWorkspace')
         self.setStyleSheet(f'QWidget#salesWorkspace {{ background:{C.bg}; color:{C.text}; }}')
         layout = QVBoxLayout(self)
