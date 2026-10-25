@@ -113,7 +113,7 @@ class PackageDialog(AsyncDialog):
     def __init__(self, service, parent=None):
         super().__init__('Respaldo completo con fichas', parent)
         self.service = service
-        message = QLabel(tr('El paquete ZIP contiene la SQLite COMPLETA: Construcción, Ventas y usuarios, además de todas las fichas históricas. No tiene cifrado. Guárdelo en una ubicación privada. El backup SQLite habitual no incluye documentos externos. La restauración requiere cerrar la app y seguir la guía; no se sobrescriben datos desde este diálogo.'))
+        message = QLabel(tr('El paquete ZIP contiene la SQLite COMPLETA: Construcción, Ventas y usuarios, además de todas las fichas históricas. No incluye otros archivos externos de Construcción (uploads, imágenes y recursos). No tiene cifrado. Guárdelo en una ubicación privada. El backup SQLite habitual no incluye documentos externos. La restauración requiere cerrar la app y seguir la guía; no se sobrescriben datos desde este diálogo.'))
         message.setWordWrap(True)
         self.body_layout.addWidget(message)
         self.status = QLabel()

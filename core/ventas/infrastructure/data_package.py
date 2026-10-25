@@ -65,6 +65,7 @@ def export_package(database, files_root, destination):
                 raise ValidationError('El paquete supera 512 MiB. Se requiere una estrategia de respaldo mayor; no se genera uno incompleto.')
             manifest = {'format': 'ingepresupuestos-ventas-package/1', 'created_at': now(), 'complete': True,
                         'scope': 'SQLite completa (Construcción, Ventas y usuarios) y todas las fichas históricas',
+                        'excluded': ['Otros archivos externos de Construcción (uploads, imágenes y recursos fuera de SQLite)'],
                         'database': {'path': 'database/presupuestos.db', 'sha256': digest_file(snapshot), 'bytes': snapshot.stat().st_size},
                         'files': [{'path': 'fichas/' + name, 'sha256': f['sha256'], 'bytes': f['bytes'], 'mime': f['mime']} for name, f in distinct.items()]}
             with atomic_destination(destination) as output:
