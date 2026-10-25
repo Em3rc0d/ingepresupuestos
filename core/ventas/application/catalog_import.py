@@ -59,6 +59,9 @@ class CatalogImportMixin:
                     data.update(sku=previous['sku'] if previous else sku, name=values['nombre'], kind=values['tipo'].upper(),
                                 unit=values['unidad'], physical_unit=values['unidad_fisica'],
                                 price=numeric(values['precio'], 'precio'), currency=values['moneda'].upper())
+                    if previous and 'costo' not in values:
+                        # Never carry a PEN cost into a new USD tariff (or vice versa).
+                        data['cost'] = repo.item(previous['id'], data['currency'])['cost']
                     for column, target in (('costo', 'cost'), ('descripcion', 'description')):
                         if column in values:
                             data[target] = numeric(values[column], column) if column == 'costo' and values[column] else (None if column == 'costo' else values[column])

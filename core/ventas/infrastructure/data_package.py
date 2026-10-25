@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from ..domain.errors import StorageError, ValidationError
-from .datasheets import ManagedDatasheets, public_reference
+from .datasheets import MAX_FILE_BYTES, ManagedDatasheets, public_reference
 from .exporters import atomic_destination
 from .repositories import dumps
 from .sqlite import now
@@ -27,6 +27,8 @@ def export_package(database, files_root, destination):
     if Path(destination).suffix.lower() != '.zip':
         raise ValidationError('Seleccione un destino con extensión .zip.')
     managed = ManagedDatasheets(files_root)
+    if Path(database).stat().st_size > MAX_PACKAGE_BYTES:
+        raise ValidationError('La SQLite supera 512 MiB; se requiere una estrategia de respaldo mayor.')
     try:
         with TemporaryDirectory(prefix='ventas-package-') as temporary:
             snapshot = Path(temporary) / 'presupuestos.db'
@@ -48,13 +50,15 @@ def export_package(database, files_root, destination):
             finally:
                 connection.close()
             distinct = {}
+            if len(rows) > 10000:
+                raise ValidationError('El paquete supera 10000 referencias históricas; se requiere un respaldo especializado.')
             for row in rows:
                 reference = public_reference(row)
                 if not managed.status(reference).startswith('DISPONIBLE'):
                     raise StorageError('Respaldo bloqueado: alguna ficha histórica está ausente o cambió. La base SQLite sola no respalda documentos externos.')
-                name = reference['sha256'] + Path(row['ruta_interna']).suffix
                 path = managed.path(reference['sha256'], reference['mime'])
-                if name != path.name:
+                name = path.name
+                if row['ruta_interna'] != name:
                     raise StorageError('Referencia de ruta administrada inconsistente.')
                 distinct[name] = {'path': path, 'sha256': reference['sha256'], 'bytes': reference['size'], 'mime': reference['mime']}
             if snapshot.stat().st_size + sum(file['bytes'] for file in distinct.values()) > MAX_PACKAGE_BYTES:
@@ -67,7 +71,8 @@ def export_package(database, files_root, destination):
                 with ZipFile(output, 'w', compression=ZIP_DEFLATED) as archive:
                     archive.write(snapshot, 'database/presupuestos.db')
                     for name, file in distinct.items():
-                        content = file['path'].read_bytes()
+                        with file['path'].open('rb') as stream:
+                            content = stream.read(MAX_FILE_BYTES + 1)
                         if len(content) != file['bytes'] or sha256(content).hexdigest() != file['sha256']:
                             raise StorageError('Ficha modificada durante respaldo. Se conserva el archivo destino anterior.')
                         archive.writestr('fichas/' + name, content)

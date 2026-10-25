@@ -29,7 +29,8 @@ def inspect_file(path):
     signatures = {'application/pdf': content.startswith(b'%PDF-'), 'image/png': content.startswith(b'\x89PNG\r\n\x1a\n'), 'image/jpeg': content.startswith(b'\xff\xd8\xff')}
     if not signatures[mime]:
         raise ValidationError('La firma del archivo no coincide con su extensión PDF/PNG/JPEG.')
-    name = re.sub(r'[\x00-\x1f\x7f/\\]', '', candidate.name)[:180]
+    stem = re.sub(r'[\x00-\x1f\x7f/\\]', '', candidate.stem)
+    name = stem[:180 - len(extension)] + extension
     return {'source_path': str(candidate), 'filename': name, 'mime': mime, 'size': len(content), 'sha256': sha256(content).hexdigest()}
 
 
@@ -53,7 +54,7 @@ class ManagedDatasheets:
         if not re.fullmatch(r'[0-9a-f]{64}', digest) or mime not in EXTENSIONS:
             raise ValidationError('Identificación interna de ficha no válida.')
         target = self.root / (digest + EXTENSIONS[mime])
-        if self.root.is_symlink() or target.is_symlink():
+        if self.root.is_symlink() or self.root.parent.is_symlink() or target.is_symlink():
             raise StorageError('Almacén de fichas con enlace simbólico no admitido.')
         if target.resolve().parent != self.root.resolve():
             raise StorageError('Ruta de ficha fuera del almacén administrado.')
